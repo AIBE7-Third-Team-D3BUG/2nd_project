@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -150,9 +150,9 @@
 
                 <!-- 우측 사용자 인터랙션 -->
                 <div class="flex items-center gap-3">
-                    <button onclick="showPage('profile')" class="hidden sm:inline-flex text-[13px] font-semibold text-[#4E5968] hover:text-[#191F28] px-3.5 py-2 rounded-lg hover:bg-gray-100 transition">
-                        로그인
-                    </button>
+                    <a sec:authorize="isAnonymous()" th:href="@{/login}" class="hidden sm:inline-flex text-[13px] font-semibold text-[#4E5968] hover:text-[#191F28] px-3.5 py-2 rounded-lg hover:bg-gray-100 transition">로그인</a>
+                    <a sec:authorize="isAnonymous()" th:href="@{/signup}" class="hidden sm:inline-flex text-[13px] font-semibold text-brand-600 hover:text-brand-700 px-3.5 py-2 rounded-lg hover:bg-brand-50 transition">회원가입</a>
+                    <a sec:authorize="isAuthenticated()" th:href="@{/profile}" class="hidden sm:inline-flex text-[13px] font-semibold text-[#4E5968] hover:text-[#191F28] px-3.5 py-2 rounded-lg hover:bg-gray-100 transition">마이프로필</a>
                     <button onclick="showPage('detail')" class="bg-[#191F28] hover:bg-black text-white text-[13px] font-bold px-4 py-2.5 rounded-xl transition shadow-sm inline-flex items-center gap-1.5">
                         <i class="fa-solid fa-plus text-[11px] text-brand-500"></i> 의뢰 등록하기
                     </button>
@@ -809,4 +809,3 @@
     </script>
 </body>
 </html>
-

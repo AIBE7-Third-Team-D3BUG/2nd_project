@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>회원가입 | TASKFLASH</title>
+    <link rel="stylesheet" th:href="@{/css/account.css}">
+</head>
+<body>
+<header class="account-header">
+    <a class="brand" th:href="@{/}">TASK<span>FLASH</span></a>
+    <a class="home-link" th:href="@{/login}">로그인</a>
+</header>
+<main class="account-main">
+    <section class="card">
+        <h1>회원가입</h1>
+        <p class="subtitle">가입하면 체험용 시간 120분(4품)이 지급됩니다.</p>
+
+        <form th:action="@{/signup}" th:object="${signupForm}" method="post" autocomplete="off">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+            <div class="errors" th:if="${#fields.hasGlobalErrors()}">
+                <div th:each="error : ${#fields.globalErrors()}" th:text="${error}"></div>
+            </div>
+            <div class="field">
+                <label for="email">이메일</label>
+                <input id="email" type="email" th:field="*{email}" maxlength="255" autocomplete="email" required>
+                <div class="field-error" th:errors="*{email}"></div>
+            </div>
+            <div class="field">
+                <label for="nickname">닉네임</label>
+                <input id="nickname" type="text" th:field="*{nickname}" maxlength="20" autocomplete="nickname" required>
+                <div class="field-error" th:errors="*{nickname}"></div>
+            </div>
+            <div class="field">
+                <label for="password">비밀번호</label>
+                <input id="password" type="password" th:field="*{password}" minlength="10" maxlength="72" autocomplete="new-password" required>
+                <div class="field-help">영문, 숫자, 특수문자를 포함해 10자 이상 입력해주세요.</div>
+                <div class="field-error" th:errors="*{password}"></div>
+            </div>
+            <div class="field">
+                <label for="passwordConfirm">비밀번호 확인</label>
+                <input id="passwordConfirm" type="password" th:field="*{passwordConfirm}" maxlength="72" autocomplete="new-password" required>
+                <div class="field-error" th:errors="*{passwordConfirm}"></div>
+                <div class="field-error" th:errors="*{passwordConfirmed}"></div>
+            </div>
+            <label class="checkbox">
+                <input type="checkbox" th:field="*{termsAgreed}">
+                <span>서비스 이용약관에 동의합니다. (필수)</span>
+            </label>
+            <div class="field-error" th:errors="*{termsAgreed}"></div>
+            <label class="checkbox">
+                <input type="checkbox" th:field="*{privacyAgreed}">
+                <span>개인정보 수집 및 이용에 동의합니다. (필수)</span>
+            </label>
+            <div class="field-error" th:errors="*{privacyAgreed}"></div>
+            <button class="primary-button" type="submit">안전하게 가입하기</button>
+        </form>
+        <div class="text-link">이미 계정이 있나요? <a th:href="@{/login}">로그인</a></div>
+    </section>
+</main>
+</body>
+</html>
