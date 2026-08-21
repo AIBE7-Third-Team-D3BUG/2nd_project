@@ -54,5 +54,18 @@ dependencyManagement {
 }
 
 tasks.named('test') {
-    useJUnitPlatform()
+    useJUnitPlatform {
+        excludeTags 'supabase'
+    }
+}
+
+tasks.register('supabaseTest', Test) {
+    description = 'Runs Supabase integration tests that roll back all test data.'
+    group = 'verification'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform {
+        includeTags 'supabase'
+    }
+    shouldRunAfter test
 }
