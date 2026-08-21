@@ -1,28 +1,33 @@
 spring:
-  application:
-    name: 2nd_project
-  profiles:
-    active: ${SPRING_PROFILES_ACTIVE:web}
-  config:
-    import: optional:file:.env[.properties]
-  thymeleaf:
-    cache: false
-    prefix: classpath:/templates/
-    suffix: .html
-
----
-spring:
   config:
     activate:
-      # DB를 사용하지 않고 화면만 확인할 때 적용한다.
-      # web,db 프로필을 함께 켜면 application-db.yaml의 설정이 적용된다.
-      on-profile: "web & !db"
+      on-profile: db
+
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://${SUPABASE_DB_HOST:aws-0-ap-northeast-1.pooler.supabase.com}:${SUPABASE_DB_PORT:5432}/${SUPABASE_DB_NAME:postgres}?sslmode=${SUPABASE_DB_SSL_MODE:require}
+    username: ${SUPABASE_DB_USER:postgres.xebtefsablyalzvzyhpt}
+    password: ${SUPABASE_DB_PASSWORD}
+    hikari:
+      pool-name: SupabaseHikariPool
+      maximum-pool-size: ${DB_MAX_POOL_SIZE:5}
+      minimum-idle: ${DB_MIN_IDLE:1}
+      connection-timeout: ${DB_CONNECTION_TIMEOUT_MS:10000}
+      validation-timeout: ${DB_VALIDATION_TIMEOUT_MS:5000}
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: ${JPA_DDL_AUTO:none}
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc:
+          time_zone: UTC
+
   autoconfigure:
     exclude:
-      # 현재 단계에서는 화면만 실행하고 DB/JPA/Redis/Auth/AI 연동은 활성화하지 않는다.
-      - org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration
-      - org.springframework.boot.hibernate.autoconfigure.HibernateJpaAutoConfiguration
-      - org.springframework.boot.data.jpa.autoconfigure.DataJpaRepositoriesAutoConfiguration
+      # 현재는 DB/JPA만 활성화하고 Redis/Auth/AI는 다음 단계에서 연결한다.
       - org.springframework.boot.data.redis.autoconfigure.DataRedisAutoConfiguration
       - org.springframework.boot.data.redis.autoconfigure.DataRedisRepositoriesAutoConfiguration
       - org.springframework.boot.security.autoconfigure.SecurityAutoConfiguration
@@ -39,6 +44,3 @@ spring:
       - org.springframework.ai.model.google.genai.autoconfigure.chat.GoogleGenAiChatAutoConfiguration
       - org.springframework.ai.model.google.genai.autoconfigure.embedding.GoogleGenAiEmbeddingConnectionAutoConfiguration
       - org.springframework.ai.model.google.genai.autoconfigure.embedding.GoogleGenAiTextEmbeddingAutoConfiguration
-
-server:
-  port: ${SERVER_PORT:8080}
