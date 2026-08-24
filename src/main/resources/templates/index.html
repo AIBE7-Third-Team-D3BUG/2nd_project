@@ -111,6 +111,7 @@
                         <span th:text="${task.statusLabel()}">모집 중</span>
                         <div class="owner-actions"
                              th:if="${currentMemberId != null and task.requesterId() == currentMemberId and task.editable()}">
+                            <button class="owner-action compare" type="button" onclick="showPage('compare')" style="color: #2563eb; border-color: #3b82f6;">지원자 비교</button>
                             <a class="owner-action edit"
                                th:href="@{/tasks/{id}/edit(id=${task.id()},returnTo='home')}">수정</a>
                             <form class="delete-task-form" th:action="@{/tasks/{id}/delete(id=${task.id()})}" method="post">
