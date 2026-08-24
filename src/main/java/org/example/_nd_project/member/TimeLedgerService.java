@@ -4,7 +4,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 public class TimeLedgerService {
@@ -47,6 +51,51 @@ public class TimeLedgerService {
         setTaskReservation(memberId, taskId, 0, "업무 삭제에 따른 예약 재화 반환");
     }
 
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void settleTask(Long requesterId, Long workerId, Long taskId, int minutes) {
+        String requesterKey = "task:" + taskId + ":settlement:requester";
+        String workerKey = "task:" + taskId + ":settlement:worker";
+        if (timeTransactionRepository.existsByIdempotencyKey(requesterKey)
+                || timeTransactionRepository.existsByIdempotencyKey(workerKey)) {
+            throw new IllegalStateException("이미 정산된 업무입니다.");
+        }
+
+        int reservedMinutes = getTaskReservedMinutes(requesterId, taskId);
+        if (reservedMinutes != minutes) {
+            throw new IllegalStateException("업무 예약 재화와 정산 재화가 일치하지 않습니다.");
+        }
+
+        List<Long> memberIds = List.of(requesterId, workerId).stream().sorted().toList();
+        Map<Long, TimeAccount> accounts = timeAccountRepository.findAllByMemberIdInForUpdate(memberIds)
+                .stream()
+                .collect(Collectors.toMap(TimeAccount::getMemberId, Function.identity()));
+        TimeAccount requester = requireAccount(accounts, requesterId);
+        TimeAccount worker = requireAccount(accounts, workerId);
+
+        requester.spendReserved(minutes);
+        worker.credit(minutes);
+
+        String transactionGroupId = UUID.randomUUID().toString();
+        timeTransactionRepository.saveAll(List.of(
+                TimeTransaction.taskSettlementDebit(
+                        requesterId,
+                        taskId,
+                        minutes,
+                        requester.getAvailableMinutes(),
+                        requester.getReservedMinutes(),
+                        transactionGroupId
+                ),
+                TimeTransaction.taskSettlementCredit(
+                        workerId,
+                        taskId,
+                        minutes,
+                        worker.getAvailableMinutes(),
+                        worker.getReservedMinutes(),
+                        transactionGroupId
+                )
+        ));
+    }
+
     private void setTaskReservation(Long memberId, Long taskId, int targetMinutes, String reason) {
         TimeAccount account = timeAccountRepository.findByMemberIdForUpdate(memberId)
                 .orElseThrow(() -> new IllegalStateException("시간 계정을 찾을 수 없습니다."));
@@ -75,5 +124,13 @@ public class TimeLedgerService {
                 transactionId,
                 reason
         ));
+    }
+
+    private TimeAccount requireAccount(Map<Long, TimeAccount> accounts, Long memberId) {
+        TimeAccount account = accounts.get(memberId);
+        if (account == null) {
+            throw new IllegalStateException("시간 계정을 찾을 수 없습니다.");
+        }
+        return account;
     }
 }

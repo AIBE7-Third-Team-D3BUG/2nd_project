@@ -144,12 +144,12 @@ public class VolunteerService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "선택된 작업자만 선택을 취소할 수 있습니다.");
         }
 
+        task.unassignWorker();
+
         List<Volunteer> allVolunteers = volunteerRepository.findByTaskIdAndStatusNotOrderByCreatedAtAsc(taskId, VolunteerStatus.CANCELLED);
         for (Volunteer v : allVolunteers) {
             v.resetToApplied();
         }
-
-        task.unassignWorker();
     }
 
     @Transactional(readOnly = true)

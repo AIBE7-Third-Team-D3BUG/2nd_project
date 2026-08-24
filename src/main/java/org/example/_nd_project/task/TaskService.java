@@ -176,6 +176,14 @@ public class TaskService {
     }
 
     @Transactional(readOnly = true)
+    public List<TaskListItem> findAssignedTasks(Long workerId) {
+        return taskRepository.findByWorkerIdAndStatusNotOrderByUpdatedAtDesc(workerId, TaskStatus.CANCELLED)
+                .stream()
+                .map(this::toListItem)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public Optional<TaskListItem> findTaskById(Long taskId) {
         return taskRepository.findById(taskId).map(this::toListItem);
     }
@@ -209,6 +217,7 @@ public class TaskService {
                 formatDeadline(task.getDeadlineAt(), remaining),
                 task.getStatus().getLabel(),
                 task.getStatus() == TaskStatus.OPEN,
+                task.getStatus() != TaskStatus.OPEN && task.getStatus() != TaskStatus.CANCELLED,
                 urgent,
                 task.getReferenceFileUrl() != null && !task.getReferenceFileUrl().isBlank(),
                 task.getDeliverableDescription()
