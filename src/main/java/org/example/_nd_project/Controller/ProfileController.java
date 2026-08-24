@@ -6,6 +6,8 @@ import org.example._nd_project.member.MemberProfileView;
 import org.example._nd_project.member.MemberService;
 import org.example._nd_project.member.ProfileUpdateForm;
 import org.example._nd_project.security.MemberPrincipal;
+import org.example._nd_project.task.TaskService;
+import org.example._nd_project.volunteer.VolunteerService;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -18,9 +20,13 @@ import org.springframework.web.bind.annotation.PostMapping;
 public class ProfileController {
 
     private final MemberService memberService;
+    private final TaskService taskService;
+    private final VolunteerService volunteerService;
 
-    public ProfileController(MemberService memberService) {
+    public ProfileController(MemberService memberService, TaskService taskService, VolunteerService volunteerService) {
         this.memberService = memberService;
+        this.taskService = taskService;
+        this.volunteerService = volunteerService;
     }
 
     @GetMapping("/profile")
@@ -34,6 +40,7 @@ public class ProfileController {
         form.setNotificationEnabled(profile.notificationEnabled());
         model.addAttribute("profile", profile);
         model.addAttribute("profileForm", form);
+        addTaskLists(model, principal.memberId());
         return "profile";
     }
 
@@ -44,6 +51,7 @@ public class ProfileController {
                                 Model model) {
         if (bindingResult.hasErrors()) {
             model.addAttribute("profile", memberService.getProfile(principal.memberId()));
+            addTaskLists(model, principal.memberId());
             return "profile";
         }
         try {
@@ -51,8 +59,15 @@ public class ProfileController {
         } catch (DuplicateMemberException exception) {
             bindingResult.rejectValue(exception.getField(), "duplicate", exception.getMessage());
             model.addAttribute("profile", memberService.getProfile(principal.memberId()));
+            addTaskLists(model, principal.memberId());
             return "profile";
         }
         return "redirect:/profile?updated";
+    }
+
+    private void addTaskLists(Model model, Long memberId) {
+        model.addAttribute("registeredTasks", taskService.findRegisteredTasks(memberId));
+        model.addAttribute("appliedTasks", volunteerService.findAppliedTasks(memberId));
+        model.addAttribute("assignedTasks", taskService.findAssignedTasks(memberId));
     }
 }

@@ -14,6 +14,13 @@ spring:
       minimum-idle: ${DB_MIN_IDLE:0}
       connection-timeout: ${DB_CONNECTION_TIMEOUT_MS:10000}
       validation-timeout: ${DB_VALIDATION_TIMEOUT_MS:5000}
+      connection-init-sql: SET TIME ZONE 'Asia/Seoul'
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: 1
+    locations: classpath:db/migration
 
   jpa:
     open-in-view: false
@@ -23,7 +30,7 @@ spring:
       hibernate:
         format_sql: true
         jdbc:
-          time_zone: UTC
+          time_zone: Asia/Seoul
 
   flyway:
     enabled: true

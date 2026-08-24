@@ -67,4 +67,74 @@ public class TimeTransaction {
         transaction.reason = "신규 회원 체험 시간 지급";
         return transaction;
     }
+
+    public static TimeTransaction taskReservationAdjustment(
+            Long memberId,
+            Long taskId,
+            int reservationDifference,
+            int availableBalanceAfter,
+            int reservedBalanceAfter,
+            String transactionId,
+            String reason
+    ) {
+        TimeTransaction transaction = new TimeTransaction();
+        transaction.accountMemberId = memberId;
+        transaction.taskId = taskId;
+        transaction.transactionGroupId = transactionId;
+        transaction.transactionType = reservationDifference > 0 ? "TASK_RESERVE" : "TASK_REFUND";
+        transaction.availableDeltaMinutes = -reservationDifference;
+        transaction.reservedDeltaMinutes = reservationDifference;
+        transaction.availableBalanceAfter = availableBalanceAfter;
+        transaction.reservedBalanceAfter = reservedBalanceAfter;
+        transaction.idempotencyKey = "task-balance:" + taskId + ":" + transactionId;
+        transaction.reason = reason;
+        return transaction;
+    }
+
+    public static TimeTransaction taskSettlementDebit(
+            Long requesterId,
+            Long taskId,
+            int minutes,
+            int availableBalanceAfter,
+            int reservedBalanceAfter,
+            String transactionGroupId
+    ) {
+        TimeTransaction transaction = new TimeTransaction();
+        transaction.accountMemberId = requesterId;
+        transaction.taskId = taskId;
+        transaction.transactionGroupId = transactionGroupId;
+        transaction.transactionType = "TASK_SETTLEMENT_DEBIT";
+        transaction.reservedDeltaMinutes = -minutes;
+        transaction.availableBalanceAfter = availableBalanceAfter;
+        transaction.reservedBalanceAfter = reservedBalanceAfter;
+        transaction.idempotencyKey = "task:" + taskId + ":settlement:requester";
+        transaction.reason = "업무 완료 승인에 따른 예약 재화 정산";
+        return transaction;
+    }
+
+    public static TimeTransaction taskSettlementCredit(
+            Long workerId,
+            Long taskId,
+            int minutes,
+            int availableBalanceAfter,
+            int reservedBalanceAfter,
+            String transactionGroupId
+    ) {
+        TimeTransaction transaction = new TimeTransaction();
+        transaction.accountMemberId = workerId;
+        transaction.taskId = taskId;
+        transaction.transactionGroupId = transactionGroupId;
+        transaction.transactionType = "TASK_SETTLEMENT_CREDIT";
+        transaction.availableDeltaMinutes = minutes;
+        transaction.availableBalanceAfter = availableBalanceAfter;
+        transaction.reservedBalanceAfter = reservedBalanceAfter;
+        transaction.idempotencyKey = "task:" + taskId + ":settlement:worker";
+        transaction.reason = "업무 완료 승인에 따른 작업자 재화 지급";
+        return transaction;
+    }
+
+    public String getTransactionType() { return transactionType; }
+    public int getAvailableDeltaMinutes() { return availableDeltaMinutes; }
+    public int getReservedDeltaMinutes() { return reservedDeltaMinutes; }
+    public String getIdempotencyKey() { return idempotencyKey; }
 }
