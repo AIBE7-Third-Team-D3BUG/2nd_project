@@ -97,7 +97,7 @@
 
             <div class="registered-task-list">
                 <article class="registered-task" th:each="task : ${registeredTasks}"
-                         th:onclick="|location.href='@{/(view='detail', requesterId=${task.requesterId()})}'|"
+                         th:onclick="|location.href='@{/(view='detail', taskId=${task.id()})}'|"
                          style="cursor: pointer;">
                     <div>
                         <div class="registered-task-meta">

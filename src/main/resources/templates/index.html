@@ -93,7 +93,17 @@
                          class="task-card"
                          th:classappend="${task.urgent()} ? ' urgent' : ''"
                          data-page="detail"
+                         th:data-task-id="${task.id()}"
                          th:data-requester-id="${task.requesterId()}"
+                         th:data-title="${task.title()}"
+                         th:data-description="${task.description()}"
+                         th:data-deliverable="${task.deliverableDescription()}"
+                         th:data-category="${task.categoryLabel()}"
+                         th:data-skills="${#strings.listJoin(task.skillTags(), ',')}"
+                         th:data-deadline="${task.deadlineLabel()}"
+                         th:data-pum="${task.requestedPum()}"
+                         th:data-status="${task.statusLabel()}"
+                         th:data-has-attachment="${task.hasAttachment()}"
                          tabindex="0">
                     <div>
                         <div class="task-meta">
@@ -292,34 +302,31 @@
             <div class="section-grid">
                 <article class="panel">
                     <div class="task-meta">
-                        <span class="urgent-label">2시간 42분</span>
-                        <span>오늘 18:00까지 · 지원자 2명</span>
+                        <span id="detail-urgent" class="urgent-label" th:text="${selectedTask != null ? selectedTask.deadlineLabel() : '2시간 42분 남음'}">2시간 42분 남음</span>
+                        <span id="detail-category" th:text="${selectedTask != null ? selectedTask.categoryLabel() : '개발'}">개발</span>
                     </div>
-                    <h2>AWS 배포 후 502 오류 해결</h2>
+                    <h2 id="detail-title" th:text="${selectedTask != null ? selectedTask.title() : 'AWS 배포 후 502 오류 해결'}">AWS 배포 후 502 오류 해결</h2>
                     <h3>상황</h3>
-                    <p>EC2에 Spring Boot 프로젝트를 배포했는데 Nginx에서 502 오류가 발생합니다. 로그를 함께 보고 원인을 찾은 뒤 정상 접속까지 확인하고 싶습니다.</p>
+                    <p id="detail-description" th:text="${selectedTask != null ? selectedTask.description() : '상세 설명이 없습니다.'}">EC2에 Spring Boot 프로젝트를 배포했는데 Nginx에서 502 오류가 발생합니다. 로그를 함께 보고 원인을 찾은 뒤 정상 접속까지 확인하고 싶습니다.</p>
                     <h3>완료 기준</h3>
-                    <ul>
-                        <li>서비스 URL 정상 접속 확인</li>
-                        <li>오류 원인과 해결 내용을 짧게 기록</li>
-                    </ul>
+                    <p id="detail-deliverable" th:text="${selectedTask != null and selectedTask.deliverableDescription() != null ? selectedTask.deliverableDescription() : '서비스 URL 정상 접속 확인 및 오류 내용 기록'}">서비스 URL 정상 접속 확인 및 오류 내용 기록</p>
                     <h3>필요 기술</h3>
-                    <div class="tag-list">
-                        <span class="tag blue">Spring</span>
-                        <span class="tag">AWS</span>
-                        <span class="tag">Nginx</span>
+                    <div id="detail-skills" class="tag-list">
+                        <span class="tag blue" th:each="tag : ${selectedTask != null ? selectedTask.skillTags() : {'Spring', 'AWS', 'Nginx'}}" th:text="${tag}">Spring</span>
                     </div>
                     <h3>참고 파일</h3>
-                    <p>deploy-log.txt · 24KB</p>
+                    <p id="detail-attachment" th:text="${selectedTask != null and selectedTask.hasAttachment() ? '첨부 파일 등록됨' : '첨부 파일 없음'}">첨부 파일 없음</p>
                 </article>
 
                 <aside class="panel side-panel">
-                    <button id="btn-view-applicants" class="button full" type="button" onclick="showPage('compare')" style="margin-bottom: 16px; background-color: #2563eb; color: white; border: none; display: none;">지원자 비교 보기</button>
+                    <button id="btn-view-applicants" class="button full" type="button" onclick="showPage('compare')"
+                            th:style="${selectedTask != null and currentMemberId != null and selectedTask.requesterId() == currentMemberId ? 'margin-bottom: 16px; background-color: #2563eb; color: white; border: none; display: block;' : 'margin-bottom: 16px; background-color: #2563eb; color: white; border: none; display: none;'}"
+                            style="margin-bottom: 16px; background-color: #2563eb; color: white; border: none; display: none;">지원자 비교 보기</button>
                     <h2 class="side-title">이 업무에 지원할까요?</h2>
                     <p class="side-copy">현재 지원 가능한 상태입니다.</p>
-                    <div class="summary-row"><span>요청 시간</span><strong>4품</strong></div>
-                    <div class="summary-row"><span>마감</span><strong>오늘 18:00</strong></div>
-                    <div class="summary-row"><span>의뢰인</span><strong>정민 · 완료 8건</strong></div>
+                    <div class="summary-row"><span>요청 시간</span><strong><span id="detail-pum" th:text="${selectedTask != null ? selectedTask.requestedPum() : 4}">4</span>품</strong></div>
+                    <div class="summary-row"><span>마감</span><strong><span id="detail-deadline" th:text="${selectedTask != null ? selectedTask.deadlineLabel() : '오늘 18:00'}">오늘 18:00</span></strong></div>
+                    <div class="summary-row"><span>진행 상태</span><strong><span id="detail-status" th:text="${selectedTask != null ? selectedTask.statusLabel() : '모집 중'}">모집 중</span></strong></div>
                     <button class="button full" type="button" style="margin-top: 22px">지원하기</button>
                 </aside>
             </div>
@@ -591,6 +598,63 @@
                     btn.style.display = "block";
                 } else {
                     btn.style.display = "none";
+                }
+            }
+
+            if (button.dataset.title) {
+                const titleEl = document.getElementById("detail-title");
+                if (titleEl) titleEl.textContent = button.dataset.title;
+            }
+            if (button.dataset.description) {
+                const descEl = document.getElementById("detail-description");
+                if (descEl) descEl.textContent = button.dataset.description;
+            }
+            if (button.dataset.deliverable) {
+                const delivEl = document.getElementById("detail-deliverable");
+                if (delivEl) delivEl.textContent = button.dataset.deliverable;
+            }
+            if (button.dataset.category) {
+                const catEl = document.getElementById("detail-category");
+                if (catEl) catEl.textContent = button.dataset.category;
+            }
+            if (button.dataset.deadline) {
+                const deadEl = document.getElementById("detail-deadline");
+                const urgentEl = document.getElementById("detail-urgent");
+                if (deadEl) deadEl.textContent = button.dataset.deadline;
+                if (urgentEl) urgentEl.textContent = button.dataset.deadline;
+            }
+            if (button.dataset.pum) {
+                const pumEl = document.getElementById("detail-pum");
+                if (pumEl) pumEl.textContent = button.dataset.pum;
+            }
+            if (button.dataset.status) {
+                const statusEl = document.getElementById("detail-status");
+                if (statusEl) statusEl.textContent = button.dataset.status;
+            }
+            if (button.dataset.hasAttachment !== undefined) {
+                const attEl = document.getElementById("detail-attachment");
+                if (attEl) {
+                    attEl.textContent = button.dataset.hasAttachment === "true" ? "첨부 파일 등록됨" : "첨부 파일 없음";
+                }
+            }
+            if (button.dataset.skills !== undefined) {
+                const skillsEl = document.getElementById("detail-skills");
+                if (skillsEl) {
+                    skillsEl.innerHTML = "";
+                    const skills = button.dataset.skills.split(",").filter(s => s.trim().length > 0);
+                    if (skills.length > 0) {
+                        skills.forEach(skill => {
+                            const span = document.createElement("span");
+                            span.className = "tag blue";
+                            span.textContent = skill.trim();
+                            skillsEl.appendChild(span);
+                        });
+                    } else {
+                        const span = document.createElement("span");
+                        span.className = "tag";
+                        span.textContent = "기본";
+                        skillsEl.appendChild(span);
+                    }
                 }
             }
         }
