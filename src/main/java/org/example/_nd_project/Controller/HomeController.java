@@ -1,13 +1,66 @@
 package org.example._nd_project.Controller;
 
+import org.example._nd_project.member.MemberService;
+import org.example._nd_project.security.MemberPrincipal;
+import org.example._nd_project.task.TaskCategory;
+import org.example._nd_project.task.TaskCreateForm;
+import org.example._nd_project.task.TaskService;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 
 @Controller
 public class HomeController {
 
+    private static final ZoneId KOREA = ZoneId.of("Asia/Seoul");
+    private static final DateTimeFormatter DATETIME_INPUT = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm");
+
+    private final TaskService taskService;
+    private final MemberService memberService;
+
+    public HomeController(TaskService taskService, MemberService memberService) {
+        this.taskService = taskService;
+        this.memberService = memberService;
+    }
+
     @GetMapping("/")
-    public String home() {
+    public String home(@RequestParam(name = "view", required = false) String view,
+                       @AuthenticationPrincipal MemberPrincipal principal,
+                       Model model) {
+        model.addAttribute("availableTasks", taskService.findOpenTasks());
+        model.addAttribute("taskCategories", TaskCategory.values());
+        model.addAttribute("activePage", normalizeView(view));
+        model.addAttribute("currentMemberId", principal == null ? null : principal.memberId());
+        LocalDateTime now = LocalDateTime.now(KOREA);
+        if (!model.containsAttribute("minDeadline")) {
+            model.addAttribute("minDeadline", DATETIME_INPUT.format(
+                    now.withSecond(0).withNano(0).plusMinutes(1)
+            ));
+        }
+        if (!model.containsAttribute("maxDeadline")) {
+            model.addAttribute("maxDeadline", DATETIME_INPUT.format(
+                    now.plusHours(24).withSecond(0).withNano(0)
+            ));
+        }
+        model.addAttribute("currentAvailablePum",
+                principal == null ? 0 : memberService.getProfile(principal.memberId()).availablePum());
+        if (!model.containsAttribute("taskForm")) {
+            model.addAttribute("taskForm", new TaskCreateForm());
+        }
         return "index";
+    }
+
+    private String normalizeView(String view) {
+        return switch (view == null ? "" : view) {
+            case "register", "confirm" -> "confirm";
+            case "dashboard", "profile", "detail" -> view;
+            default -> "landing";
+        };
     }
 }

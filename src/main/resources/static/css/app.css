@@ -29,6 +29,7 @@ body {
 }
 button, input, select, textarea { font: inherit; }
 button, a { -webkit-tap-highlight-color: transparent; }
+[th\:if] { display: none; }
 .app-shell {
     width: min(100%, 1180px);
     min-height: calc(100vh - 64px);
@@ -158,6 +159,29 @@ select.control { cursor: pointer; }
 .task-credit { align-self: center; padding-left: 18px; border-left: 1px solid #eceef2; }
 .task-credit strong { display: block; font-size: 18px; }
 .task-credit span { color: var(--muted); font-size: 10px; }
+.owner-actions { display: flex; gap: 6px; margin-top: 12px; }
+.owner-actions form { margin: 0; }
+.owner-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 46px;
+    padding: 7px 9px;
+    border: 1px solid var(--line-strong);
+    border-radius: 6px;
+    color: #596273;
+    background: #fff;
+    font: inherit;
+    font-size: 10px;
+    font-weight: 800;
+    text-decoration: none;
+    cursor: pointer;
+}
+.owner-action:hover { border-color: var(--brand); color: var(--brand); }
+.owner-action.delete { color: var(--danger); }
+.owner-action.delete:hover { border-color: var(--danger); background: var(--danger-soft); }
+.existing-attachment { color: var(--brand); font-weight: 700; }
+.cancel-edit { display: flex; align-items: center; justify-content: center; margin-top: 8px; text-decoration: none; }
 .section-grid { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 22px; align-items: start; }
 .panel {
     padding: 26px;
@@ -208,9 +232,23 @@ select.control { cursor: pointer; }
 .field textarea { min-height: 155px; resize: vertical; line-height: 1.65; }
 .field input:focus, .field textarea:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(49, 92, 244, .09); }
 .field-note { margin-top: 7px; color: #969da8; font-size: 10px; }
+.field-error,
+.errors {
+    margin-top: 7px;
+    color: var(--danger);
+    font-size: 10px;
+    line-height: 1.5;
+}
+.errors {
+    padding: 11px 13px;
+    margin-bottom: 18px;
+    border: 1px solid #ffd8d3;
+    border-radius: 8px;
+    background: var(--danger-soft);
+}
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
 .form-card { max-width: 820px; margin: 0 auto; }
-.form-actions { display: flex; justify-content: flex-end; margin-top: 26px; }
+.form-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 26px; }
 .form-actions .button { min-width: 230px; }
 .notice {
     padding: 14px 16px;
@@ -221,6 +259,30 @@ select.control { cursor: pointer; }
     font-size: 11px;
     line-height: 1.55;
 }
+.notice strong { display: block; margin-bottom: 4px; color: var(--brand); font-size: 12px; }
+.notice span { display: block; }
+.success-notice {
+    color: var(--success);
+    background: var(--success-soft);
+}
+.empty-state {
+    padding: 50px 20px;
+    border: 1px dashed var(--line-strong);
+    border-radius: 9px;
+    color: var(--muted);
+    text-align: center;
+}
+.empty-state strong { display: block; margin-bottom: 7px; color: var(--ink); font-size: 15px; }
+.empty-state p { margin: 0 0 18px; font-size: 11px; }
+.confirm-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 340px;
+    gap: 26px;
+    align-items: start;
+}
+.confirm-fields .field:last-child { margin-bottom: 0; }
+.confirm-summary { position: sticky; top: 20px; }
+.confirm-summary .button + .button { margin-top: 9px; }
 .status-track {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
@@ -292,7 +354,8 @@ select.control { cursor: pointer; }
     .search-bar .button { min-height: 42px; }
     .task-card { grid-template-columns: 1fr; gap: 15px; }
     .task-credit { padding: 12px 0 0; border-left: 0; border-top: 1px solid #eceef2; }
-    .section-grid { grid-template-columns: 1fr; }
+    .owner-actions { justify-content: flex-end; }
+    .section-grid, .confirm-grid { grid-template-columns: 1fr; }
     .side-panel { position: static; }
     .form-grid, .metric-grid { grid-template-columns: 1fr; }
     .profile-hero { align-items: flex-start; flex-direction: column; }
