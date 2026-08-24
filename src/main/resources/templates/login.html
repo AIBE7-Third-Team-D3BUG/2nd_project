@@ -3,36 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>로그인 | TASKFLASH</title>
-    <link rel="stylesheet" th:href="@{/css/account.css}">
+    <title>로그인 | D3BUG</title>
+    <link rel="stylesheet" href="../static/css/account.css" th:href="@{/css/account.css}">
 </head>
 <body>
 <header class="account-header">
-    <a class="brand" th:href="@{/}">TASK<span>FLASH</span></a>
-    <a class="home-link" th:href="@{/signup}">회원가입</a>
+    <a class="brand" th:href="@{/}">D3BUG</a>
+    <nav class="account-nav" aria-label="주요 메뉴">
+        <a th:href="@{/}">업무 찾기</a>
+        <a th:href="@{/signup}">회원가입</a>
+    </nav>
 </header>
 <main class="account-main">
     <section class="card">
-        <h1>로그인</h1>
-        <p class="subtitle">내 시간과 진행 중인 업무를 확인하세요.</p>
+        <p class="eyebrow">COMMON-01 · 로그인 / 회원가입</p>
+        <h1>다시 만나서 반가워요</h1>
+        <p class="subtitle">급한 일을 맡기거나 지금 가능한 일을 찾아보세요.</p>
+        <div class="auth-tabs" aria-label="계정 메뉴">
+            <a class="active" th:href="@{/login}">로그인</a>
+            <a th:href="@{/signup}">회원가입</a>
+        </div>
         <div class="alert alert-success" th:if="${param.registered}">가입이 완료되었습니다. 로그인해주세요.</div>
         <div class="alert alert-success" th:if="${param.logout}">안전하게 로그아웃되었습니다.</div>
         <div class="alert alert-error" th:if="${param.error}">이메일 또는 비밀번호가 올바르지 않습니다.</div>
         <div class="alert alert-error" th:if="${param.blocked}">로그인 시도가 너무 많습니다. 15분 후 다시 시도해주세요.</div>
-
         <form th:action="@{/login}" method="post">
             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
             <div class="field">
                 <label for="email">이메일</label>
-                <input id="email" name="email" type="email" maxlength="255" autocomplete="username" required autofocus>
+                <input id="email" name="email" type="email" maxlength="255" placeholder="example@email.com" autocomplete="username" required autofocus>
             </div>
             <div class="field">
                 <label for="password">비밀번호</label>
-                <input id="password" name="password" type="password" maxlength="72" autocomplete="current-password" required>
+                <input id="password" name="password" type="password" maxlength="72" placeholder="8자 이상 입력" autocomplete="current-password" required>
             </div>
             <button class="primary-button" type="submit">로그인</button>
         </form>
-        <div class="text-link">처음이신가요? <a th:href="@{/signup}">회원가입</a></div>
+        <div class="text-link">비밀번호를 잊으셨나요?</div>
     </section>
 </main>
 </body>
