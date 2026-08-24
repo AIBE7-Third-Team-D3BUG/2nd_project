@@ -3,20 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>마이프로필 | TASKFLASH</title>
-    <link rel="stylesheet" th:href="@{/css/account.css}">
+    <title>마이프로필 | D3BUG</title>
+    <link rel="stylesheet" href="../static/css/account.css" th:href="@{/css/account.css}">
 </head>
 <body>
 <header class="account-header">
-    <a class="brand" th:href="@{/}">TASK<span>FLASH</span></a>
-    <a class="home-link" th:href="@{/}">홈으로</a>
+    <a class="brand" th:href="@{/}">D3BUG</a>
+    <nav class="account-nav" aria-label="주요 메뉴">
+        <a th:href="@{/}">업무 찾기</a>
+        <a class="active" th:href="@{/profile}">내 프로필</a>
+    </nav>
 </header>
 <main class="profile-main">
     <div class="profile-grid">
         <aside class="card summary-card">
-            <div class="avatar" th:text="${#strings.substring(profile.nickname(), 0, 1)}">T</div>
-            <h2 th:text="${profile.nickname()}">닉네임</h2>
-            <p class="email" th:text="${profile.email()}">email@example.com</p>
+            <p class="eyebrow">COMMON-04 · 프로필</p>
+            <div class="profile-identity">
+                <div class="avatar" th:text="${#strings.substring(profile.nickname(), 0, 1)}">T</div>
+                <div class="identity-copy">
+                    <h2 th:text="${profile.nickname()}">닉네임</h2>
+                    <p class="email" th:text="${profile.email()}">email@example.com</p>
+                </div>
+            </div>
             <div class="balance">
                 <span>사용 가능한 시간</span>
                 <strong><span th:text="${profile.availablePum()}">4</span>품</strong>
@@ -35,9 +43,12 @@
         </aside>
 
         <section class="card">
+            <p class="eyebrow">PROFILE · 기본 정보</p>
             <h1>마이프로필</h1>
             <p class="subtitle">수행자 추천에 활용되는 정보를 관리합니다.</p>
             <div class="alert alert-success" th:if="${param.updated}">프로필이 저장되었습니다.</div>
+            <div class="alert alert-success" th:if="${param.updatedTask}">업무가 수정되었습니다.</div>
+            <div class="alert alert-success" th:if="${param.deletedTask}">업무가 삭제되었습니다.</div>
             <form th:action="@{/profile}" th:object="${profileForm}" method="post">
                 <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                 <div class="errors" th:if="${#fields.hasGlobalErrors()}">
@@ -73,7 +84,62 @@
                 <button class="primary-button" type="submit">프로필 저장</button>
             </form>
         </section>
+
+        <section class="card registered-tasks-card">
+            <div class="registered-tasks-heading">
+                <div>
+                    <p class="eyebrow">CLIENT · 내가 등록한 업무</p>
+                    <h2>내가 등록한 업무</h2>
+                    <p class="subtitle">게시한 업무의 마감과 진행 상태를 확인하세요.</p>
+                </div>
+                <a class="small-button" th:href="@{/(view='confirm')}">새 업무 등록</a>
+            </div>
+
+            <div class="registered-task-list">
+                <article class="registered-task" th:each="task : ${registeredTasks}">
+                    <div>
+                        <div class="registered-task-meta">
+                            <span th:text="${task.statusLabel()}">모집 중</span>
+                            <span th:text="${task.deadlineLabel()}">2시간 42분 남음</span>
+                            <span th:text="${task.categoryLabel()}">개발</span>
+                        </div>
+                        <h3 th:text="${task.title()}">AWS 배포 후 502 오류 해결</h3>
+                        <p th:text="${#lists.isEmpty(task.skillTags()) ? task.description() : #strings.listJoin(task.skillTags(), ' · ')}">
+                            Spring · AWS · Nginx
+                        </p>
+                        <a class="attachment-link"
+                           th:if="${task.hasAttachment()}"
+                           th:href="@{/tasks/{id}/attachment(id=${task.id()})}">첨부 파일 열기</a>
+                    </div>
+                    <div class="registered-task-side">
+                        <strong><span th:text="${task.requestedPum()}">4</span>품</strong>
+                        <div class="task-actions" th:if="${task.editable()}">
+                            <a class="task-action edit"
+                               th:href="@{/tasks/{id}/edit(id=${task.id()},returnTo='profile')}">수정</a>
+                            <form class="delete-task-form" th:action="@{/tasks/{id}/delete(id=${task.id()})}" method="post">
+                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                <input type="hidden" name="returnTo" value="profile">
+                                <button class="task-action delete" type="submit">삭제</button>
+                            </form>
+                        </div>
+                    </div>
+                </article>
+
+                <div class="registered-empty" th:if="${#lists.isEmpty(registeredTasks)}">
+                    아직 등록한 업무가 없습니다.
+                </div>
+            </div>
+        </section>
     </div>
 </main>
+<script>
+    document.querySelectorAll(".delete-task-form").forEach(function (form) {
+        form.addEventListener("submit", function (event) {
+            if (!window.confirm("이 업무를 삭제하시겠습니까? 삭제한 업무는 복구할 수 없습니다.")) {
+                event.preventDefault();
+            }
+        });
+    });
+</script>
 </body>
 </html>
