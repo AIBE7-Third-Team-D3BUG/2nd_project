@@ -18,8 +18,7 @@
     </header>
 
     <main>
-        <p class="breadcrumb"
-           th:text="${progress.requester() ? 'CLIENT-04 · 완료 승인 / 리뷰' : 'COMMON-03 · 업무 진행 / 결과 제출'}">
+        <p class="breadcrumb" th:text="${progress.phaseLabel()}">
             COMMON-03 · 업무 진행 / 결과 제출
         </p>
 

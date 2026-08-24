@@ -27,6 +27,33 @@ public record TaskProgressView(
         return requestedMinutes / 30;
     }
 
+    public String phaseLabel() {
+        if (completed) {
+            return "COMMON-05 · 업무 완료 / 정산";
+        }
+        if (disputed) {
+            return "COMMON-04 · 문제 신고 / 검토";
+        }
+        if (canReview) {
+            return "CLIENT-04 · 완료 승인 / 리뷰";
+        }
+        if (canStart) {
+            return "COMMON-03 · 업무 시작";
+        }
+        if (waitingForWorkerStart) {
+            return "COMMON-03 · 업무 시작 대기";
+        }
+        if (canSubmit) {
+            return "COMMON-03 · 업무 진행 / 결과 제출";
+        }
+        if (submission != null && worker) {
+            return "COMMON-03 · 완료 승인 대기";
+        }
+        return requester
+                ? "COMMON-03 · 업무 진행 확인"
+                : "COMMON-03 · 업무 진행 / 결과 제출";
+    }
+
     public record ActivityView(String title, String description, String timeLabel, boolean current) {
     }
 

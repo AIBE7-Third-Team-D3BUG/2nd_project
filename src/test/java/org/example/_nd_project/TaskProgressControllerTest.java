@@ -83,6 +83,7 @@ class TaskProgressControllerTest {
         mockMvc.perform(get("/tasks/10/progress").with(user(principal)))
                 .andExpect(status().isOk())
                 .andExpect(view().name("task-progress"))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("CLIENT-04 · 완료 승인 / 리뷰")))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("결과가 도착했어요")))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("완료 승인하기")));
     }
@@ -140,6 +141,7 @@ class TaskProgressControllerTest {
 
         mockMvc.perform(get("/tasks/10/progress").with(user(worker)))
                 .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("COMMON-03 · 업무 시작")))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("작업자로 선택되었어요")))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("업무 시작하기")));
     }
