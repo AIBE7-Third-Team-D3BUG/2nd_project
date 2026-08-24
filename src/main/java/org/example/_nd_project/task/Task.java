@@ -131,6 +131,20 @@ public class Task {
         this.cancelledAt = cancelledAt;
     }
 
+    public void assignWorker(Long workerId, Instant matchedAt) {
+        requireStatus(TaskStatus.OPEN, "모집 중인 업무만 작업자를 선택할 수 있습니다.");
+        this.workerId = workerId;
+        this.status = TaskStatus.MATCHED;
+        this.matchedAt = matchedAt;
+    }
+
+    public void unassignWorker() {
+        requireStatus(TaskStatus.MATCHED, "업무 시작 전까지만 작업자 선택을 취소할 수 있습니다.");
+        this.workerId = null;
+        this.matchedAt = null;
+        this.status = TaskStatus.OPEN;
+    }
+
     public void startWork(Long memberId, Instant startedAt) {
         requireWorker(memberId);
         requireStatus(TaskStatus.MATCHED, "매칭이 완료된 업무만 시작할 수 있습니다.");

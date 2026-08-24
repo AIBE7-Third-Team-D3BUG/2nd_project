@@ -65,6 +65,16 @@ class TaskProgressDomainTest {
         assertEquals(TaskStatus.MATCHED, task.getStatus());
     }
 
+    @Test
+    void workerSelectionCannotBeCancelledAfterWorkStarts() {
+        Task task = matchedTask();
+        task.startWork(8L, Instant.now());
+
+        assertThrows(IllegalStateException.class, task::unassignWorker);
+        assertEquals(TaskStatus.IN_PROGRESS, task.getStatus());
+        assertEquals(8L, task.getWorkerId());
+    }
+
     private Task inProgressTask() {
         Task task = matchedTask();
         ReflectionTestUtils.setField(task, "status", TaskStatus.IN_PROGRESS);

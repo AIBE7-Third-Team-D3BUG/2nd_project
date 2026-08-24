@@ -7,6 +7,7 @@ import org.example._nd_project.member.MemberService;
 import org.example._nd_project.member.ProfileUpdateForm;
 import org.example._nd_project.security.MemberPrincipal;
 import org.example._nd_project.task.TaskService;
+import org.example._nd_project.volunteer.VolunteerService;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -20,10 +21,12 @@ public class ProfileController {
 
     private final MemberService memberService;
     private final TaskService taskService;
+    private final VolunteerService volunteerService;
 
-    public ProfileController(MemberService memberService, TaskService taskService) {
+    public ProfileController(MemberService memberService, TaskService taskService, VolunteerService volunteerService) {
         this.memberService = memberService;
         this.taskService = taskService;
+        this.volunteerService = volunteerService;
     }
 
     @GetMapping("/profile")
@@ -64,6 +67,7 @@ public class ProfileController {
 
     private void addTaskLists(Model model, Long memberId) {
         model.addAttribute("registeredTasks", taskService.findRegisteredTasks(memberId));
+        model.addAttribute("appliedTasks", volunteerService.findAppliedTasks(memberId));
         model.addAttribute("assignedTasks", taskService.findAssignedTasks(memberId));
     }
 }

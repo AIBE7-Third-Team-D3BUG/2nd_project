@@ -6,6 +6,7 @@ import org.example._nd_project.member.TimeTransactionRepository;
 import org.example._nd_project.submission.DisputeRepository;
 import org.example._nd_project.submission.SubmissionRepository;
 import org.example._nd_project.task.TaskRepository;
+import org.example._nd_project.volunteer.VolunteerRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
@@ -21,6 +22,7 @@ class ApplicationTests {
     @MockitoBean TaskRepository taskRepository;
     @MockitoBean SubmissionRepository submissionRepository;
     @MockitoBean DisputeRepository disputeRepository;
+    @MockitoBean VolunteerRepository volunteerRepository;
 
     @Test
     void contextLoads() {
