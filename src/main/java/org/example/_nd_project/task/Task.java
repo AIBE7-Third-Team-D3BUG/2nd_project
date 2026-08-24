@@ -130,6 +130,18 @@ public class Task {
         this.cancelledAt = cancelledAt;
     }
 
+    public void assignWorker(Long workerId, Instant matchedAt) {
+        this.workerId = workerId;
+        this.status = TaskStatus.MATCHED;
+        this.matchedAt = matchedAt;
+    }
+
+    public void unassignWorker() {
+        this.workerId = null;
+        this.matchedAt = null;
+        this.status = TaskStatus.OPEN;
+    }
+
     public Long getId() { return id; }
     public Long getRequesterId() { return requesterId; }
     public Long getWorkerId() { return workerId; }

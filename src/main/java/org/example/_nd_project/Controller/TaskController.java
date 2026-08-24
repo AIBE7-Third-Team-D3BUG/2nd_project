@@ -7,6 +7,7 @@ import org.example._nd_project.task.TaskCreateForm;
 import org.example._nd_project.task.TaskEditData;
 import org.example._nd_project.task.TaskService;
 import org.example._nd_project.task.TaskStorageException;
+import org.example._nd_project.volunteer.VolunteerService;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
@@ -27,9 +28,11 @@ public class TaskController {
     private static final DateTimeFormatter DATETIME_INPUT = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm");
 
     private final TaskService taskService;
+    private final VolunteerService volunteerService;
 
-    public TaskController(TaskService taskService) {
+    public TaskController(TaskService taskService, VolunteerService volunteerService) {
         this.taskService = taskService;
+        this.volunteerService = volunteerService;
     }
 
     @PostMapping("/tasks")
@@ -130,6 +133,62 @@ public class TaskController {
         return new RedirectView(
                 taskService.createAttachmentDownloadUrl(taskId, principal.memberId()).toString()
         );
+    }
+
+    @PostMapping("/tasks/{taskId}/apply")
+    public String applyTask(@AuthenticationPrincipal MemberPrincipal principal,
+                            @PathVariable Long taskId,
+                            @RequestParam(name = "message", required = false) String message,
+                            RedirectAttributes redirectAttributes) {
+        try {
+            volunteerService.apply(taskId, principal.memberId(), message);
+            redirectAttributes.addFlashAttribute("appliedSuccess", true);
+        } catch (Exception exception) {
+            redirectAttributes.addFlashAttribute("applyError", exception.getMessage());
+        }
+        return "redirect:/?view=detail&taskId=" + taskId;
+    }
+
+    @PostMapping("/tasks/{taskId}/volunteers/{volunteerId}/select")
+    public String selectVolunteer(@AuthenticationPrincipal MemberPrincipal principal,
+                                  @PathVariable Long taskId,
+                                  @PathVariable Long volunteerId,
+                                  RedirectAttributes redirectAttributes) {
+        try {
+            volunteerService.selectVolunteer(taskId, principal.memberId(), volunteerId);
+            redirectAttributes.addFlashAttribute("selectedSuccess", true);
+        } catch (Exception exception) {
+            redirectAttributes.addFlashAttribute("selectError", exception.getMessage());
+        }
+        return "redirect:/?view=compare&taskId=" + taskId;
+    }
+
+    @PostMapping("/tasks/{taskId}/volunteers/{volunteerId}/unselect")
+    public String unselectVolunteer(@AuthenticationPrincipal MemberPrincipal principal,
+                                    @PathVariable Long taskId,
+                                    @PathVariable Long volunteerId,
+                                    RedirectAttributes redirectAttributes) {
+        try {
+            volunteerService.unselectVolunteer(taskId, principal.memberId(), volunteerId);
+            redirectAttributes.addFlashAttribute("unselectedSuccess", true);
+        } catch (Exception exception) {
+            redirectAttributes.addFlashAttribute("unselectError", exception.getMessage());
+        }
+        return "redirect:/?view=compare&taskId=" + taskId;
+    }
+
+    @PostMapping("/tasks/{taskId}/cancel-apply")
+    public String cancelApplyTask(@AuthenticationPrincipal MemberPrincipal principal,
+                                  @PathVariable Long taskId,
+                                  @RequestParam(name = "returnTo", defaultValue = "home") String returnTo,
+                                  RedirectAttributes redirectAttributes) {
+        try {
+            volunteerService.cancelApplication(taskId, principal.memberId());
+            redirectAttributes.addFlashAttribute("cancelledApplySuccess", true);
+        } catch (Exception exception) {
+            redirectAttributes.addFlashAttribute("cancelApplyError", exception.getMessage());
+        }
+        return "profile".equals(returnTo) ? "redirect:/profile?cancelledApply" : "redirect:/?view=detail&taskId=" + taskId;
     }
 
     private void preserveEditForm(Long taskId, Long requesterId, String returnTo, TaskCreateForm form,
