@@ -647,6 +647,22 @@
 
     const initialPage = document.body.dataset.activePage || "landing";
     showPage(initialPage);
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const viewParam = urlParams.get('view');
+    const reqIdParam = urlParams.get('requesterId');
+    const currentMemberId = document.body.dataset.memberId;
+
+    if (viewParam === 'detail') {
+        const btn = document.getElementById("btn-view-applicants");
+        if (btn) {
+            if (reqIdParam && currentMemberId && reqIdParam === currentMemberId) {
+                btn.style.display = "block";
+            } else {
+                btn.style.display = "none";
+            }
+        }
+    }
 </script>
 </body>
 </html>
