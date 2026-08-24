@@ -6,6 +6,34 @@
     <title>D3BUG · 긴급업무매칭플랫폼</title>
     <link rel="icon" type="image/x-icon" href="favicon.ico" th:href="@{/favicon.ico}">
     <link rel="stylesheet" href="../static/css/app.css" th:href="@{/css/app.css}">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for Auxiliary UI Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Pretendard Font -->
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#FFF1F0',
+                            100: '#FFE1DF',
+                            200: '#FFC7C3',
+                            500: '#FF3B30',
+                            600: '#E0261B',
+                            700: '#BA170D',
+                        },
+                        surface: {
+                            50: '#F8F9FA',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
 </head>
 <body data-active-page="landing" th:data-active-page="${activePage}">
 <div class="app-shell">
