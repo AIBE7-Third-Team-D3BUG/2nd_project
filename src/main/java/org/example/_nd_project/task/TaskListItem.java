@@ -17,7 +17,8 @@ public record TaskListItem(
         boolean editable,
         boolean progressAvailable,
         boolean urgent,
-        boolean hasAttachment
+        boolean hasAttachment,
+        String deliverableDescription
 ) {
     public int requestedPum() {
         return requestedMinutes / 30;

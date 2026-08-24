@@ -14,6 +14,7 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 import static org.springframework.http.HttpStatus.CONFLICT;
@@ -175,6 +176,11 @@ public class TaskService {
     }
 
     @Transactional(readOnly = true)
+    public Optional<TaskListItem> findTaskById(Long taskId) {
+        return taskRepository.findById(taskId).map(this::toListItem);
+    }
+
+    @Transactional(readOnly = true)
     public URI createAttachmentDownloadUrl(Long taskId, Long requesterId) {
         Task task = taskRepository.findByIdAndRequesterId(taskId, requesterId)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND));
@@ -205,7 +211,8 @@ public class TaskService {
                 task.getStatus() == TaskStatus.OPEN,
                 task.getStatus() != TaskStatus.OPEN && task.getStatus() != TaskStatus.CANCELLED,
                 urgent,
-                task.getReferenceFileUrl() != null && !task.getReferenceFileUrl().isBlank()
+                task.getReferenceFileUrl() != null && !task.getReferenceFileUrl().isBlank(),
+                task.getDeliverableDescription()
         );
     }
 
