@@ -5,6 +5,7 @@ import org.example._nd_project.security.MemberPrincipal;
 import org.example._nd_project.task.TaskCategory;
 import org.example._nd_project.task.TaskCreateForm;
 import org.example._nd_project.task.TaskService;
+import org.example._nd_project.task.TaskSort;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -31,10 +32,17 @@ public class HomeController {
 
     @GetMapping("/")
     public String home(@RequestParam(name = "view", required = false) String view,
+                       @RequestParam(name = "sort", required = false) String sort,
+                       @RequestParam(name = "category", required = false) String category,
                        @AuthenticationPrincipal MemberPrincipal principal,
                        Model model) {
-        model.addAttribute("availableTasks", taskService.findOpenTasks());
+        TaskSort selectedSort = TaskSort.from(sort);
+        TaskCategory selectedCategory = parseCategory(category);
+        model.addAttribute("availableTasks", taskService.findOpenTasks(selectedSort, selectedCategory));
+        model.addAttribute("taskSorts", TaskSort.values());
+        model.addAttribute("selectedSort", selectedSort);
         model.addAttribute("taskCategories", TaskCategory.values());
+        model.addAttribute("selectedCategory", selectedCategory);
         model.addAttribute("activePage", normalizeView(view));
         model.addAttribute("currentMemberId", principal == null ? null : principal.memberId());
         LocalDateTime now = LocalDateTime.now(KOREA);
@@ -62,5 +70,16 @@ public class HomeController {
             case "dashboard", "profile", "detail" -> view;
             default -> "landing";
         };
+    }
+
+    private TaskCategory parseCategory(String category) {
+        if (category == null || category.isBlank()) {
+            return null;
+        }
+        try {
+            return TaskCategory.valueOf(category);
+        } catch (IllegalArgumentException exception) {
+            return null;
+        }
     }
 }

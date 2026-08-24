@@ -4,6 +4,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.data.domain.PageRequest;
 
 import java.net.URI;
 import java.time.Duration;
@@ -140,8 +141,13 @@ public class TaskService {
     }
 
     @Transactional(readOnly = true)
-    public List<TaskListItem> findOpenTasks() {
-        return taskRepository.findTop20ByStatusAndDeadlineAtAfterOrderByCreatedAtDesc(TaskStatus.OPEN, Instant.now())
+    public List<TaskListItem> findOpenTasks(TaskSort taskSort, TaskCategory category) {
+        Instant now = Instant.now();
+        PageRequest page = PageRequest.of(0, 20, taskSort.getSort());
+        List<Task> tasks = category == null
+                ? taskRepository.findByStatusAndDeadlineAtAfter(TaskStatus.OPEN, now, page)
+                : taskRepository.findByStatusAndCategoryAndDeadlineAtAfter(TaskStatus.OPEN, category, now, page);
+        return tasks
                 .stream()
                 .map(this::toListItem)
                 .toList();
