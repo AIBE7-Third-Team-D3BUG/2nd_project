@@ -25,16 +25,24 @@
                     <p class="email" th:text="${profile.email()}">email@example.com</p>
                 </div>
             </div>
-            <div class="balance">
-                <span>사용 가능한 시간</span>
-                <strong><span th:text="${profile.availablePum()}">4</span>품</strong>
-                <small><span th:text="${profile.availableMinutes()}">120</span>분</small>
+            <div class="balance" aria-label="시간 잔액">
+                <div class="balance-item">
+                    <span class="balance-label">사용 가능</span>
+                    <strong><span th:text="${profile.availablePum()}">4</span>품</strong>
+                    <small><span th:text="${profile.availableMinutes()}">120</span>분</small>
+                </div>
+                <span class="balance-divider" aria-hidden="true"></span>
+                <div class="balance-item reserved">
+                    <span class="balance-label">업무 예약 중</span>
+                    <strong><span th:text="${profile.reservedPum()}">0</span>품</strong>
+                    <small><span th:text="${profile.reservedMinutes()}">0</span>분</small>
+                </div>
             </div>
+            <p class="balance-help">예약된 품은 업무 취소 시 반환되고, 완료 승인 시 작업자에게 전달됩니다.</p>
             <div class="stats">
                 <div class="stat">완료 업무<strong th:text="${profile.completedTaskCount()}">0</strong></div>
                 <div class="stat">평균 평점<strong th:text="${#numbers.formatDecimal(profile.averageRating(), 1, 1)}">0.0</strong></div>
                 <div class="stat">후기<strong th:text="${profile.reviewCount()}">0</strong></div>
-                <div class="stat">예약 시간<strong><span th:text="${profile.reservedPum()}">0</span>품</strong></div>
             </div>
             <form class="logout" th:action="@{/logout}" method="post">
                 <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
