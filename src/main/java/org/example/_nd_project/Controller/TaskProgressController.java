@@ -9,6 +9,7 @@ import org.example._nd_project.submission.SubmissionService;
 import org.example._nd_project.submission.TaskCompletionService;
 import org.example._nd_project.submission.TaskProgressService;
 import org.example._nd_project.submission.TaskProgressView;
+import org.example._nd_project.submission.TaskWorkflowService;
 import org.example._nd_project.task.TaskStorageException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
@@ -29,13 +30,16 @@ public class TaskProgressController {
     private final TaskProgressService taskProgressService;
     private final SubmissionService submissionService;
     private final TaskCompletionService taskCompletionService;
+    private final TaskWorkflowService taskWorkflowService;
 
     public TaskProgressController(TaskProgressService taskProgressService,
                                   SubmissionService submissionService,
-                                  TaskCompletionService taskCompletionService) {
+                                  TaskCompletionService taskCompletionService,
+                                  TaskWorkflowService taskWorkflowService) {
         this.taskProgressService = taskProgressService;
         this.submissionService = submissionService;
         this.taskCompletionService = taskCompletionService;
+        this.taskWorkflowService = taskWorkflowService;
     }
 
     @GetMapping("/tasks/{taskId}/progress")
@@ -58,6 +62,13 @@ public class TaskProgressController {
             model.addAttribute("disputeForm", new DisputeForm());
         }
         return "task-progress";
+    }
+
+    @PostMapping("/tasks/{taskId}/start")
+    public String start(@AuthenticationPrincipal MemberPrincipal principal,
+                        @PathVariable Long taskId) {
+        taskWorkflowService.start(taskId, principal.memberId());
+        return redirectToProgress(taskId) + "?started";
     }
 
     @PostMapping("/tasks/{taskId}/submissions")

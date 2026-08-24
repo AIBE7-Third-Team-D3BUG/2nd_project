@@ -93,6 +93,39 @@
             </form>
         </section>
 
+        <section class="card registered-tasks-card" th:if="${!#lists.isEmpty(assignedTasks)}">
+            <div class="registered-tasks-heading">
+                <div>
+                    <p class="eyebrow">WORKER · 내가 맡은 업무</p>
+                    <h2>내가 맡은 업무</h2>
+                    <p class="subtitle">선택된 업무를 시작하고 결과를 제출하세요.</p>
+                </div>
+            </div>
+
+            <div class="registered-task-list">
+                <article class="registered-task" th:each="task : ${assignedTasks}">
+                    <div>
+                        <div class="registered-task-meta">
+                            <span th:text="${task.statusLabel()}">매칭 완료</span>
+                            <span th:text="${task.deadlineLabel()}">2시간 42분 남음</span>
+                            <span th:text="${task.categoryLabel()}">개발</span>
+                        </div>
+                        <h3 th:text="${task.title()}">AWS 배포 후 502 오류 해결</h3>
+                        <p th:text="${#lists.isEmpty(task.skillTags()) ? task.description() : #strings.listJoin(task.skillTags(), ' · ')}">
+                            Spring · AWS · Nginx
+                        </p>
+                    </div>
+                    <div class="registered-task-side">
+                        <strong><span th:text="${task.requestedPum()}">4</span>품</strong>
+                        <div class="task-actions">
+                            <a class="task-action progress"
+                               th:href="@{/tasks/{id}/progress(id=${task.id()})}">진행 화면</a>
+                        </div>
+                    </div>
+                </article>
+            </div>
+        </section>
+
         <section class="card registered-tasks-card">
             <div class="registered-tasks-heading">
                 <div>

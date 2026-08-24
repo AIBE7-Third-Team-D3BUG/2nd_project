@@ -176,6 +176,14 @@ public class TaskService {
     }
 
     @Transactional(readOnly = true)
+    public List<TaskListItem> findAssignedTasks(Long workerId) {
+        return taskRepository.findByWorkerIdAndStatusNotOrderByUpdatedAtDesc(workerId, TaskStatus.CANCELLED)
+                .stream()
+                .map(this::toListItem)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public Optional<TaskListItem> findTaskById(Long taskId) {
         return taskRepository.findById(taskId).map(this::toListItem);
     }

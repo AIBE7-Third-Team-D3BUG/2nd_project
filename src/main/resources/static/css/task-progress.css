@@ -330,6 +330,7 @@ main { padding: 34px 36px 60px; }
 .warning-icon { color: var(--warning); background: var(--warning-soft); }
 .waiting-icon { color: var(--brand); background: var(--brand-soft); }
 .state-panel p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.6; }
+.state-panel .start-form { margin: 20px 0 0; }
 
 @media (max-width: 900px) {
     .content-grid { grid-template-columns: 1fr; }

@@ -51,6 +51,7 @@
         </ol>
 
         <div class="notice success" th:if="${param.submitted}">결과를 제출했습니다. 의뢰인의 확인을 기다려주세요.</div>
+        <div class="notice success" th:if="${param.started}">업무를 시작했습니다. 완료 후 결과를 제출해주세요.</div>
         <div class="notice success" th:if="${param.approved}">완료 승인과 시간 정산이 완료되었습니다.</div>
         <div class="notice success" th:if="${param.revisionRequested}">작업자에게 수정 요청을 전달했습니다.</div>
         <div class="notice warning" th:if="${param.reported}">문제 신고가 접수되었습니다. 정산은 검토가 끝날 때까지 보류됩니다.</div>
@@ -205,8 +206,24 @@
                     <p>검토가 완료될 때까지 시간 정산이 보류됩니다.</p>
                 </article>
 
+                <article class="panel state-panel" th:if="${progress.canStart()}">
+                    <span class="state-icon waiting-icon">→</span>
+                    <h2>작업자로 선택되었어요</h2>
+                    <p>업무 내용과 완료 기준을 확인한 뒤 작업을 시작해주세요.</p>
+                    <form class="start-form" th:action="@{/tasks/{id}/start(id=${progress.taskId()})}" method="post">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                        <button class="primary-action" type="submit">업무 시작하기</button>
+                    </form>
+                </article>
+
+                <article class="panel state-panel" th:if="${progress.waitingForWorkerStart()}">
+                    <span class="state-icon waiting-icon">…</span>
+                    <h2>작업자가 업무를 확인하고 있어요</h2>
+                    <p>작업자가 시작하면 진행 상태와 결과 제출 여부를 여기서 확인할 수 있습니다.</p>
+                </article>
+
                 <article class="panel state-panel"
-                         th:if="${!progress.canSubmit() and !progress.canReview() and !progress.completed() and !progress.disputed() and progress.submission() == null}">
+                         th:if="${!progress.canStart() and !progress.waitingForWorkerStart() and !progress.canSubmit() and !progress.canReview() and !progress.completed() and !progress.disputed() and progress.submission() == null}">
                     <span class="state-icon waiting-icon">…</span>
                     <h2 th:text="${progress.requester() ? '작업 결과를 기다리고 있어요' : '업무가 시작되면 제출할 수 있어요'}">
                         작업 결과를 기다리고 있어요
@@ -229,6 +246,14 @@
     if (approveForm) {
         approveForm.addEventListener("submit", function (event) {
             if (!window.confirm("완료 승인 후 즉시 정산됩니다. 승인하시겠습니까?")) {
+                event.preventDefault();
+            }
+        });
+    }
+    const startForm = document.querySelector(".start-form");
+    if (startForm) {
+        startForm.addEventListener("submit", function (event) {
+            if (!window.confirm("이 업무를 시작하시겠습니까?")) {
                 event.preventDefault();
             }
         });

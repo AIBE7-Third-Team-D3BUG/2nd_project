@@ -18,6 +18,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
             TaskStatus status, TaskCategory category, Instant now, Pageable pageable
     );
     List<Task> findByRequesterIdAndStatusNotOrderByCreatedAtDesc(Long requesterId, TaskStatus excludedStatus);
+    List<Task> findByWorkerIdAndStatusNotOrderByUpdatedAtDesc(Long workerId, TaskStatus excludedStatus);
     Optional<Task> findByIdAndRequesterId(Long id, Long requesterId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)

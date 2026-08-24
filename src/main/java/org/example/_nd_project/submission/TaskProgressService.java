@@ -63,6 +63,8 @@ public class TaskProgressService {
                 task.getStatus().getLabel(),
                 task.isRequester(memberId),
                 task.isWorker(memberId),
+                task.isWorker(memberId) && task.getStatus() == TaskStatus.MATCHED,
+                task.isRequester(memberId) && task.getStatus() == TaskStatus.MATCHED,
                 task.isWorker(memberId) && task.getStatus() == TaskStatus.IN_PROGRESS,
                 task.isRequester(memberId) && task.getStatus() == TaskStatus.SUBMITTED,
                 task.getStatus() == TaskStatus.COMPLETED,

@@ -12,6 +12,8 @@ public record TaskProgressView(
         String statusLabel,
         boolean requester,
         boolean worker,
+        boolean canStart,
+        boolean waitingForWorkerStart,
         boolean canSubmit,
         boolean canReview,
         boolean completed,

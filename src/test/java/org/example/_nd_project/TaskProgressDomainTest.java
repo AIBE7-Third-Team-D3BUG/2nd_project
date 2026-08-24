@@ -46,7 +46,32 @@ class TaskProgressDomainTest {
         assertEquals(TaskStatus.IN_PROGRESS, task.getStatus());
     }
 
+    @Test
+    void selectedWorkerCanStartMatchedTask() {
+        Task task = matchedTask();
+        Instant startedAt = Instant.parse("2026-08-24T04:30:00Z");
+
+        task.startWork(8L, startedAt);
+
+        assertEquals(TaskStatus.IN_PROGRESS, task.getStatus());
+        assertEquals(startedAt, task.getStartedAt());
+    }
+
+    @Test
+    void memberWhoWasNotSelectedCannotStartTask() {
+        Task task = matchedTask();
+
+        assertThrows(IllegalArgumentException.class, () -> task.startWork(99L, Instant.now()));
+        assertEquals(TaskStatus.MATCHED, task.getStatus());
+    }
+
     private Task inProgressTask() {
+        Task task = matchedTask();
+        ReflectionTestUtils.setField(task, "status", TaskStatus.IN_PROGRESS);
+        return task;
+    }
+
+    private Task matchedTask() {
         Task task = Task.create(
                 3L,
                 "AWS 배포 후 502 오류 해결",
@@ -60,7 +85,7 @@ class TaskProgressDomainTest {
         );
         ReflectionTestUtils.setField(task, "id", 10L);
         ReflectionTestUtils.setField(task, "workerId", 8L);
-        ReflectionTestUtils.setField(task, "status", TaskStatus.IN_PROGRESS);
+        ReflectionTestUtils.setField(task, "status", TaskStatus.MATCHED);
         return task;
     }
 }

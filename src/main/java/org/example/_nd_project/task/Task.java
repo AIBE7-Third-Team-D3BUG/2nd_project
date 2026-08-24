@@ -131,6 +131,13 @@ public class Task {
         this.cancelledAt = cancelledAt;
     }
 
+    public void startWork(Long memberId, Instant startedAt) {
+        requireWorker(memberId);
+        requireStatus(TaskStatus.MATCHED, "매칭이 완료된 업무만 시작할 수 있습니다.");
+        this.status = TaskStatus.IN_PROGRESS;
+        this.startedAt = startedAt;
+    }
+
     public void submitResult(Long memberId, Instant submittedAt) {
         requireWorker(memberId);
         requireStatus(TaskStatus.IN_PROGRESS, "진행 중인 업무만 결과를 제출할 수 있습니다.");
