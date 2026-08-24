@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 public record TaskEditData(
         TaskCreateForm form,
         LocalDateTime maximumDeadline,
-        boolean hasAttachment
+        boolean hasAttachment,
+        int maximumSpendableMinutes
 ) {
 }

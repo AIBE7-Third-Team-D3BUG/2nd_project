@@ -12,6 +12,6 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     List<Task> findByStatusAndCategoryAndDeadlineAtAfter(
             TaskStatus status, TaskCategory category, Instant now, Pageable pageable
     );
-    List<Task> findByRequesterIdOrderByCreatedAtDesc(Long requesterId);
+    List<Task> findByRequesterIdAndStatusNotOrderByCreatedAtDesc(Long requesterId, TaskStatus excludedStatus);
     Optional<Task> findByIdAndRequesterId(Long id, Long requesterId);
 }

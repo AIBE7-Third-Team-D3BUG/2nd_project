@@ -1,5 +1,6 @@
 package org.example._nd_project.task;
 
+import org.example._nd_project.member.TimeLedgerService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -25,10 +26,13 @@ public class TaskService {
 
     private final TaskRepository taskRepository;
     private final TaskStorageService taskStorageService;
+    private final TimeLedgerService timeLedgerService;
 
-    public TaskService(TaskRepository taskRepository, TaskStorageService taskStorageService) {
+    public TaskService(TaskRepository taskRepository, TaskStorageService taskStorageService,
+                       TimeLedgerService timeLedgerService) {
         this.taskRepository = taskRepository;
         this.taskStorageService = taskStorageService;
+        this.timeLedgerService = timeLedgerService;
     }
 
     @Transactional
@@ -45,6 +49,7 @@ public class TaskService {
                 normalizeNullable(form.getReferenceFileUrl())
         );
         taskRepository.saveAndFlush(task);
+        timeLedgerService.reserveForTask(requesterId, task.getId(), form.getRequestedMinutes());
         String uploadedPath = null;
         try {
             if (attachment != null && !attachment.isEmpty()) {
@@ -79,7 +84,9 @@ public class TaskService {
         return new TaskEditData(
                 form,
                 task.getCreatedAt().plus(Duration.ofHours(24)).atZone(KOREA).toLocalDateTime(),
-                hasReference(task.getReferenceFileUrl())
+                hasReference(task.getReferenceFileUrl()),
+                timeLedgerService.getAvailableMinutes(requesterId)
+                        + timeLedgerService.getTaskReservedMinutes(requesterId, taskId)
         );
     }
 
@@ -116,6 +123,11 @@ public class TaskService {
                     form.getDeliverableDescription().trim(),
                     nextReference
             );
+            timeLedgerService.adjustTaskReservation(
+                    requesterId,
+                    taskId,
+                    form.getRequestedMinutes()
+            );
             taskRepository.flush();
 
             if (isStoredObject(previousReference) && !previousReference.equals(nextReference)) {
@@ -133,7 +145,8 @@ public class TaskService {
         Task task = findOwnedTask(taskId, requesterId);
         ensureEditable(task);
         String reference = task.getReferenceFileUrl();
-        taskRepository.delete(task);
+        timeLedgerService.refundTaskReservation(requesterId, taskId);
+        task.cancel(Instant.now());
         taskRepository.flush();
         if (isStoredObject(reference)) {
             taskStorageService.deleteQuietly(reference);
@@ -155,7 +168,7 @@ public class TaskService {
 
     @Transactional(readOnly = true)
     public List<TaskListItem> findRegisteredTasks(Long requesterId) {
-        return taskRepository.findByRequesterIdOrderByCreatedAtDesc(requesterId)
+        return taskRepository.findByRequesterIdAndStatusNotOrderByCreatedAtDesc(requesterId, TaskStatus.CANCELLED)
                 .stream()
                 .map(this::toListItem)
                 .toList();

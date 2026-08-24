@@ -1,6 +1,7 @@
 package org.example._nd_project.Controller;
 
 import jakarta.validation.Valid;
+import org.example._nd_project.member.InsufficientBalanceException;
 import org.example._nd_project.security.MemberPrincipal;
 import org.example._nd_project.task.TaskCreateForm;
 import org.example._nd_project.task.TaskEditData;
@@ -48,6 +49,14 @@ public class TaskController {
 
         try {
             taskService.create(principal.memberId(), form, attachment);
+        } catch (InsufficientBalanceException exception) {
+            bindingResult.reject("balance", exception.getMessage());
+            redirectAttributes.addFlashAttribute("taskForm", form);
+            redirectAttributes.addFlashAttribute(
+                    "org.springframework.validation.BindingResult.taskForm",
+                    bindingResult
+            );
+            return "redirect:/?view=confirm";
         } catch (TaskStorageException exception) {
             bindingResult.reject("attachment", exception.getMessage() + " 파일을 다시 선택해주세요.");
             redirectAttributes.addFlashAttribute("taskForm", form);
@@ -69,6 +78,7 @@ public class TaskController {
         redirectAttributes.addFlashAttribute("taskForm", editData.form());
         redirectAttributes.addFlashAttribute("editingTaskId", taskId);
         redirectAttributes.addFlashAttribute("editingHasAttachment", editData.hasAttachment());
+        redirectAttributes.addFlashAttribute("maximumSpendableMinutes", editData.maximumSpendableMinutes());
         redirectAttributes.addFlashAttribute("editReturnTo", normalizeReturnTo(returnTo));
         redirectAttributes.addFlashAttribute(
                 "maxDeadline",
@@ -93,6 +103,10 @@ public class TaskController {
 
         try {
             taskService.update(taskId, principal.memberId(), form, attachment);
+        } catch (InsufficientBalanceException exception) {
+            bindingResult.reject("balance", exception.getMessage());
+            preserveEditForm(taskId, principal.memberId(), safeReturnTo, form, bindingResult, redirectAttributes);
+            return "redirect:/?view=confirm";
         } catch (TaskStorageException exception) {
             bindingResult.reject("attachment", exception.getMessage() + " 파일을 다시 선택해주세요.");
             preserveEditForm(taskId, principal.memberId(), safeReturnTo, form, bindingResult, redirectAttributes);
@@ -128,6 +142,7 @@ public class TaskController {
         );
         redirectAttributes.addFlashAttribute("editingTaskId", taskId);
         redirectAttributes.addFlashAttribute("editingHasAttachment", editData.hasAttachment());
+        redirectAttributes.addFlashAttribute("maximumSpendableMinutes", editData.maximumSpendableMinutes());
         redirectAttributes.addFlashAttribute("editReturnTo", returnTo);
         redirectAttributes.addFlashAttribute("maxDeadline", DATETIME_INPUT.format(editData.maximumDeadline()));
     }

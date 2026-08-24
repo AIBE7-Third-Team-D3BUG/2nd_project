@@ -67,4 +67,27 @@ public class TimeTransaction {
         transaction.reason = "신규 회원 체험 시간 지급";
         return transaction;
     }
+
+    public static TimeTransaction taskReservationAdjustment(
+            Long memberId,
+            Long taskId,
+            int reservationDifference,
+            int availableBalanceAfter,
+            int reservedBalanceAfter,
+            String transactionId,
+            String reason
+    ) {
+        TimeTransaction transaction = new TimeTransaction();
+        transaction.accountMemberId = memberId;
+        transaction.taskId = taskId;
+        transaction.transactionGroupId = transactionId;
+        transaction.transactionType = reservationDifference > 0 ? "TASK_RESERVE" : "TASK_REFUND";
+        transaction.availableDeltaMinutes = -reservationDifference;
+        transaction.reservedDeltaMinutes = reservationDifference;
+        transaction.availableBalanceAfter = availableBalanceAfter;
+        transaction.reservedBalanceAfter = reservedBalanceAfter;
+        transaction.idempotencyKey = "task-balance:" + taskId + ":" + transactionId;
+        transaction.reason = reason;
+        return transaction;
+    }
 }
