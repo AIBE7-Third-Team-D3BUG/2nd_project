@@ -6,6 +6,7 @@ import org.example._nd_project.member.MemberProfileView;
 import org.example._nd_project.member.MemberService;
 import org.example._nd_project.member.ProfileUpdateForm;
 import org.example._nd_project.security.MemberPrincipal;
+import org.example._nd_project.task.TaskService;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -18,9 +19,11 @@ import org.springframework.web.bind.annotation.PostMapping;
 public class ProfileController {
 
     private final MemberService memberService;
+    private final TaskService taskService;
 
-    public ProfileController(MemberService memberService) {
+    public ProfileController(MemberService memberService, TaskService taskService) {
         this.memberService = memberService;
+        this.taskService = taskService;
     }
 
     @GetMapping("/profile")
@@ -34,6 +37,7 @@ public class ProfileController {
         form.setNotificationEnabled(profile.notificationEnabled());
         model.addAttribute("profile", profile);
         model.addAttribute("profileForm", form);
+        model.addAttribute("registeredTasks", taskService.findRegisteredTasks(principal.memberId()));
         return "profile";
     }
 
@@ -44,6 +48,7 @@ public class ProfileController {
                                 Model model) {
         if (bindingResult.hasErrors()) {
             model.addAttribute("profile", memberService.getProfile(principal.memberId()));
+            model.addAttribute("registeredTasks", taskService.findRegisteredTasks(principal.memberId()));
             return "profile";
         }
         try {
@@ -51,6 +56,7 @@ public class ProfileController {
         } catch (DuplicateMemberException exception) {
             bindingResult.rejectValue(exception.getField(), "duplicate", exception.getMessage());
             model.addAttribute("profile", memberService.getProfile(principal.memberId()));
+            model.addAttribute("registeredTasks", taskService.findRegisteredTasks(principal.memberId()));
             return "profile";
         }
         return "redirect:/profile?updated";
