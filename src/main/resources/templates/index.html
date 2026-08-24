@@ -61,21 +61,23 @@
                 <p>마감과 품을 확인하고 바로 지원하세요.</p>
             </div>
 
-            <div class="search-bar" aria-label="업무 검색">
-                <input class="control" type="search" placeholder="업무 제목이나 기술로 검색">
-                <select class="control" aria-label="카테고리">
-                    <option>카테고리</option>
-                    <option>개발</option>
-                    <option>디자인</option>
-                    <option>문서·번역</option>
+            <form id="task-search-form" class="search-bar" method="get" th:action="@{/}" aria-label="업무 검색">
+                <input class="control" name="q" type="search" placeholder="업무 제목이나 기술로 검색">
+                <select id="task-category-filter" class="control" name="category" aria-label="카테고리">
+                    <option value="">카테고리</option>
+                    <option th:each="categoryOption : ${taskCategories}"
+                            th:value="${categoryOption}"
+                            th:text="${categoryOption.label}"
+                            th:selected="${categoryOption == selectedCategory}">개발</option>
                 </select>
-                <select class="control" aria-label="마감순">
-                    <option>마감순</option>
-                    <option>최신순</option>
-                    <option>높은 품순</option>
+                <select id="task-sort" class="control" name="sort" aria-label="업무 정렬">
+                    <option th:each="sortOption : ${taskSorts}"
+                            th:value="${sortOption.parameter}"
+                            th:text="${sortOption.label}"
+                            th:selected="${sortOption == selectedSort}">마감순</option>
                 </select>
-                <button class="button" type="button">검색</button>
-            </div>
+                <button class="button" type="submit">검색</button>
+            </form>
 
             <div class="notice success-notice" th:if="${param.registered}">
                 업무가 등록되었습니다. 지금부터 지원자를 받을 수 있어요.
@@ -523,6 +525,8 @@
     const pages = document.querySelectorAll(".page-section");
     const navButtons = document.querySelectorAll(".nav-link");
     const deadlineInput = document.getElementById("task-deadline");
+    const taskSortSelect = document.getElementById("task-sort");
+    const taskCategoryFilter = document.getElementById("task-category-filter");
 
     function koreaDateTimeValue(date) {
         const parts = new Intl.DateTimeFormat("en-CA", {
@@ -599,6 +603,18 @@
             }
         });
     });
+
+    if (taskSortSelect) {
+        taskSortSelect.addEventListener("change", function () {
+            taskSortSelect.form.submit();
+        });
+    }
+
+    if (taskCategoryFilter) {
+        taskCategoryFilter.addEventListener("change", function () {
+            taskCategoryFilter.form.submit();
+        });
+    }
 
     const initialPage = document.body.dataset.activePage || "landing";
     showPage(initialPage);
