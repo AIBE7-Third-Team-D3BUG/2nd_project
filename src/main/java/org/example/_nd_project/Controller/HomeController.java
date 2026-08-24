@@ -8,6 +8,8 @@ import org.example._nd_project.task.TaskCreateForm;
 import org.example._nd_project.task.TaskListItem;
 import org.example._nd_project.task.TaskService;
 import org.example._nd_project.task.TaskSort;
+import org.example._nd_project.volunteer.VolunteerCardView;
+import org.example._nd_project.volunteer.VolunteerService;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -27,10 +29,12 @@ public class HomeController {
 
     private final TaskService taskService;
     private final MemberService memberService;
+    private final VolunteerService volunteerService;
 
-    public HomeController(TaskService taskService, MemberService memberService) {
+    public HomeController(TaskService taskService, MemberService memberService, VolunteerService volunteerService) {
         this.taskService = taskService;
         this.memberService = memberService;
+        this.volunteerService = volunteerService;
     }
 
     @GetMapping("/")
@@ -59,6 +63,18 @@ public class HomeController {
         }
         model.addAttribute("selectedTask", selectedTask);
 
+        long applicantCount = 0;
+        boolean hasApplied = false;
+        List<VolunteerCardView> volunteers = List.of();
+        if (selectedTask != null) {
+            applicantCount = volunteerService.countApplicants(selectedTask.id());
+            hasApplied = principal != null && volunteerService.hasApplied(selectedTask.id(), principal.memberId());
+            volunteers = volunteerService.getVolunteers(selectedTask.id());
+        }
+        model.addAttribute("applicantCount", applicantCount);
+        model.addAttribute("hasApplied", hasApplied);
+        model.addAttribute("volunteers", volunteers);
+
         LocalDateTime now = LocalDateTime.now(KOREA);
         if (!model.containsAttribute("minDeadline")) {
             model.addAttribute("minDeadline", DATETIME_INPUT.format(
@@ -72,12 +88,19 @@ public class HomeController {
         }
         MemberProfileView profile = principal == null ? null : memberService.getProfile(principal.memberId());
         int availableMinutes = profile == null ? 0 : profile.availableMinutes();
+        int reservedMinutes = profile == null ? 0 : profile.reservedMinutes();
         model.addAttribute("currentAvailablePum", availableMinutes / 30);
+        model.addAttribute("currentReservedPum", reservedMinutes / 30);
+        model.addAttribute("canCreateTask", principal != null && availableMinutes >= 30);
         if (!model.containsAttribute("maximumSpendableMinutes")) {
             model.addAttribute("maximumSpendableMinutes", availableMinutes);
         }
         if (!model.containsAttribute("taskForm")) {
-            model.addAttribute("taskForm", new TaskCreateForm());
+            TaskCreateForm form = new TaskCreateForm();
+            if (availableMinutes > 0 && availableMinutes < form.getRequestedMinutes()) {
+                form.setRequestedMinutes(availableMinutes);
+            }
+            model.addAttribute("taskForm", form);
         }
         return "index";
     }

@@ -25,16 +25,24 @@
                     <p class="email" th:text="${profile.email()}">email@example.com</p>
                 </div>
             </div>
-            <div class="balance">
-                <span>사용 가능한 시간</span>
-                <strong><span th:text="${profile.availablePum()}">4</span>품</strong>
-                <small><span th:text="${profile.availableMinutes()}">120</span>분</small>
+            <div class="balance" aria-label="시간 잔액">
+                <div class="balance-item">
+                    <span class="balance-label">사용 가능</span>
+                    <strong><span th:text="${profile.availablePum()}">4</span>품</strong>
+                    <small><span th:text="${profile.availableMinutes()}">120</span>분</small>
+                </div>
+                <span class="balance-divider" aria-hidden="true"></span>
+                <div class="balance-item reserved">
+                    <span class="balance-label">업무 예약 중</span>
+                    <strong><span th:text="${profile.reservedPum()}">0</span>품</strong>
+                    <small><span th:text="${profile.reservedMinutes()}">0</span>분</small>
+                </div>
             </div>
+            <p class="balance-help">예약된 품은 업무 취소 시 반환되고, 완료 승인 시 작업자에게 전달됩니다.</p>
             <div class="stats">
                 <div class="stat">완료 업무<strong th:text="${profile.completedTaskCount()}">0</strong></div>
                 <div class="stat">평균 평점<strong th:text="${#numbers.formatDecimal(profile.averageRating(), 1, 1)}">0.0</strong></div>
                 <div class="stat">후기<strong th:text="${profile.reviewCount()}">0</strong></div>
-                <div class="stat">예약 시간<strong><span th:text="${profile.reservedPum()}">0</span>품</strong></div>
             </div>
             <form class="logout" th:action="@{/logout}" method="post">
                 <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
@@ -49,6 +57,7 @@
             <div class="alert alert-success" th:if="${param.updated}">프로필이 저장되었습니다.</div>
             <div class="alert alert-success" th:if="${param.updatedTask}">업무가 수정되었습니다.</div>
             <div class="alert alert-success" th:if="${param.deletedTask}">업무가 삭제되었습니다.</div>
+            <div class="alert alert-success" th:if="${param.cancelledApply}">지원이 취소되었습니다.</div>
             <form th:action="@{/profile}" th:object="${profileForm}" method="post">
                 <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                 <div class="errors" th:if="${#fields.hasGlobalErrors()}">
@@ -133,12 +142,70 @@
                 </div>
             </div>
         </section>
+
+        <section class="card applied-tasks-card">
+            <div class="registered-tasks-heading">
+                <div>
+                    <p class="eyebrow">WORKER · 내가 지원한 업무</p>
+                    <h2>내가 지원한 업무</h2>
+                    <p class="subtitle">지원한 업무의 마감과 매칭 및 진행 상태를 확인하세요.</p>
+                </div>
+                <a class="small-button secondary" th:href="@{/}">업무 찾아보기</a>
+            </div>
+
+            <div class="registered-task-list">
+                <article class="registered-task" th:each="app : ${appliedTasks}"
+                         th:onclick="|location.href='/?view=detail&taskId=' + ${app.taskId()}|"
+                         style="cursor: pointer;">
+                    <div>
+                        <div class="registered-task-meta">
+                            <span class="status-badge" 
+                                  th:style="${app.volunteerStatus() == T(org.example._nd_project.volunteer.VolunteerStatus).ACCEPTED ? 'background-color: #2563eb; color: #fff; border-radius: 4px; padding: 2px 6px; font-weight: bold; font-size: 11px;' : 'background-color: #eff6ff; color: #1d4ed8; border-radius: 4px; padding: 2px 6px; font-weight: bold; font-size: 11px;'}" 
+                                  th:text="${app.volunteerStatusLabel()}">지원 완료</span>
+                            <span th:text="${app.deadlineLabel()}">2시간 42분 남음</span>
+                            <span th:text="${app.categoryLabel()}">개발</span>
+                            <span style="font-size: 11px; color: #6b7280;" th:text="|지원일: ${app.appliedDateLabel()}|">지원일: 8월 24일</span>
+                        </div>
+                        <h3 th:text="${app.title()}">AWS 배포 후 502 오류 해결</h3>
+                        <p th:text="${app.skillTags() == null or #lists.isEmpty(app.skillTags()) ? app.description() : T(java.lang.String).join(' · ', app.skillTags())}">
+                            Spring · AWS · Nginx
+                        </p>
+                    </div>
+                    <div class="registered-task-side">
+                        <strong><span th:text="${app.requestedPum()}">4</span>품</strong>
+                        <div class="task-actions">
+                            <span class="task-action" style="cursor: default; background-color: #f3f4f6; border-color: #e5e7eb; color: #374151;" th:text="${app.taskStatusLabel()}">모집 중</span>
+                            <form th:if="${app.volunteerStatus() == T(org.example._nd_project.volunteer.VolunteerStatus).APPLIED}"
+                                  class="cancel-apply-form"
+                                  th:action="@{/tasks/{id}/cancel-apply(id=${app.taskId()})}" method="post"
+                                  style="margin: 0;">
+                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                <input type="hidden" name="returnTo" value="profile">
+                                <button class="task-action delete" type="submit" style="color: #dc2626; border-color: #fca5a5;">지원 취소</button>
+                            </form>
+                        </div>
+                    </div>
+                </article>
+
+                <div class="registered-empty" th:if="${#lists.isEmpty(appliedTasks)}">
+                    아직 지원한 업무가 없습니다. 메인 페이지에서 긴급 업무를 찾아 지원해보세요.
+                </div>
+            </div>
+        </section>
     </div>
 </main>
 <script>
     document.querySelectorAll(".delete-task-form").forEach(function (form) {
         form.addEventListener("submit", function (event) {
             if (!window.confirm("이 업무를 삭제하시겠습니까? 삭제한 업무는 복구할 수 없습니다.")) {
+                event.preventDefault();
+            }
+        });
+    });
+
+    document.querySelectorAll(".cancel-apply-form").forEach(function (form) {
+        form.addEventListener("submit", function (event) {
+            if (!window.confirm("이 업무에 대한 지원을 취소하시겠습니까?")) {
                 event.preventDefault();
             }
         });

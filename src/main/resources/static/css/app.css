@@ -76,10 +76,11 @@ button, a { -webkit-tap-highlight-color: transparent; }
     font-size: 13px;
     font-weight: 800;
 }
-.button {
+.button, a.button, button.button {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    text-align: center;
     gap: 7px;
     min-height: 38px;
     padding: 0 17px;
@@ -93,12 +94,24 @@ button, a { -webkit-tap-highlight-color: transparent; }
     font-weight: 800;
     transition: background .18s ease, border-color .18s ease, transform .18s ease;
 }
-.button:hover { background: var(--brand-hover); }
-.button:active { transform: translateY(1px); }
+.button:hover, a.button:hover { background: var(--brand-hover); }
+.button:active, a.button:active { transform: translateY(1px); }
+.button:disabled {
+    color: #9aa2ae;
+    background: #e7e9ee;
+    cursor: not-allowed;
+    transform: none;
+}
 .button.secondary { color: #5e6776; background: #fff; border-color: var(--line); }
 .button.secondary:hover { border-color: #adb5c2; background: #f8f9fb; }
 .button.ghost { color: var(--brand); background: var(--brand-soft); }
-.button.full { width: 100%; }
+.button.full, a.button.full {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
 .page-section { padding: 34px 36px 52px; }
 .page-section.hidden { display: none; }
 .eyebrow {
@@ -241,6 +254,34 @@ select.control { cursor: pointer; }
 .summary-row strong { font-size: 15px; }
 .balance-guide { margin: 8px 0 16px; color: var(--muted); font-size: 12px; line-height: 1.5; }
 .balance-guide strong { color: var(--brand); }
+.balance-blocked {
+    margin: 14px 0 18px;
+    padding: 13px 14px;
+    border: 1px solid #f1d2a3;
+    border-radius: 7px;
+    color: #745526;
+    background: #fff8e9;
+    font-size: 12px;
+    line-height: 1.55;
+}
+.balance-blocked strong { display: block; margin-bottom: 5px; color: #9a6111; font-size: 13px; }
+.balance-blocked a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    margin-top: 10px;
+    padding: 8px 12px;
+    border: 1px solid #e2c08d;
+    border-radius: 6px;
+    color: #9a6111;
+    background: #fff;
+    text-decoration: none;
+    font-weight: 800;
+}
+.balance-blocked a:hover {
+    background: #fdf5e6;
+}
 .tag-list { display: flex; flex-wrap: wrap; gap: 7px; }
 .tag {
     padding: 6px 10px;

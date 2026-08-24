@@ -17,6 +17,7 @@ class ApplicationTests {
     @MockitoBean TimeAccountRepository timeAccountRepository;
     @MockitoBean TimeTransactionRepository timeTransactionRepository;
     @MockitoBean TaskRepository taskRepository;
+    @MockitoBean org.example._nd_project.volunteer.VolunteerRepository volunteerRepository;
 
     @Test
     void contextLoads() {
