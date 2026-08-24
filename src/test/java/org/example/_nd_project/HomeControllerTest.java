@@ -40,7 +40,7 @@ class HomeControllerTest {
         when(memberService.getProfile(3L)).thenReturn(profile(0, 120));
         ExtendedModelMap model = new ExtendedModelMap();
 
-        homeController.home("confirm", null, null, principal, model);
+        homeController.home("confirm", null, null, null, principal, model);
 
         assertFalse((boolean) model.get("canCreateTask"));
         assertEquals(0, model.get("currentAvailablePum"));
@@ -53,7 +53,7 @@ class HomeControllerTest {
         when(memberService.getProfile(3L)).thenReturn(profile(60, 60));
         ExtendedModelMap model = new ExtendedModelMap();
 
-        homeController.home("confirm", null, null, principal, model);
+        homeController.home("confirm", null, null, null, principal, model);
 
         assertTrue((boolean) model.get("canCreateTask"));
         TaskCreateForm form = (TaskCreateForm) model.get("taskForm");
@@ -64,7 +64,7 @@ class HomeControllerTest {
     void anonymousVisitorMustLogInBeforeCreatingTask() {
         ExtendedModelMap model = new ExtendedModelMap();
 
-        homeController.home("confirm", null, null, null, model);
+        homeController.home("confirm", null, null, null, null, model);
 
         assertFalse((boolean) model.get("canCreateTask"));
     }
