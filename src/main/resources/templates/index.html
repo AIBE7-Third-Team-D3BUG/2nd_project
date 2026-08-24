@@ -2,810 +2,276 @@
 <html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>태스크플래시 (TASKFLASH) - 시간은행 긴급 재능 품앗이</title>
-    <!-- Favicon -->
-    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome for Auxiliary UI Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <!-- Pretendard Font -->
-    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
-    
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        brand: {
-                            50: '#FFF1F0',
-                            100: '#FFE1DF',
-                            200: '#FFC7C3',
-                            500: '#FF3B30',
-                            600: '#E0261B',
-                            700: '#BA170D',
-                        },
-                        surface: {
-                            50: '#F8F9FA',
-                            100: '#F1F3F5',
-                            200: '#E9ECEF',
-                            700: '#495057',
-                            800: '#343A40',
-                            900: '#212529',
-                        }
-                    },
-                    fontFamily: {
-                        sans: ['"Pretendard Variable"', 'Pretendard', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'sans-serif'],
-                    }
-                }
-            }
-        }
-    </script>
-
-    <style>
-        body {
-            font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-            background-color: #F8F9FB;
-            color: #191F28;
-            letter-spacing: -0.025em;
-            -webkit-font-smoothing: antialiased;
-        }
-
-        /* 커스텀 부드러운 그림자 및 테두리 */
-        .card-subtle {
-            background: #FFFFFF;
-            border: 1px solid #EAECEF;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02), 0 4px 12px rgba(0, 0, 0, 0.03);
-            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-        .card-subtle:hover {
-            border-color: #D3D8DF;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05), 0 12px 24px -4px rgba(0, 0, 0, 0.06);
-            transform: translateY(-2px);
-        }
-
-        .category-hero-card {
-            border: 1px solid #ECEEF2;
-            background: #FFFFFF;
-            transition: all 0.22s ease-in-out;
-        }
-        .category-hero-card:hover {
-            border-color: #FF8F87;
-            transform: translateY(-3px);
-            box-shadow: 0 12px 28px -6px rgba(255, 59, 48, 0.1);
-        }
-
-        .nav-item-active {
-            color: #FF3B30;
-            font-weight: 700;
-            position: relative;
-        }
-        .nav-item-active::after {
-            content: '';
-            position: absolute;
-            bottom: -1px;
-            left: 0;
-            right: 0;
-            height: 2px;
-            background-color: #FF3B30;
-            border-radius: 2px;
-        }
-
-        /* 현실적인 배지 펄스 */
-        .live-dot {
-            width: 7px;
-            height: 7px;
-            background-color: #10B981;
-            border-radius: 50%;
-            display: inline-block;
-            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
-            animation: pulse-ring 2s infinite cubic-bezier(0.66, 0, 0, 1);
-        }
-        @keyframes pulse-ring {
-            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-            70% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
-        }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>D3BUG · 긴급업무매칭플랫폼</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico" th:href="@{/favicon.ico}">
+    <link rel="stylesheet" href="../static/css/app.css" th:href="@{/css/app.css}">
 </head>
-<body class="min-h-screen flex flex-col selection:bg-red-500 selection:text-white">
-
-    <!-- 상단 얇은 알림 띠 (실제 상용 서비스 느낌) -->
-    <aside aria-label="프로모션 띠" class="bg-[#191F28] text-white text-[12px] py-2 px-4">
-        <div class="max-w-7xl mx-auto flex items-center justify-between">
-            <div class="flex items-center gap-2">
-                <span class="bg-brand-500 text-white font-bold text-[10px] px-1.5 py-0.5 rounded">안내</span>
-                <span class="text-gray-300">도움을 주고받은 시간은 Time Credit으로 안전하게 기록됩니다</span>
-            </div>
-            <div class="hidden md:flex items-center gap-4 text-gray-400">
-                <a href="javascript:void(0)" onclick="showPage('profile')" class="hover:text-white transition">재능 프로필 등록</a>
-                <span class="text-gray-700">|</span>
-                <a href="javascript:void(0)" onclick="showPage('dashboard')" class="hover:text-white transition">내 시간 지갑</a>
-            </div>
-        </div>
-    </aside>
-
-    <!-- GNB 헤더 -->
-    <header class="sticky top-0 bg-white/95 backdrop-blur-md border-b border-[#E5E8EB] z-40">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-16 items-center">
-                <!-- 로고 & 주 메뉴 -->
-                <div class="flex items-center gap-10">
-                    <a href="javascript:void(0)" onclick="showPage('landing')" class="flex items-center gap-1.5 group">
-                        <i class="fa-solid fa-bolt-lightning text-brand-500 text-xl transition-transform group-hover:scale-110"></i>
-                        <span class="text-[20px] font-black tracking-tight text-[#191F28]">TASK<span class="text-brand-500">FLASH</span></span>
-                    </a>
-
-                    <nav class="hidden md:flex items-center space-x-7 text-[14px] font-semibold text-[#4E5968]">
-                        <a href="javascript:void(0)" onclick="showPage('landing')" id="nav-landing" class="nav-item-active py-5 transition hover:text-[#191F28]">홈</a>
-                        <a href="javascript:void(0)" onclick="showPage('dashboard')" id="nav-dashboard" class="py-5 transition hover:text-[#191F28]">긴급 의뢰 현황</a>
-                        <a href="javascript:void(0)" onclick="showPage('profile')" id="nav-profile" class="py-5 transition hover:text-[#191F28]">도움 주는 사람 찾기</a>
-                        <a href="javascript:void(0)" onclick="showPage('dashboard')" class="py-5 transition hover:text-[#191F28] flex items-center gap-1.5">
-                            AI 매칭 데스크
-                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                        </a>
-                    </nav>
-                </div>
-
-                <!-- 우측 사용자 인터랙션 -->
-                <div class="flex items-center gap-3">
-                    <a sec:authorize="isAnonymous()" th:href="@{/login}" class="hidden sm:inline-flex text-[13px] font-semibold text-[#4E5968] hover:text-[#191F28] px-3.5 py-2 rounded-lg hover:bg-gray-100 transition">로그인</a>
-                    <a sec:authorize="isAnonymous()" th:href="@{/signup}" class="hidden sm:inline-flex text-[13px] font-semibold text-brand-600 hover:text-brand-700 px-3.5 py-2 rounded-lg hover:bg-brand-50 transition">회원가입</a>
-                    <a sec:authorize="isAuthenticated()" th:href="@{/profile}" class="hidden sm:inline-flex text-[13px] font-semibold text-[#4E5968] hover:text-[#191F28] px-3.5 py-2 rounded-lg hover:bg-gray-100 transition">마이프로필</a>
-                    <button onclick="showPage('detail')" class="bg-[#191F28] hover:bg-black text-white text-[13px] font-bold px-4 py-2.5 rounded-xl transition shadow-sm inline-flex items-center gap-1.5">
-                        <i class="fa-solid fa-plus text-[11px] text-brand-500"></i> 의뢰 등록하기
-                    </button>
-                </div>
-            </div>
+<body>
+<div class="app-shell">
+    <header class="app-header">
+        <a class="brand" th:href="@{/}">D3BUG</a>
+        <nav class="main-nav" aria-label="주요 메뉴">
+            <button class="nav-link active" type="button" data-page="landing">업무 찾기</button>
+            <button class="nav-link" type="button" data-page="dashboard">내 업무</button>
+            <button class="nav-link" type="button" data-page="profile">전문가</button>
+        </nav>
+        <div class="header-actions">
+            <a sec:authorize="isAnonymous()" class="header-link" th:href="@{/login}">로그인</a>
+            <a sec:authorize="isAnonymous()" class="header-link" th:href="@{/signup}">회원가입</a>
+            <a sec:authorize="isAuthenticated()" class="header-link" th:href="@{/profile}">내 프로필</a>
+            <button class="button" type="button" data-page="register">업무 등록</button>
         </div>
     </header>
 
-    <main class="flex-grow">
-        <!-- ================= PAGE 1: LANDING PAGE ================= -->
+    <main>
         <section id="page-landing" class="page-section">
-            
-            <!-- 히어로 영역 -->
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-16 md:pt-16 md:pb-24">
-                <div class="grid lg:grid-cols-12 gap-12 items-center">
-                    
-                    <!-- 히어로 좌측 카피 -->
-                    <div class="lg:col-span-7 space-y-6">
-                        <div class="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-[#E5E8EB] rounded-full text-[12px] font-semibold text-[#4E5968] shadow-sm">
-                            <span class="live-dot"></span>
-                            <span>지금 도움 가능한 커뮤니티 멤버 <strong>1,482명</strong></span>
-                        </div>
-                        
-                        <h1 class="text-3xl sm:text-5xl font-extrabold text-[#191F28] leading-[1.2] tracking-tight">
-                            오늘 안에 필요한 작은 도움<br>
-                            <span class="text-brand-500">내 시간으로 빠르게 해결</span>
-                        </h1>
-                        
-                        <p class="text-[#4E5968] text-base sm:text-lg leading-relaxed max-w-xl font-normal">
-                            복잡한 예상 시간과 금전 시간 예약 없이 필요한 도움을 요청하세요.<br>
-                            내가 누군가에게 내어준 시간이 필요할 때 다른 사람의 도움으로 돌아옵니다.
-                        </p>
-
-                        <!-- 간이 의뢰 폼 카드 (실제 상용 플랫폼의 핵심 인터랙션) -->
-                        <div class="bg-white rounded-2xl p-4 sm:p-5 border border-[#E5E8EB] shadow-md shadow-slate-200/50 max-w-xl">
-                            <p class="text-[12px] font-bold text-[#8B95A1] uppercase tracking-wider mb-2.5">AI 긴급 도움 등록</p>
-                            <div class="flex flex-col sm:flex-row gap-2">
-                                <div class="relative flex-1">
-                                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3.5 text-[#8B95A1] text-xs"></i>
-                                    <input type="text" placeholder="예) AWS ECS 502 에러 복구, 시간 예약 연동 결함..." class="w-full bg-[#F8F9FA] border border-[#E5E8EB] rounded-xl pl-9 pr-3 py-2.5 text-xs text-[#191F28] focus:outline-none focus:bg-white focus:border-[#191F28] transition">
-                                </div>
-                                <button onclick="showPage('detail')" class="bg-brand-500 hover:bg-brand-600 text-white font-bold text-xs px-5 py-2.5 rounded-xl transition shadow-sm flex items-center justify-center gap-1.5 whitespace-nowrap">
-                                    <span>AI로 요청 작성</span>
-                                    <i class="fa-solid fa-arrow-right text-[10px]"></i>
-                                </button>
-                            </div>
-                            <div class="flex items-center gap-3 mt-3 text-[11px] text-[#8B95A1]">
-                                <span>인기 키워드:</span>
-                                <span class="text-[#4E5968] cursor-pointer hover:underline" onclick="showPage('detail')">AWS 복구</span>
-                                <span class="text-[#4E5968] cursor-pointer hover:underline" onclick="showPage('detail')">React 반응형 수정</span>
-                                <span class="text-[#4E5968] cursor-pointer hover:underline" onclick="showPage('detail')">Figma 긴급 보정</span>
-                            </div>
-                        </div>
-
-                        <!-- 핵심 신뢰 지표 -->
-                        <div class="pt-4 grid grid-cols-3 gap-6 max-w-lg border-t border-[#E5E8EB]">
-                            <div>
-                                <span class="text-xl sm:text-2xl font-black text-[#191F28] font-mono">8분 40초</span>
-                                <p class="text-[12px] text-[#8B95A1] mt-0.5">평균 매칭 시간</p>
-                            </div>
-                            <div>
-                                <span class="text-xl sm:text-2xl font-black text-[#191F28] font-mono">99.2%</span>
-                                <p class="text-[12px] text-[#8B95A1] mt-0.5">납기 준수 완료율</p>
-                            </div>
-                            <div>
-                                <span class="text-xl sm:text-2xl font-black text-[#191F28] font-mono">100%</span>
-                                <p class="text-[12px] text-[#8B95A1] mt-0.5">시간 예약 보호</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 히어로 우측: 실제 거래 티켓 보드 UI -->
-                    <div class="lg:col-span-5">
-                        <div class="bg-white rounded-3xl p-6 border border-[#E5E8EB] shadow-xl shadow-slate-200/60 space-y-4">
-                            <div class="flex items-center justify-between pb-3 border-b border-[#F2F4F6]">
-                                <div class="flex items-center gap-2">
-                                    <span class="live-dot"></span>
-                                    <h3 class="text-xs font-bold text-[#191F28] tracking-tight">실시간 체결 데스크</h3>
-                                </div>
-                                <span class="text-[11px] text-[#8B95A1] font-medium">최근 15분 이내</span>
-                            </div>
-
-                            <!-- 라이브 의뢰 카드 1 -->
-                            <div onclick="showPage('detail')" class="p-4 bg-[#F8F9FA] hover:bg-brand-50/40 rounded-2xl border border-[#EAECEF] hover:border-brand-200 transition cursor-pointer space-y-2">
-                                <div class="flex justify-between items-start gap-2">
-                                    <span class="px-2 py-0.5 bg-brand-100 text-brand-700 text-[10px] font-bold rounded-md">긴급 복구</span>
-                                    <span class="text-[12px] font-bold text-[#191F28] font-mono">120분</span>
-                                </div>
-                                <h4 class="text-xs font-bold text-[#191F28] line-clamp-1">AWS ECS 컨테이너 502 에러 긴급 원인 분석 및 패치</h4>
-                                <div class="flex items-center justify-between text-[11px] text-[#8B95A1] pt-1">
-                                    <span class="text-[#4E5968]">임민우 수석 엔지니어 검토 중</span>
-                                    <span class="text-brand-500 font-medium">방금 전</span>
-                                </div>
-                            </div>
-
-                            <!-- 라이브 의뢰 카드 2 -->
-                            <div class="p-4 bg-[#F8F9FA] hover:bg-gray-100/60 rounded-2xl border border-[#EAECEF] transition cursor-pointer space-y-2">
-                                <div class="flex justify-between items-start gap-2">
-                                    <span class="px-2 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-bold rounded-md">당일 납품</span>
-                                    <span class="text-[12px] font-bold text-[#191F28] font-mono">60분</span>
-                                </div>
-                                <h4 class="text-xs font-bold text-[#191F28] line-clamp-1">Next.js 14 모바일 어드민 컴포넌트 깨짐 수정</h4>
-                                <div class="flex items-center justify-between text-[11px] text-[#8B95A1] pt-1">
-                                    <span class="text-[#4E5968]">프론트엔드 전문가 배정 완료</span>
-                                    <span class="text-[#8B95A1]">3분 전</span>
-                                </div>
-                            </div>
-
-                            <!-- 라이브 의뢰 카드 3 -->
-                            <div class="p-4 bg-[#F8F9FA] hover:bg-gray-100/60 rounded-2xl border border-[#EAECEF] transition cursor-pointer space-y-2">
-                                <div class="flex justify-between items-start gap-2">
-                                    <span class="px-2 py-0.5 bg-purple-100 text-purple-700 text-[10px] font-bold rounded-md">2시간 이내</span>
-                                    <span class="text-[12px] font-bold text-[#191F28] font-mono">90분</span>
-                                </div>
-                                <h4 class="text-xs font-bold text-[#191F28] line-clamp-1">투자 IR 덱 그래픽 리터칭 및 수치 도표 보정</h4>
-                                <div class="flex items-center justify-between text-[11px] text-[#8B95A1] pt-1">
-                                    <span class="text-[#4E5968]">한수연 디자이너 작업 착수</span>
-                                    <span class="text-[#8B95A1]">9분 전</span>
-                                </div>
-                            </div>
-
-                            <button onclick="showPage('dashboard')" class="w-full py-2.5 text-center text-xs font-bold text-[#4E5968] bg-[#F2F4F6] hover:bg-[#E5E8EB] rounded-xl transition">
-                                실시간 등록 일감 28건 전체 보기
-                            </button>
-                        </div>
-                    </div>
-                </div>
+            <p class="eyebrow">WORKER-01 · 긴급 업무 목록</p>
+            <div class="page-heading">
+                <h1>지금 가능한 업무</h1>
+                <p>마감과 품을 확인하고 바로 지원하세요.</p>
             </div>
 
-            <!-- ================= 전문 분야 섹션 (정교한 휴먼 크래프트 SVG 아이콘 & 실무 메타데이터) ================= -->
-            <div class="bg-white py-20 border-y border-[#E5E8EB]">
-                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div class="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-4">
-                        <div>
-                            <span class="text-xs font-bold text-brand-500 tracking-wider uppercase">SERVICE CATEGORIES</span>
-                            <h2 class="text-2xl sm:text-3xl font-extrabold text-[#191F28] mt-1">즉시 매칭 가능한 전문 기술 분야</h2>
-                            <p class="text-[#8B95A1] text-xs sm:text-sm mt-1">사전 포트폴리오 및 기술 인터뷰를 통과한 현업 실무진들이 대기하고 있습니다.</p>
-                        </div>
-                        <button onclick="showPage('dashboard')" class="text-xs font-bold text-[#191F28] hover:text-brand-500 inline-flex items-center gap-1.5 self-start md:self-auto transition">
-                            전체 카테고리 둘러보기 <i class="fa-solid fa-chevron-right text-[10px]"></i>
-                        </button>
-                    </div>
-
-                    <!-- 4대 핵심 전문 분야 카드 -->
-                    <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                        
-                        <!-- 1. 백엔드 / 클라우드 인프라 -->
-                        <div onclick="showPage('dashboard')" class="category-hero-card rounded-2xl p-6 cursor-pointer flex flex-col justify-between">
-                            <div>
-                                <div class="flex items-center justify-between mb-5">
-                                    <!-- 정교한 인프라 SVG 일러스트 아이콘 -->
-                                    <div class="w-12 h-12 rounded-2xl bg-[#191F28] text-white flex items-center justify-center shadow-sm">
-                                        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"/>
-                                        </svg>
-                                    </div>
-                                    <span class="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-2.5 py-0.5 rounded-full">
-                                        312명 대기
-                                    </span>
-                                </div>
-                                <h3 class="text-[16px] font-bold text-[#191F28] mb-1.5">클라우드 인프라 · 백엔드</h3>
-                                <p class="text-[#6B7684] text-xs leading-relaxed mb-4">서버 장애 핫픽스, 트래픽 폭주 대응, DB 병목 분석, AWS/GCP 긴급 튜닝</p>
-                            </div>
-                            <div>
-                                <div class="flex flex-wrap gap-1.5 pt-3 border-t border-[#F2F4F6]">
-                                    <span class="text-[11px] font-medium text-[#4E5968] bg-[#F8F9FA] border border-[#E5E8EB] px-2 py-0.5 rounded-md">AWS</span>
-                                    <span class="text-[11px] font-medium text-[#4E5968] bg-[#F8F9FA] border border-[#E5E8EB] px-2 py-0.5 rounded-md">Docker</span>
-                                    <span class="text-[11px] font-medium text-[#4E5968] bg-[#F8F9FA] border border-[#E5E8EB] px-2 py-0.5 rounded-md">Spring</span>
-                                </div>
-                                <div class="flex justify-between items-center mt-3 text-[11px] text-[#8B95A1]">
-                                    <span>평균 매칭: <strong>7분</strong></span>
-                                    <span>평균 착수: <strong>당일</strong></span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 2. 웹 / 프론트엔드 -->
-                        <div onclick="showPage('dashboard')" class="category-hero-card rounded-2xl p-6 cursor-pointer flex flex-col justify-between">
-                            <div>
-                                <div class="flex items-center justify-between mb-5">
-                                    <!-- 정교한 프론트엔드 코드 SVG 아이콘 -->
-                                    <div class="w-12 h-12 rounded-2xl bg-[#191F28] text-white flex items-center justify-center shadow-sm">
-                                        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
-                                        </svg>
-                                    </div>
-                                    <span class="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-2.5 py-0.5 rounded-full">
-                                        245명 대기
-                                    </span>
-                                </div>
-                                <h3 class="text-[16px] font-bold text-[#191F28] mb-1.5">프론트엔드 · 웹 결함 수정</h3>
-                                <p class="text-[#6B7684] text-xs leading-relaxed mb-4">화면 렌더링 버그, PG사 시간 예약 연동 결함, 긴급 랜딩페이지 제작 및 배포</p>
-                            </div>
-                            <div>
-                                <div class="flex flex-wrap gap-1.5 pt-3 border-t border-[#F2F4F6]">
-                                    <span class="text-[11px] font-medium text-[#4E5968] bg-[#F8F9FA] border border-[#E5E8EB] px-2 py-0.5 rounded-md">React</span>
-                                    <span class="text-[11px] font-medium text-[#4E5968] bg-[#F8F9FA] border border-[#E5E8EB] px-2 py-0.5 rounded-md">Next.js</span>
-                                    <span class="text-[11px] font-medium text-[#4E5968] bg-[#F8F9FA] border border-[#E5E8EB] px-2 py-0.5 rounded-md">TypeScript</span>
-                                </div>
-                                <div class="flex justify-between items-center mt-3 text-[11px] text-[#8B95A1]">
-                                    <span>평균 매칭: <strong>9분</strong></span>
-                                    <span>평균 착수: <strong>당일</strong></span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 3. UI/UX & 프로덕트 디자인 -->
-                        <div onclick="showPage('dashboard')" class="category-hero-card rounded-2xl p-6 cursor-pointer flex flex-col justify-between">
-                            <div>
-                                <div class="flex items-center justify-between mb-5">
-                                    <!-- 정교한 디자인 툴 SVG 아이콘 -->
-                                    <div class="w-12 h-12 rounded-2xl bg-[#191F28] text-white flex items-center justify-center shadow-sm">
-                                        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                                        </svg>
-                                    </div>
-                                    <span class="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-2.5 py-0.5 rounded-full">
-                                        189명 대기
-                                    </span>
-                                </div>
-                                <h3 class="text-[16px] font-bold text-[#191F28] mb-1.5">UI/UX · 그래픽 긴급 보정</h3>
-                                <p class="text-[#6B7684] text-xs leading-relaxed mb-4">피그마 컴포넌트 정리, 긴급 이벤트 배너 및 프로모션 페이지 제작, IR 그래픽</p>
-                            </div>
-                            <div>
-                                <div class="flex flex-wrap gap-1.5 pt-3 border-t border-[#F2F4F6]">
-                                    <span class="text-[11px] font-medium text-[#4E5968] bg-[#F8F9FA] border border-[#E5E8EB] px-2 py-0.5 rounded-md">Figma</span>
-                                    <span class="text-[11px] font-medium text-[#4E5968] bg-[#F8F9FA] border border-[#E5E8EB] px-2 py-0.5 rounded-md">GUI</span>
-                                    <span class="text-[11px] font-medium text-[#4E5968] bg-[#F8F9FA] border border-[#E5E8EB] px-2 py-0.5 rounded-md">Photoshop</span>
-                                </div>
-                                <div class="flex justify-between items-center mt-3 text-[11px] text-[#8B95A1]">
-                                    <span>평균 매칭: <strong>11분</strong></span>
-                                    <span>평균 착수: <strong>2시간 내</strong></span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 4. 마케팅 / 비즈니스 콘텐츠 -->
-                        <div onclick="showPage('dashboard')" class="category-hero-card rounded-2xl p-6 cursor-pointer flex flex-col justify-between">
-                            <div>
-                                <div class="flex items-center justify-between mb-5">
-                                    <!-- 정교한 그로스/차트 SVG 아이콘 -->
-                                    <div class="w-12 h-12 rounded-2xl bg-[#191F28] text-white flex items-center justify-center shadow-sm">
-                                        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
-                                        </svg>
-                                    </div>
-                                    <span class="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-2.5 py-0.5 rounded-full">
-                                        142명 대기
-                                    </span>
-                                </div>
-                                <h3 class="text-[16px] font-bold text-[#191F28] mb-1.5">그로스 · 마케팅 원고 작성</h3>
-                                <p class="text-[#6B7684] text-xs leading-relaxed mb-4">긴급 보도자료 배포본, 브랜드 광고 카피라이팅, 블로그 포털 SEO 상위 노출</p>
-                            </div>
-                            <div>
-                                <div class="flex flex-wrap gap-1.5 pt-3 border-t border-[#F2F4F6]">
-                                    <span class="text-[11px] font-medium text-[#4E5968] bg-[#F8F9FA] border border-[#E5E8EB] px-2 py-0.5 rounded-md">SEO</span>
-                                    <span class="text-[11px] font-medium text-[#4E5968] bg-[#F8F9FA] border border-[#E5E8EB] px-2 py-0.5 rounded-md">카피라이팅</span>
-                                    <span class="text-[11px] font-medium text-[#4E5968] bg-[#F8F9FA] border border-[#E5E8EB] px-2 py-0.5 rounded-md">GA4</span>
-                                </div>
-                                <div class="flex justify-between items-center mt-3 text-[11px] text-[#8B95A1]">
-                                    <span>평균 매칭: <strong>6분</strong></span>
-                                    <span>평균 착수: <strong>즉시</strong></span>
-                                </div>
-                            </div>
-                        </div>
-
-                    </div>
-                </div>
+            <div class="search-bar" aria-label="업무 검색">
+                <input class="control" type="search" placeholder="업무 제목이나 기술로 검색">
+                <select class="control" aria-label="카테고리">
+                    <option>카테고리</option>
+                    <option>개발</option>
+                    <option>디자인</option>
+                    <option>문서·번역</option>
+                </select>
+                <select class="control" aria-label="마감순">
+                    <option>마감순</option>
+                    <option>최신순</option>
+                    <option>높은 품순</option>
+                </select>
+                <button class="button" type="button">검색</button>
             </div>
 
-            <!-- 프로세스 안내 (실제 비즈니스 플로우) -->
-            <div class="py-20 bg-[#F8F9FB]">
-                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div class="text-center max-w-2xl mx-auto mb-14">
-                        <span class="text-xs font-bold text-brand-500 tracking-wider uppercase">SAFE & FAST PROCESS</span>
-                        <h2 class="text-2xl sm:text-3xl font-extrabold text-[#191F28] mt-1">의뢰부터 정산까지 안전한 진행</h2>
-                        <p class="text-[#8B95A1] text-xs sm:text-sm mt-1">시간은행 안심 시간 예약 시스템으로 작업물이 완료될 때까지 시간 예약 대금이 안전하게 보호됩니다.</p>
+            <div class="task-list">
+                <article class="task-card urgent" data-page="detail" tabindex="0">
+                    <div>
+                        <div class="task-meta">
+                            <span class="urgent-label">2시간 42분</span>
+                            <span>개발 · 서버</span>
+                        </div>
+                        <h2>AWS 배포 후 502 오류를 같이 해결해 주세요</h2>
+                        <p>Spring Boot · AWS · Nginx</p>
                     </div>
+                    <div class="task-credit">
+                        <strong>4품</strong>
+                        <span>지원 2명</span>
+                    </div>
+                </article>
 
-                    <div class="grid md:grid-cols-3 gap-8">
-                        <div class="card-subtle p-7 rounded-2xl">
-                            <span class="text-xs font-black text-brand-500 font-mono tracking-widest uppercase">STEP 01</span>
-                            <h3 class="text-base font-bold text-[#191F28] mt-2 mb-2">10초 긴급 의뢰 접수</h3>
-                            <p class="text-[#6B7684] text-xs leading-relaxed">
-                                카테고리, 기술 스택, 마감 희망 시간과 상황 설명을 간단히 기재하여 등록합니다.
-                            </p>
+                <article class="task-card" data-page="detail" tabindex="0">
+                    <div>
+                        <div class="task-meta">
+                            <span>오늘 18:00</span>
+                            <span>디자인 · 발표 자료</span>
                         </div>
-                        <div class="card-subtle p-7 rounded-2xl">
-                            <span class="text-xs font-black text-brand-500 font-mono tracking-widest uppercase">STEP 02</span>
-                            <h3 class="text-base font-bold text-[#191F28] mt-2 mb-2">10분 내 전문가 매칭 & 예상 시간 협의</h3>
-                            <p class="text-[#6B7684] text-xs leading-relaxed">
-                                AI가 기술 태그와 활동 정보를 분석해 현재 도움 가능한 수행자 후보를 추천합니다.
-                            </p>
-                        </div>
-                        <div class="card-subtle p-7 rounded-2xl">
-                            <span class="text-xs font-black text-brand-500 font-mono tracking-widest uppercase">STEP 03</span>
-                            <h3 class="text-base font-bold text-[#191F28] mt-2 mb-2">시간은행 예치 후 즉시 착수</h3>
-                            <p class="text-[#6B7684] text-xs leading-relaxed">
-                                안전 시간 예약 확인 후 즉시 작업이 시작되며, 최종 결과물 검수 완료 시 대금이 지급됩니다.
-                            </p>
-                        </div>
+                        <h2>발표용 PPT 흐름과 문장을 빠르게 다듬어 주세요</h2>
+                        <p>PPT · 문서 편집 · 발표</p>
                     </div>
-                </div>
+                    <div class="task-credit">
+                        <strong>3품</strong>
+                        <span>지원 4명</span>
+                    </div>
+                </article>
+
+                <article class="task-card" data-page="detail" tabindex="0">
+                    <div>
+                        <div class="task-meta">
+                            <span>내일 10:00</span>
+                            <span>번역 · API 문서</span>
+                        </div>
+                        <h2>API 명세서 영문 문구를 자연스럽게 번역해 주세요</h2>
+                        <p>영어 · API · 기술 문서</p>
+                    </div>
+                    <div class="task-credit">
+                        <strong>2품</strong>
+                        <span>지원 1명</span>
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <section id="page-dashboard" class="page-section hidden">
+            <p class="eyebrow">COMMON-03 · 업무 진행 / 결과 제출</p>
+            <div class="page-heading">
+                <h1>AWS 배포 후 502 오류 해결</h1>
+                <p>의뢰인 김민규 · 작업자 정태현 · 오늘 18:00 마감</p>
             </div>
 
-            <!-- 실제 고객사 리뷰 (실감나는 포맷) -->
-            <div class="py-20 bg-white border-t border-[#E5E8EB]">
-                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div class="text-center max-w-2xl mx-auto mb-12">
-                        <span class="text-xs font-bold text-brand-500 tracking-wider uppercase">TRUSTED EXPERIENCES</span>
-                        <h2 class="text-2xl sm:text-3xl font-extrabold text-[#191F28] mt-1">현업 담당자들의 실제 매칭 후기</h2>
-                    </div>
-
-                    <div class="grid md:grid-cols-2 gap-8">
-                        <div class="p-7 bg-[#F8F9FA] rounded-2xl border border-[#E5E8EB] space-y-4">
-                            <div class="flex text-amber-400 gap-1 text-xs">
-                                <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i>
-                            </div>
-                            <p class="text-[#333D4B] text-sm leading-relaxed">
-                                "금요일 저녁 라이브 시간 예약 모듈에서 간헐적 502 에러가 발생해 난감했는데, 의뢰 접수 후 8분 만에 AWS 시니어 엔지니어님이 매칭되어 1시간 만에 핫픽스를 완료해주셨습니다."
-                            </p>
-                            <div class="flex items-center gap-3 pt-3 border-t border-[#E5E8EB]">
-                                <div class="w-9 h-9 rounded-full bg-[#191F28] text-white flex items-center justify-center text-xs font-bold font-mono">DH</div>
-                                <div>
-                                    <p class="text-xs font-bold text-[#191F28]">이동훈 CTO</p>
-                                    <p class="text-[11px] text-[#8B95A1]">(주)리프레시 이커머스</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="p-7 bg-[#F8F9FA] rounded-2xl border border-[#E5E8EB] space-y-4">
-                            <div class="flex text-amber-400 gap-1 text-xs">
-                                <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i>
-                            </div>
-                            <p class="text-[#333D4B] text-sm leading-relaxed">
-                                "투자 유치를 앞두고 갑작스럽게 IR 덱과 핵심 UI 피그마 시안 보정이 필요했습니다. 야간 시간대임에도 실력 있는 프로덕트 디자이너분이 빠르게 배정되어 완성도 높게 마무리할 수 있었습니다."
-                            </p>
-                            <div class="flex items-center gap-3 pt-3 border-t border-[#E5E8EB]">
-                                <div class="w-9 h-9 rounded-full bg-[#191F28] text-white flex items-center justify-center text-xs font-bold font-mono">JY</div>
-                                <div>
-                                    <p class="text-xs font-bold text-[#191F28]">김지연 프로덕트 리드</p>
-                                    <p class="text-[11px] text-[#8B95A1]">넥서스 테크놀로지</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            <div class="status-track" aria-label="업무 진행 상태">
+                <div class="status-step done">매칭</div>
+                <div class="status-step current">진행 중</div>
+                <div class="status-step">결과 제출</div>
+                <div class="status-step">완료 승인</div>
+                <div class="status-step">정산</div>
             </div>
 
-            <!-- 하단 전환 배너 -->
-            <div class="bg-[#191F28] py-16 text-white text-center">
-                <div class="max-w-3xl mx-auto px-4 space-y-5">
-                    <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight">지금 바로 긴급한 문제를 해결하세요</h2>
-                    <p class="text-gray-400 text-xs sm:text-sm">AI가 적합한 수행자 후보를 추천하고 요청자가 직접 선택합니다.</p>
-                    <button onclick="showPage('detail')" class="bg-brand-500 hover:bg-brand-600 text-white font-bold px-7 py-3 rounded-xl transition text-xs sm:text-sm shadow-md">
-                        AI로 도움 요청하기
-                    </button>
+            <div class="section-grid">
+                <div class="panel">
+                    <h2>활동 기록</h2>
+                    <div class="review">
+                        <strong>작업자가 업무를 시작했습니다.</strong>
+                        <p>오늘 15:18 · 예상 완료 시간은 약 2시간입니다.</p>
+                    </div>
+                    <div class="review">
+                        <strong>작업자가 선택되었습니다.</strong>
+                        <p>오늘 15:05 · 정태현 님과 매칭되었습니다.</p>
+                    </div>
+                    <div class="review">
+                        <strong>업무가 게시되었습니다.</strong>
+                        <p>오늘 14:42 · 4품이 예약되었습니다.</p>
+                    </div>
+                </div>
+                <aside class="panel side-panel">
+                    <h2 class="side-title">결과 제출</h2>
+                    <p class="side-copy">작업 내용을 정리하고 결과 파일을 첨부하세요.</p>
+                    <div class="field">
+                        <label for="result-note">작업 내용</label>
+                        <textarea id="result-note" placeholder="무엇을 해결했고 의뢰인이 무엇을 확인하면 되는지 적어주세요."></textarea>
+                    </div>
+                    <button class="button full" type="button">결과 제출하기</button>
+                </aside>
+            </div>
+        </section>
+
+        <section id="page-register" class="page-section hidden">
+            <p class="eyebrow">CLIENT-01 · 업무 등록</p>
+            <div class="page-heading centered">
+                <h1>어떤 도움이 급하게 필요한가요?</h1>
+                <p>상황을 그대로 적으면 필요한 조건으로 정리해 드립니다.</p>
+            </div>
+
+            <div class="panel form-card">
+                <div class="field">
+                    <label for="request-detail">상황 설명</label>
+                    <textarea id="request-detail" placeholder="예: 오늘 AWS에 프로젝트를 올렸는데 502 오류가 납니다. 오후 6시 전까지 원인 확인과 배포 재개가 필요해요."></textarea>
+                    <div class="field-note">0 / 1,000자</div>
+                </div>
+                <div class="form-grid">
+                    <div class="field">
+                        <label for="deadline">희망 마감</label>
+                        <input id="deadline" type="datetime-local">
+                    </div>
+                    <div class="field">
+                        <label for="attachment">참고 파일</label>
+                        <input id="attachment" type="file">
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button class="button" type="button" data-page="detail">AI로 업무 정리하기</button>
                 </div>
             </div>
         </section>
 
-        <!-- ================= PAGE 2: TASK DASHBOARD ================= -->
-        <section id="page-dashboard" class="page-section hidden max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-            <div class="flex flex-col md:flex-row md:items-center justify-between pb-6 border-b border-[#E5E8EB] gap-4 mb-6">
-                <div>
-                    <h2 class="text-2xl font-bold text-[#191F28]">실시간 긴급 의뢰 게시판</h2>
-                    <p class="text-[#8B95A1] text-xs mt-1">실시간으로 접수되어 전문가 매칭이 진행 중인 프로젝트입니다.</p>
-                </div>
-                <button onclick="showPage('detail')" class="bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition self-start md:self-auto shadow-sm">
-                    + 새 긴급 의뢰 등록
-                </button>
-            </div>
-
-            <!-- 필터 & 검색 바 -->
-            <div class="bg-white rounded-2xl p-4 border border-[#E5E8EB] shadow-sm flex flex-wrap gap-4 items-center justify-between mb-6">
-                <div class="flex flex-wrap gap-2 text-xs font-medium">
-                    <button class="px-3.5 py-1.5 bg-[#191F28] text-white rounded-lg">전체 (28)</button>
-                    <button class="px-3.5 py-1.5 bg-[#F2F4F6] text-[#4E5968] hover:bg-[#E5E8EB] rounded-lg transition">인프라/백엔드 (10)</button>
-                    <button class="px-3.5 py-1.5 bg-[#F2F4F6] text-[#4E5968] hover:bg-[#E5E8EB] rounded-lg transition">프론트엔드 (8)</button>
-                    <button class="px-3.5 py-1.5 bg-[#F2F4F6] text-[#4E5968] hover:bg-[#E5E8EB] rounded-lg transition">UI/UX 디자인 (6)</button>
-                    <button class="px-3.5 py-1.5 bg-[#F2F4F6] text-[#4E5968] hover:bg-[#E5E8EB] rounded-lg transition">마케팅/콘텐츠 (4)</button>
-                </div>
-                <div class="flex gap-2 w-full md:w-auto">
-                    <input type="text" placeholder="기술 스택, 프로젝트명 검색..." class="border border-[#E5E8EB] bg-[#F8F9FA] rounded-xl px-3 py-1.5 text-xs w-full md:w-56 focus:outline-none focus:bg-white focus:border-[#191F28] transition">
-                    <button class="bg-[#191F28] text-white rounded-xl px-4 text-xs font-semibold hover:bg-black transition">검색</button>
-                </div>
-            </div>
-
-            <!-- 일감 목록 그리드 -->
-            <div class="grid lg:grid-cols-12 gap-6 items-start">
-                <div class="lg:col-span-8 space-y-4">
-                    <!-- 의뢰 카드 1 -->
-                    <div onclick="showPage('detail')" class="bg-white rounded-2xl p-6 border border-[#E5E8EB] hover:border-brand-200 hover:shadow-md transition cursor-pointer">
-                        <div class="flex justify-between items-start gap-4">
-                            <div class="space-y-2 flex-1">
-                                <div class="flex items-center gap-2">
-                                    <span class="px-2 py-0.5 bg-brand-100 text-brand-700 text-[10px] font-bold rounded">긴급 복구</span>
-                                    <span class="text-xs text-[#8B95A1] font-mono">12분 전 등록</span>
-                                </div>
-                                <h3 class="text-base font-bold text-[#191F28] hover:text-brand-500 transition">
-                                    [급구] AWS ECS 백엔드 서버 간헐적 502 Bad Gateway 긴급 원인 분석 및 패치
-                                </h3>
-                                <p class="text-[#6B7684] text-xs line-clamp-2">
-                                    현재 CloudWatch 로그상 컨테이너 OOM 현상으로 추정됩니다. 즉시 접속하여 인스턴스 헬스체크 및 환경 설정 보완해주실 엔지니어를 구합니다.
-                                </p>
-                                <div class="flex flex-wrap gap-1.5 pt-2">
-                                    <span class="px-2 py-0.5 bg-[#F2F4F6] text-[#4E5968] rounded text-[10px]">AWS</span>
-                                    <span class="px-2 py-0.5 bg-[#F2F4F6] text-[#4E5968] rounded text-[10px]">ECS Fargate</span>
-                                    <span class="px-2 py-0.5 bg-[#F2F4F6] text-[#4E5968] rounded text-[10px]">Spring Boot</span>
-                                </div>
-                            </div>
-                            <div class="text-right whitespace-nowrap pl-4">
-                                <p class="text-lg font-bold text-[#191F28] font-mono">120분</p>
-                                <p class="text-[10px] text-[#8B95A1] mt-0.5">2시간 크레딧 / 즉시 착수</p>
-                                <button class="mt-4 bg-[#191F28] hover:bg-brand-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition">
-                                    프로필 보기
-                                </button>
-                            </div>
-                        </div>
+        <section id="page-detail" class="page-section hidden">
+            <p class="eyebrow">COMMON-02 · 업무 상세</p>
+            <div class="section-grid">
+                <article class="panel">
+                    <div class="task-meta">
+                        <span class="urgent-label">2시간 42분</span>
+                        <span>오늘 18:00까지 · 지원자 2명</span>
                     </div>
-
-                    <!-- 의뢰 카드 2 -->
-                    <div class="bg-white rounded-2xl p-6 border border-[#E5E8EB] hover:border-gray-300 hover:shadow-md transition cursor-pointer">
-                        <div class="flex justify-between items-start gap-4">
-                            <div class="space-y-2 flex-1">
-                                <div class="flex items-center gap-2">
-                                    <span class="px-2 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-bold rounded">당일 완료</span>
-                                    <span class="text-xs text-[#8B95A1] font-mono">35분 전 등록</span>
-                                </div>
-                                <h3 class="text-base font-bold text-[#191F28]">
-                                    Next.js 14 기반 사내 어드민 페이지 모바일 반응형 깨짐 긴급 수정
-                                </h3>
-                                <p class="text-[#6B7684] text-xs line-clamp-2">
-                                    테이블 컴포넌트 스크롤 버그 및 모바일 네비게이션 드롭다운 오작동을 오늘 오후 6시 전까지 수정 완료해주실 분을 찾습니다.
-                                </p>
-                                <div class="flex flex-wrap gap-1.5 pt-2">
-                                    <span class="px-2 py-0.5 bg-[#F2F4F6] text-[#4E5968] rounded text-[10px]">Next.js</span>
-                                    <span class="px-2 py-0.5 bg-[#F2F4F6] text-[#4E5968] rounded text-[10px]">TailwindCSS</span>
-                                </div>
-                            </div>
-                            <div class="text-right whitespace-nowrap pl-4">
-                                <p class="text-lg font-bold text-[#191F28] font-mono">60분</p>
-                                <p class="text-[10px] text-[#8B95A1] mt-0.5">1시간 크레딧 / 4시간 이내</p>
-                                <button class="mt-4 bg-[#191F28] text-white text-xs font-bold px-4 py-2 rounded-xl transition">
-                                    프로필 보기
-                                </button>
-                            </div>
-                        </div>
+                    <h2>AWS 배포 후 502 오류 해결</h2>
+                    <h3>상황</h3>
+                    <p>EC2에 Spring Boot 프로젝트를 배포했는데 Nginx에서 502 오류가 발생합니다. 로그를 함께 보고 원인을 찾은 뒤 정상 접속까지 확인하고 싶습니다.</p>
+                    <h3>완료 기준</h3>
+                    <ul>
+                        <li>서비스 URL 정상 접속 확인</li>
+                        <li>오류 원인과 해결 내용을 짧게 기록</li>
+                    </ul>
+                    <h3>필요 기술</h3>
+                    <div class="tag-list">
+                        <span class="tag blue">Spring</span>
+                        <span class="tag">AWS</span>
+                        <span class="tag">Nginx</span>
                     </div>
-                </div>
+                    <h3>참고 파일</h3>
+                    <p>deploy-log.txt · 24KB</p>
+                </article>
 
-                <!-- 우측 가이드 -->
-                <div class="lg:col-span-4 space-y-4">
-                    <div class="bg-white rounded-2xl p-5 border border-[#E5E8EB] shadow-sm space-y-3">
-                        <h4 class="text-xs font-bold text-[#191F28] uppercase">안전 거래 안내</h4>
-                        <ul class="text-xs text-[#6B7684] space-y-2 leading-relaxed">
-                            <li class="flex items-start gap-2">
-                                <i class="fa-solid fa-check text-emerald-500 mt-0.5 text-[10px]"></i>
-                                <span>수행자 선택과 업무 상태 변경 내역은 서비스에서 확인할 수 있습니다.</span>
-                            </li>
-                            <li class="flex items-start gap-2">
-                                <i class="fa-solid fa-check text-emerald-500 mt-0.5 text-[10px]"></i>
-                                <span>수행자 선택 시 요청 시간이 예약되어 완료 전까지 보호됩니다.</span>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
+                <aside class="panel side-panel">
+                    <h2 class="side-title">이 업무에 지원할까요?</h2>
+                    <p class="side-copy">현재 지원 가능한 상태입니다.</p>
+                    <div class="summary-row"><span>요청 시간</span><strong>4품</strong></div>
+                    <div class="summary-row"><span>마감</span><strong>오늘 18:00</strong></div>
+                    <div class="summary-row"><span>의뢰인</span><strong>정민 · 완료 8건</strong></div>
+                    <button class="button full" type="button" style="margin-top: 22px">지원하기</button>
+                </aside>
             </div>
         </section>
 
-        <!-- ================= PAGE 3: FREELANCER PROFILE ================= -->
-        <section id="page-profile" class="page-section hidden max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-            <div class="grid lg:grid-cols-12 gap-6 items-start">
-                
-                <!-- 좌측 프로필 카드 -->
-                <div class="lg:col-span-4 bg-white rounded-2xl p-6 border border-[#E5E8EB] shadow-sm space-y-5">
-                    <div class="text-center space-y-3">
-                        <div class="w-20 h-20 rounded-full bg-[#191F28] text-white mx-auto flex items-center justify-center text-xl font-bold font-mono border-2 border-white shadow-md">
-                            SY
-                        </div>
+        <section id="page-profile" class="page-section hidden">
+            <p class="eyebrow">COMMON-04 · 프로필</p>
+            <div class="panel">
+                <div class="profile-hero">
+                    <div class="profile-person">
+                        <div class="avatar">태현</div>
                         <div>
-                            <h2 class="text-lg font-bold text-[#191F28]">한수연</h2>
-                            <p class="text-xs text-[#8B95A1] font-medium mt-0.5">7년 차 브랜드 & 퍼포먼스 마케팅 디렉터</p>
-                        </div>
-                        <div class="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-full border border-emerald-200">
-                            <span class="live-dot"></span> 즉시 작업 착수 가능
-                        </div>
-                    </div>
-
-                    <div class="border-t border-[#F2F4F6] pt-4 space-y-3 text-xs">
-                        <div>
-                            <span class="text-[#8B95A1]">누적 완료 건수</span>
-                            <p class="font-bold text-[#191F28] font-mono mt-0.5">48건 (평점 4.9 / 5.0)</p>
-                        </div>
-                        <div>
-                            <span class="text-[#8B95A1]">전문 분야</span>
-                            <div class="flex flex-wrap gap-1 mt-1.5">
-                                <span class="bg-[#F2F4F6] text-[#4E5968] px-2 py-0.5 rounded">브랜드 마케팅</span>
-                                <span class="bg-[#F2F4F6] text-[#4E5968] px-2 py-0.5 rounded">블로그 SEO</span>
-                                <span class="bg-[#F2F4F6] text-[#4E5968] px-2 py-0.5 rounded">GA4 / GTM</span>
+                            <h1>정태현</h1>
+                            <p>Spring과 AWS 문제를 함께 해결합니다.</p>
+                            <div class="tag-list">
+                                <span class="tag blue">Spring</span>
+                                <span class="tag">AWS</span>
+                                <span class="tag">Nginx</span>
                             </div>
                         </div>
                     </div>
-                </div>
-
-                <!-- 우측 소개 & 이력 -->
-                <div class="lg:col-span-8 space-y-6">
-                    <div class="bg-white rounded-2xl p-6 border border-[#E5E8EB] shadow-sm space-y-4">
-                        <h3 class="text-base font-bold text-[#191F28]">전문가 소개</h3>
-                        <p class="text-[#6B7684] text-xs sm:text-sm leading-relaxed">
-                            안녕하세요, 빠른 실행력과 데이터 기반 성과를 추구하는 마케팅 디렉터 한수연입니다. <br>
-                            긴급 보도자료 배포, 프로모션 카피, 신규 런칭 서비스의 검색 상위 노출 SEO 세팅이 급하신 경우 10분 내로 요청을 검토하고 신속히 결과물을 전달드립니다.
-                        </p>
-                        <div class="flex gap-3 pt-2">
-                            <button onclick="showPage('detail')" class="bg-brand-500 hover:bg-brand-600 text-white font-bold px-5 py-2.5 rounded-xl text-xs transition shadow-sm">
-                                이 수행자 선택하기
-                            </button>
-                            <button class="bg-[#F2F4F6] hover:bg-[#E5E8EB] text-[#4E5968] font-semibold px-4 py-2.5 rounded-xl text-xs transition">
-                                1:1 메시지 상담
-                            </button>
-                        </div>
-                    </div>
+                    <span class="availability">도움 가능</span>
                 </div>
             </div>
-        </section>
 
-        <!-- ================= PAGE 4: TASK DETAIL ================= -->
-        <section id="page-detail" class="page-section hidden max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-            <div class="grid lg:grid-cols-12 gap-6 items-start">
-                <div class="lg:col-span-8 bg-white rounded-2xl p-8 border border-[#E5E8EB] shadow-sm space-y-6">
-                    <div class="space-y-3">
-                        <div class="flex items-center gap-2">
-                            <span class="px-2 py-0.5 bg-brand-100 text-brand-700 text-[10px] font-bold rounded">긴급 매칭 진행 중</span>
-                            <span class="text-xs text-[#8B95A1] font-mono">12분 전 접수</span>
-                        </div>
-                        <h1 class="text-xl sm:text-2xl font-bold text-[#191F28]">
-                            [급구] AWS ECS 백엔드 서버 간헐적 502 Bad Gateway 긴급 원인 분석 및 패치
-                        </h1>
-                        <div class="flex flex-wrap gap-1.5">
-                            <span class="px-2.5 py-0.5 bg-[#F2F4F6] text-[#4E5968] text-xs rounded">AWS ECS</span>
-                            <span class="px-2.5 py-0.5 bg-[#F2F4F6] text-[#4E5968] text-xs rounded">Spring Boot</span>
-                            <span class="px-2.5 py-0.5 bg-[#F2F4F6] text-[#4E5968] text-xs rounded">Docker</span>
-                        </div>
-                    </div>
+            <div class="metric-grid">
+                <div class="metric"><span>완료한 업무</span><strong>12건</strong></div>
+                <div class="metric"><span>평균 리뷰</span><strong>4.8</strong></div>
+                <div class="metric"><span>받은 품</span><strong>36품</strong></div>
+            </div>
 
-                    <div class="border-y border-[#F2F4F6] py-4 grid grid-cols-3 gap-4 text-xs">
-                        <div>
-                            <span class="text-[#8B95A1]">예약 시간</span>
-                            <p class="text-base font-bold text-[#191F28] font-mono mt-0.5">120분</p>
-                        </div>
-                        <div>
-                            <span class="text-[#8B95A1]">희망 마감</span>
-                            <p class="text-base font-bold text-brand-500 mt-0.5">즉시 착수 (ASAP)</p>
-                        </div>
-                        <div>
-                            <span class="text-[#8B95A1]">진행 방식</span>
-                            <p class="text-base font-bold text-[#191F28] mt-0.5">원격 지원</p>
-                        </div>
-                    </div>
-
-                    <div class="space-y-3 text-xs text-[#6B7684] leading-relaxed">
-                        <h3 class="text-sm font-bold text-[#191F28]">상세 요청 내용</h3>
-                        <p>
-                            현재 운영 중인 Spring Boot API 서버에서 피크 시간대 간헐적으로 502 Bad Gateway가 발생하여 서비스 장애가 유발되고 있습니다.
-                        </p>
-                        <p>
-                            CloudWatch 메트릭과 로드밸런서 타겟 그룹 헬스체크 설정 및 JVM 메모리 할당 상태를 점검하여 즉시 정상화 패치를 진행해주실 인프라 엔지니어를 모십니다.
-                        </p>
-                    </div>
+            <div class="panel" style="margin-top: 18px">
+                <h2>최근 리뷰</h2>
+                <div class="review">
+                    <strong>★★★★★ · 설명이 차분하고 해결 과정을 잘 알려주셨어요.</strong>
+                    <p>AWS 배포 오류 해결 · 박민진</p>
                 </div>
-
-                <!-- 우측 지원자 현황 -->
-                <div class="lg:col-span-4 bg-white rounded-2xl p-6 border border-[#E5E8EB] shadow-sm space-y-4">
-                    <h3 class="text-sm font-bold text-[#191F28]">AI 추천 수행자 (2명)</h3>
-                    
-                    <div class="p-4 bg-[#F8F9FA] rounded-2xl border border-[#E5E8EB] space-y-3">
-                        <div class="flex items-center gap-3">
-                            <div class="w-9 h-9 rounded-full bg-[#191F28] text-white flex items-center justify-center text-xs font-bold font-mono">MW</div>
-                            <div>
-                                <p class="text-xs font-bold text-[#191F28]">임민우 엔지니어</p>
-                                <p class="text-[10px] text-[#8B95A1]">클라우드 아키텍트 8년 차</p>
-                            </div>
-                        </div>
-                        <button class="w-full bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold py-2.5 rounded-xl transition shadow-sm">
-                            수행자 선택 및 시간 예약
-                        </button>
-                    </div>
+                <div class="review">
+                    <strong>★★★★★ · 빠르게 원인을 찾고 문제까지 정리해 주셨어요.</strong>
+                    <p>서버 장애 점검 · 김도현</p>
                 </div>
             </div>
         </section>
     </main>
+</div>
 
-    <!-- 푸터 -->
-    <footer class="bg-[#191F28] text-gray-400 py-12 text-xs border-t border-gray-800">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid md:grid-cols-4 gap-8">
-            <div class="space-y-3">
-                <div class="flex items-center gap-1.5">
-                    <i class="fa-solid fa-bolt-lightning text-brand-500 text-base"></i>
-                    <span class="text-base font-black text-white">TASK<span class="text-brand-500">FLASH</span></span>
-                </div>
-                <p class="leading-relaxed text-gray-400 text-[12px]">
-                    돈 대신 시간을 주고받는 긴급 재능 품앗이 서비스.<br>
-                    커뮤니티의 시간을 순환시켜 작고 급한 도움을 해결합니다.
-                </p>
-            </div>
-            <div>
-                <h4 class="text-white font-bold mb-3">서비스</h4>
-                <ul class="space-y-2 text-[12px]">
-                    <li><a href="javascript:void(0)" onclick="showPage('dashboard')" class="hover:text-white transition">긴급 의뢰 찾기</a></li>
-                    <li><a href="javascript:void(0)" onclick="showPage('profile')" class="hover:text-white transition">분야별 인재 풀</a></li>
-                </ul>
-            </div>
-            <div>
-                <h4 class="text-white font-bold mb-3">안심 거래</h4>
-                <ul class="space-y-2 text-[12px]">
-                    <li><a href="javascript:void(0)" class="hover:text-white transition">시간 예약·정산 가이드</a></li>
-                    <li><a href="javascript:void(0)" class="hover:text-white transition">이용약관 및 개인정보처리방침</a></li>
-                </ul>
-            </div>
-            <div>
-                <h4 class="text-white font-bold mb-3">고객센터</h4>
-                <p class="leading-relaxed text-gray-400 text-[12px]">
-                    (주)태스크플래시 | 사업자등록번호 123-45-67890<br>
-                    서울특별시 강남구 테헤란로 152 강남파이낸스센터<br>
-                    대표번호: 1588-0000 (평일 09:00 ~ 18:00)
-                </p>
-            </div>
-        </div>
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-10 pt-6 border-t border-gray-800 text-center text-[11px] text-gray-500">
-            &copy; 2026 TASKFLASH Technologies Inc. All rights reserved.
-        </div>
-    </footer>
+<script>
+    const pageButtons = document.querySelectorAll("[data-page]");
+    const pages = document.querySelectorAll(".page-section");
+    const navButtons = document.querySelectorAll(".nav-link");
 
-    <!-- 페이지 전환 라우팅 스크립트 -->
-    <script>
-        function showPage(pageId) {
-            document.querySelectorAll('.page-section').forEach(el => el.classList.add('hidden'));
-            const target = document.getElementById('page-' + pageId);
-            if (target) target.classList.remove('hidden');
+    function showPage(pageId) {
+        pages.forEach(function (page) {
+            page.classList.toggle("hidden", page.id !== "page-" + pageId);
+        });
+        navButtons.forEach(function (button) {
+            button.classList.toggle("active", button.dataset.page === pageId);
+        });
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    }
 
-            // GNB 네비게이션 활성화 상태 업데이트
-            const navMap = {
-                'landing': 'nav-landing',
-                'dashboard': 'nav-dashboard',
-                'profile': 'nav-profile'
-            };
-            document.querySelectorAll('nav a').forEach(a => a.classList.remove('nav-item-active'));
-            if (navMap[pageId] && document.getElementById(navMap[pageId])) {
-                document.getElementById(navMap[pageId]).classList.add('nav-item-active');
+    pageButtons.forEach(function (button) {
+        button.addEventListener("click", function () {
+            showPage(button.dataset.page);
+        });
+        button.addEventListener("keydown", function (event) {
+            if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                showPage(button.dataset.page);
             }
-
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-    </script>
+        });
+    });
+</script>
 </body>
 </html>
