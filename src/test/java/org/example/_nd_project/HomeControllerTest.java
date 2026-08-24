@@ -26,12 +26,13 @@ class HomeControllerTest {
 
     @Mock TaskService taskService;
     @Mock MemberService memberService;
+    @Mock org.example._nd_project.volunteer.VolunteerService volunteerService;
 
     private HomeController homeController;
 
     @BeforeEach
     void setUp() {
-        homeController = new HomeController(taskService, memberService);
+        homeController = new HomeController(taskService, memberService, volunteerService);
     }
 
     @Test

@@ -299,7 +299,8 @@ h1 {
     cursor: pointer;
     font-weight: 700;
 }
-.registered-tasks-card { grid-column: 1 / -1; }
+.registered-tasks-card,
+.applied-tasks-card { grid-column: 1 / -1; }
 .registered-tasks-heading {
     display: flex;
     align-items: flex-start;
@@ -382,7 +383,8 @@ h1 {
     .profile-main { min-height: calc(100vh - 58px); border: 0; border-radius: 0; padding: 48px 18px 72px; }
     .card { padding: 25px 20px; }
     .profile-grid { grid-template-columns: 1fr; }
-    .registered-tasks-card { grid-column: auto; }
+    .registered-tasks-card,
+    .applied-tasks-card { grid-column: auto; }
     .registered-tasks-heading { align-items: stretch; flex-direction: column; }
     .small-button { text-align: center; }
 }

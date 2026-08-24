@@ -8,6 +8,8 @@ import org.example._nd_project.task.TaskCreateForm;
 import org.example._nd_project.task.TaskListItem;
 import org.example._nd_project.task.TaskService;
 import org.example._nd_project.task.TaskSort;
+import org.example._nd_project.volunteer.VolunteerCardView;
+import org.example._nd_project.volunteer.VolunteerService;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -27,10 +29,12 @@ public class HomeController {
 
     private final TaskService taskService;
     private final MemberService memberService;
+    private final VolunteerService volunteerService;
 
-    public HomeController(TaskService taskService, MemberService memberService) {
+    public HomeController(TaskService taskService, MemberService memberService, VolunteerService volunteerService) {
         this.taskService = taskService;
         this.memberService = memberService;
+        this.volunteerService = volunteerService;
     }
 
     @GetMapping("/")
@@ -58,6 +62,18 @@ public class HomeController {
             selectedTask = availableTasks.get(0);
         }
         model.addAttribute("selectedTask", selectedTask);
+
+        long applicantCount = 0;
+        boolean hasApplied = false;
+        List<VolunteerCardView> volunteers = List.of();
+        if (selectedTask != null) {
+            applicantCount = volunteerService.countApplicants(selectedTask.id());
+            hasApplied = principal != null && volunteerService.hasApplied(selectedTask.id(), principal.memberId());
+            volunteers = volunteerService.getVolunteers(selectedTask.id());
+        }
+        model.addAttribute("applicantCount", applicantCount);
+        model.addAttribute("hasApplied", hasApplied);
+        model.addAttribute("volunteers", volunteers);
 
         LocalDateTime now = LocalDateTime.now(KOREA);
         if (!model.containsAttribute("minDeadline")) {

@@ -87,23 +87,16 @@
             <div class="notice success-notice" th:if="${param.deletedTask}">
                 업무가 삭제되었습니다.
             </div>
+            <div class="notice success-notice" th:if="${param.cancelledApply}">
+                지원이 취소되었습니다.
+            </div>
 
             <div class="task-list">
                 <article th:each="task : ${availableTasks}"
                          class="task-card"
                          th:classappend="${task.urgent()} ? ' urgent' : ''"
-                         data-page="detail"
-                         th:data-task-id="${task.id()}"
-                         th:data-requester-id="${task.requesterId()}"
-                         th:data-title="${task.title()}"
-                         th:data-description="${task.description()}"
-                         th:data-deliverable="${task.deliverableDescription()}"
-                         th:data-category="${task.categoryLabel()}"
-                         th:data-skills="${#strings.listJoin(task.skillTags(), ',')}"
-                         th:data-deadline="${task.deadlineLabel()}"
-                         th:data-pum="${task.requestedPum()}"
-                         th:data-status="${task.statusLabel()}"
-                         th:data-has-attachment="${task.hasAttachment()}"
+                         th:onclick="|location.href='/?view=detail&taskId=' + ${task.id()}|"
+                         style="cursor: pointer;"
                          tabindex="0">
                     <div>
                         <div class="task-meta">
@@ -120,8 +113,9 @@
                         <strong><span th:text="${task.requestedPum()}">4</span>품</strong>
                         <span th:text="${task.statusLabel()}">모집 중</span>
                         <div class="owner-actions"
-                             th:if="${currentMemberId != null and task.requesterId() == currentMemberId and task.editable()}">
-                            <button class="owner-action compare" type="button" onclick="openCompareFromCard(this)" style="color: #2563eb; border-color: #3b82f6;">지원자 비교</button>
+                             th:if="${currentMemberId != null and task.requesterId() == currentMemberId and task.editable()}"
+                             onclick="event.stopPropagation();">
+                            <a class="owner-action compare" th:href="@{/?view=compare&taskId={id}(id=${task.id()})}" style="color: #2563eb; border-color: #3b82f6; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">지원자 비교</a>
                             <a class="owner-action edit"
                                th:href="@{/tasks/{id}/edit(id=${task.id()},returnTo='home')}">수정</a>
                             <form class="delete-task-form" th:action="@{/tasks/{id}/delete(id=${task.id()})}" method="post">
@@ -349,11 +343,11 @@
                          th:style="${selectedTask != null and currentMemberId != null and selectedTask.requesterId() == currentMemberId ? 'display: block;' : 'display: none;'}"
                          style="display: none;">
                         <h2 class="side-title" style="margin-bottom: 6px;">지원자 현황</h2>
-                        <p class="side-copy" style="margin-bottom: 14px;">현재 접수된 지원자들을 비교하고 선택할 수 있습니다.</p>
-                        <button id="btn-view-applicants" class="button full" type="button" onclick="goToCompare()"
-                                style="background-color: #2563eb; color: #ffffff; border: none; font-weight: bold;">
+                        <p class="side-copy" style="margin-bottom: 14px;">현재 접수된 지원자 <strong th:text="${applicantCount}">0</strong>명을 비교하고 선택할 수 있습니다.</p>
+                        <a id="btn-view-applicants" class="button full" th:href="@{/?view=compare&taskId={id}(id=${selectedTask != null ? selectedTask.id() : 0})}"
+                           style="background-color: #2563eb; color: #ffffff; border: none; font-weight: bold;">
                             지원자 비교 보기
-                        </button>
+                        </a>
                     </div>
 
                     <!-- Application Panel -->
@@ -363,7 +357,32 @@
                         <div class="summary-row"><span>요청 시간</span><strong><span id="detail-pum" th:text="${selectedTask != null ? selectedTask.requestedPum() : 4}">4</span>품</strong></div>
                         <div class="summary-row"><span>마감</span><strong><span id="detail-deadline" th:text="${selectedTask != null ? selectedTask.deadlineLabel() : '오늘 18:00'}">오늘 18:00</span></strong></div>
                         <div class="summary-row"><span>진행 상태</span><strong><span id="detail-status" th:text="${selectedTask != null ? selectedTask.statusLabel() : '모집 중'}">모집 중</span></strong></div>
-                        <button class="button full" type="button" style="margin-top: 22px">지원하기</button>
+                        <div class="summary-row"><span>지원자 수</span><strong><span id="detail-applicant-count" th:text="|${applicantCount}명|">0명</span></strong></div>
+                        
+                        <!-- When user is logged in and not the owner -->
+                        <div th:if="${currentMemberId != null and selectedTask != null and selectedTask.requesterId() != currentMemberId}">
+                            <div th:if="${hasApplied}">
+                                <button class="button full" type="button" disabled style="margin-top: 22px; background-color: #94a3b8; border-color: #94a3b8; cursor: not-allowed;">이미 지원 완료되었습니다</button>
+                                <form th:action="@{/tasks/{id}/cancel-apply(id=${selectedTask != null ? selectedTask.id() : 0})}" method="post" style="margin-top: 8px;">
+                                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                    <button class="button secondary full" type="submit" onclick="return window.confirm('이 업무에 대한 지원을 취소하시겠습니까?');" style="color: #ef4444; border-color: #fca5a5;">지원 취소하기</button>
+                                </form>
+                            </div>
+                            <form th:if="${!hasApplied}" th:action="@{/tasks/{id}/apply(id=${selectedTask != null ? selectedTask.id() : 0})}" method="post" style="margin-top: 22px;">
+                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                <button class="button full" type="submit" onclick="return window.confirm('이 업무에 지원하시겠습니까?');">지원하기</button>
+                            </form>
+                        </div>
+
+                        <!-- When user is the owner -->
+                        <div th:if="${currentMemberId != null and selectedTask != null and selectedTask.requesterId() == currentMemberId}">
+                            <button class="button full" type="button" disabled style="margin-top: 22px; background-color: #e2e8f0; color: #64748b; border: none; cursor: default;">본인이 등록한 업무입니다</button>
+                        </div>
+
+                        <!-- When user is not logged in -->
+                        <div th:if="${currentMemberId == null}">
+                            <a class="button full" th:href="@{/login}" style="margin-top: 22px;">로그인하고 지원하기</a>
+                        </div>
                     </aside>
                 </div>
             </div>
@@ -417,7 +436,7 @@
             
             <!-- Heading -->
             <div class="mt-2 mb-6">
-                <h1 class="text-3xl font-extrabold text-[#191F28] tracking-tight">지원자 3명</h1>
+                <h1 class="text-3xl font-extrabold text-[#191F28] tracking-tight" th:text="|지원자 ${#lists.size(volunteers)}명|">지원자 0명</h1>
                 <p class="text-xs text-[#8B95A1] font-semibold mt-1">같은 기준으로 비교하고 작업자를 선택하세요.</p>
             </div>
             
@@ -433,138 +452,93 @@
                 </div>
             </div>
             
-            <!-- Cards Grid -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Cards Grid (When volunteers exist) -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6" th:if="${not #lists.isEmpty(volunteers)}">
                 
-                <!-- Card 1: 정대현 -->
-                <div class="bg-white rounded-2xl border border-[#E5E8EB] p-6 shadow-sm flex flex-col justify-between relative hover:shadow-md transition">
+                <!-- Dynamic Volunteer Cards -->
+                <div th:each="v : ${volunteers}" class="bg-white rounded-2xl border border-[#E5E8EB] p-6 shadow-sm flex flex-col justify-between relative hover:shadow-md transition">
                     <div>
                         <!-- Header: Avatar & Name -->
                         <div class="flex items-center gap-3">
-                            <div class="w-12 h-12 rounded-full bg-gray-400 text-white flex items-center justify-center text-xs font-bold">
+                            <div class="w-12 h-12 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold" th:text="${v.avatarText()}">
                                 대현
                             </div>
                             <div>
-                                <h3 class="text-base font-extrabold text-[#191F28]">정대현</h3>
-                                <p class="text-xs text-gray-400 font-semibold mt-0.5">완료 12건 · ★ 4.8</p>
+                                <h3 class="text-base font-extrabold text-[#191F28]" th:text="${v.nickname()}">정대현</h3>
+                                <p class="text-xs text-gray-400 font-semibold mt-0.5" th:text="|완료 ${v.completedCount()}건 · ${v.ratingText()}|">완료 12건 · ★ 4.8</p>
                             </div>
                         </div>
                         
                         <!-- Badge -->
                         <div class="mt-4">
-                            <span class="bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-lg px-2.5 py-1 text-[11px] font-bold">지금 가능</span>
+                            <span class="bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-lg px-2.5 py-1 text-[11px] font-bold" th:text="${v.statusLabel()}">지원 완료</span>
                         </div>
                         
                         <!-- Specifications -->
                         <div class="mt-6 space-y-3 text-xs border-b border-gray-100 pb-5">
                             <div class="flex justify-between">
-                                <span class="text-gray-400 font-medium">예상 소요</span>
-                                <span class="text-[#191F28] font-bold">2시간</span>
+                                <span class="text-gray-400 font-medium">지원 일시</span>
+                                <span class="text-[#191F28] font-bold" th:text="${v.appliedDateLabel()}">8월 24일 15:40</span>
                             </div>
                             <div class="flex justify-between">
-                                <span class="text-gray-400 font-medium">관련 기술</span>
-                                <span class="text-[#191F28] font-bold">AWS · Nginx</span>
+                                <span class="text-gray-400 font-medium">보유 기술</span>
+                                <span class="text-[#191F28] font-bold" th:text="${v.skillTags() == null or #lists.isEmpty(v.skillTags()) ? '등록된 기술 없음' : T(java.lang.String).join(' · ', v.skillTags())}">AWS · Nginx</span>
                             </div>
                         </div>
                         
                         <!-- Quote -->
-                        <div class="py-6 text-center text-xs text-gray-500 font-medium italic">
+                        <div class="py-6 text-center text-xs text-gray-500 font-medium italic" th:text="${#strings.isEmpty(v.message()) ? '“성실하게 업무를 완수하겠습니다.”' : '“' + v.message() + '”'}">
                             “최근 비슷한 배포 오류를 해결했습니다.”
                         </div>
                     </div>
                     
-                    <!-- Action Button -->
-                    <button onclick="confirmSelection('정대현')" class="bg-white border border-gray-300 hover:bg-blue-600 hover:text-white hover:border-blue-600 text-gray-700 font-bold text-xs py-3.5 rounded-xl w-full text-center transition shadow-sm">
-                        이 작업자 선택
-                    </button>
-                </div>
-                
-                <!-- Card 2: 제민기 -->
-                <div class="bg-white rounded-2xl border border-[#E5E8EB] p-6 shadow-sm flex flex-col justify-between relative hover:shadow-md transition">
-                    <div>
-                        <!-- Header: Avatar & Name -->
-                        <div class="flex items-center gap-3">
-                            <div class="w-12 h-12 rounded-full bg-gray-400 text-white flex items-center justify-center text-xs font-bold">
-                                민기
-                            </div>
-                            <div>
-                                <h3 class="text-base font-extrabold text-[#191F28]">제민기</h3>
-                                <p class="text-xs text-gray-400 font-semibold mt-0.5">완료 3건 · ★ 4.7</p>
-                            </div>
+                    <!-- Action Button for Task Owner -->
+                    <div th:if="${selectedTask != null and currentMemberId != null and selectedTask.requesterId() == currentMemberId}">
+                        <!-- When this volunteer is ACCEPTED: show Selected badge and Unselect button -->
+                        <div th:if="${v.status() == T(org.example._nd_project.volunteer.VolunteerStatus).ACCEPTED}" class="flex flex-col gap-2">
+                            <span class="block bg-blue-600 text-white font-bold text-xs py-2.5 rounded-xl w-full text-center shadow-sm">
+                                선택 완료된 작업자
+                            </span>
+                            <form th:action="@{/tasks/{id}/volunteers/{vId}/unselect(id=${selectedTask != null ? selectedTask.id() : 0}, vId=${v != null ? v.id() : 0})}" method="post"
+                                  th:data-nickname="${v.nickname()}"
+                                  onsubmit="return confirmUnselection(this.dataset.nickname);">
+                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                <button type="submit" 
+                                        class="border border-red-200 bg-red-50 hover:bg-red-100 text-red-600 font-bold text-xs py-2 rounded-xl w-full text-center transition cursor-pointer">
+                                    선택 취소하기
+                                </button>
+                            </form>
                         </div>
-                        
-                        <!-- Badge -->
-                        <div class="mt-4">
-                            <span class="bg-gray-100 text-gray-600 border border-gray-200 rounded-lg px-2.5 py-1 text-[11px] font-bold">30분 뒤 가능</span>
-                        </div>
-                        
-                        <!-- Specifications -->
-                        <div class="mt-6 space-y-3 text-xs border-b border-gray-100 pb-5">
-                            <div class="flex justify-between">
-                                <span class="text-gray-400 font-medium">예상 소요</span>
-                                <span class="text-[#191F28] font-bold">2시간 30분</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-gray-400 font-medium">관련 기술</span>
-                                <span class="text-[#191F28] font-bold">Spring · EC2</span>
-                            </div>
-                        </div>
-                        
-                        <!-- Quote -->
-                        <div class="py-6 text-center text-xs text-gray-500 font-medium italic">
-                            “로그부터 차근차근 같이 확인하겠습니다.”
+
+                        <!-- When this volunteer is APPLIED: show Select button -->
+                        <form th:if="${v.status() == T(org.example._nd_project.volunteer.VolunteerStatus).APPLIED}"
+                              th:action="@{/tasks/{id}/volunteers/{vId}/select(id=${selectedTask != null ? selectedTask.id() : 0}, vId=${v != null ? v.id() : 0})}" method="post"
+                              th:data-nickname="${v.nickname()}"
+                              onsubmit="return confirmSelection(this.dataset.nickname);">
+                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                            <button type="submit" 
+                                    class="border border-gray-300 bg-white hover:bg-blue-600 hover:text-white hover:border-blue-600 text-gray-700 font-bold text-xs py-3.5 rounded-xl w-full text-center transition shadow-sm cursor-pointer">
+                                이 작업자 선택
+                            </button>
+                        </form>
+
+                        <!-- When this volunteer is REJECTED (because another was selected) -->
+                        <div th:if="${v.status() == T(org.example._nd_project.volunteer.VolunteerStatus).REJECTED}">
+                            <span class="block bg-gray-100 text-gray-400 font-bold text-xs py-3.5 rounded-xl w-full text-center">다른 작업자 매칭됨</span>
                         </div>
                     </div>
-                    
-                    <!-- Action Button -->
-                    <button onclick="confirmSelection('제민기')" class="bg-white border border-gray-300 hover:bg-blue-600 hover:text-white hover:border-blue-600 text-gray-700 font-bold text-xs py-3.5 rounded-xl w-full text-center transition shadow-sm">
-                        이 작업자 선택
-                    </button>
-                </div>
-                
-                <!-- Card 3: 정주성 -->
-                <div class="bg-white rounded-2xl border border-[#E5E8EB] p-6 shadow-sm flex flex-col justify-between relative hover:shadow-md transition">
-                    <div>
-                        <!-- Header: Avatar & Name -->
-                        <div class="flex items-center gap-3">
-                            <div class="w-12 h-12 rounded-full bg-gray-400 text-white flex items-center justify-center text-xs font-bold">
-                                주성
-                            </div>
-                            <div>
-                                <h3 class="text-base font-extrabold text-[#191F28]">정주성</h3>
-                                <p class="text-xs text-gray-400 font-semibold mt-0.5">완료 5건 · ★ 4.9</p>
-                            </div>
-                        </div>
-                        
-                        <!-- Badge -->
-                        <div class="mt-4">
-                            <span class="bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-lg px-2.5 py-1 text-[11px] font-bold">지금 가능</span>
-                        </div>
-                        
-                        <!-- Specifications -->
-                        <div class="mt-6 space-y-3 text-xs border-b border-gray-100 pb-5">
-                            <div class="flex justify-between">
-                                <span class="text-gray-400 font-medium">예상 소요</span>
-                                <span class="text-[#191F28] font-bold">3시간</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-gray-400 font-medium">관련 기술</span>
-                                <span class="text-[#191F28] font-bold">Linux · AWS</span>
-                            </div>
-                        </div>
-                        
-                        <!-- Quote -->
-                        <div class="py-6 text-center text-xs text-gray-500 font-medium italic">
-                            “배포 환경에 대한 원인을 찾아보겠습니다.”
-                        </div>
+
+                    <!-- Action Button for Non-Owner -->
+                    <div th:if="${selectedTask == null or currentMemberId == null or selectedTask.requesterId() != currentMemberId}">
+                        <span class="block bg-gray-100 text-gray-500 font-bold text-xs py-3.5 rounded-xl w-full text-center" th:text="${v.statusLabel()}">지원 완료</span>
                     </div>
-                    
-                    <!-- Action Button -->
-                    <button onclick="confirmSelection('정주성')" class="bg-white border border-gray-300 hover:bg-blue-600 hover:text-white hover:border-blue-600 text-gray-700 font-bold text-xs py-3.5 rounded-xl w-full text-center transition shadow-sm">
-                        이 작업자 선택
-                    </button>
                 </div>
-                
+            </div>
+
+            <!-- Empty State for Volunteers -->
+            <div class="bg-white rounded-2xl border border-dashed border-gray-300 p-12 text-center my-6" th:if="${#lists.isEmpty(volunteers)}">
+                <p class="text-base font-bold text-gray-700 mb-2">아직 접수된 지원자가 없습니다.</p>
+                <p class="text-xs text-gray-400">다른 사용자가 이 업무에 지원하면 이곳에서 프로필과 역량을 비교하고 작업자로 선택할 수 있습니다.</p>
             </div>
         </section>
     </main>
@@ -740,9 +714,11 @@
     }
 
     function confirmSelection(name) {
-        if (window.confirm("이 지원자를 선택하시겠습니까?")) {
-            alert(name + " 지원자가 선택 완료되었습니다.");
-        }
+        return window.confirm(name + " 님을 작업자로 선택하시겠습니까?");
+    }
+
+    function confirmUnselection(name) {
+        return window.confirm(name + " 작업자의 선택/매칭을 취소하고 다시 모집 상태로 변경하시겠습니까?");
     }
 
     function goToCompare() {
