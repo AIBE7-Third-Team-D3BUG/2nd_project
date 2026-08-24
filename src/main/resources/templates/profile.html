@@ -115,6 +115,12 @@
                     </div>
                     <div class="registered-task-side">
                         <strong><span th:text="${task.requestedPum()}">4</span>품</strong>
+                        <button type="button"
+                                th:if="${task.editable()}"
+                                onclick="event.stopPropagation(); location.href='/?view=compare';"
+                                style="margin-top: 6px; margin-bottom: 4px; padding: 4px 10px; font-size: 11px; background-color: #2563eb; color: #ffffff; border-radius: 6px; border: none; font-weight: bold; cursor: pointer;">
+                            지원자 비교
+                        </button>
                         <div class="task-actions" th:if="${task.editable()}">
                             <a class="task-action edit"
                                th:href="@{/tasks/{id}/edit(id=${task.id()},returnTo='profile')}">수정</a>

@@ -119,9 +119,14 @@
                     <div class="task-credit">
                         <strong><span th:text="${task.requestedPum()}">4</span>품</strong>
                         <span th:text="${task.statusLabel()}">모집 중</span>
+                        <button type="button"
+                                th:if="${currentMemberId != null and task.requesterId() == currentMemberId and task.editable()}"
+                                onclick="event.stopPropagation(); showPage('compare');"
+                                style="margin-top: 8px; margin-bottom: 2px; padding: 5px 10px; font-size: 11px; background-color: #2563eb; color: #ffffff; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; display: inline-block;">
+                            지원자 비교
+                        </button>
                         <div class="owner-actions"
                              th:if="${currentMemberId != null and task.requesterId() == currentMemberId and task.editable()}">
-                            <button class="owner-action compare" type="button" onclick="showPage('compare')" style="color: #2563eb; border-color: #3b82f6;">지원자 비교</button>
                             <a class="owner-action edit"
                                th:href="@{/tasks/{id}/edit(id=${task.id()},returnTo='home')}">수정</a>
                             <form class="delete-task-form" th:action="@{/tasks/{id}/delete(id=${task.id()})}" method="post">
