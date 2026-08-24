@@ -24,6 +24,7 @@ body {
     color: var(--ink);
     background: var(--surface);
     font-family: Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 14px;
     letter-spacing: -.02em;
     -webkit-font-smoothing: antialiased;
 }
@@ -47,7 +48,7 @@ a { color: inherit; }
     flex: 0 0 auto;
     color: #242933;
     text-decoration: none;
-    font-size: 16px;
+    font-size: 17px;
     font-weight: 900;
     letter-spacing: -.04em;
 }
@@ -57,7 +58,7 @@ a { color: inherit; }
     align-items: center;
     gap: 28px;
     color: #697282;
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 700;
 }
 .account-nav a,
@@ -94,7 +95,7 @@ a { color: inherit; }
 .eyebrow {
     margin: 0 0 28px;
     color: #7c8594;
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 800;
     letter-spacing: .04em;
     text-transform: uppercase;
@@ -127,7 +128,7 @@ h1 {
     color: #7b8493;
     text-align: center;
     text-decoration: none;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 800;
 }
 .auth-tabs a.active { color: var(--brand); background: var(--brand-soft); }
@@ -136,7 +137,7 @@ h1 {
     display: block;
     margin-bottom: 8px;
     color: #303641;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 800;
 }
 .field input,
@@ -163,13 +164,13 @@ h1 {
 .field-help {
     margin-top: 7px;
     color: var(--muted);
-    font-size: 11px;
+    font-size: 12px;
     line-height: 1.5;
 }
 .field-error, .errors {
     margin-top: 7px;
     color: var(--danger);
-    font-size: 11px;
+    font-size: 12px;
     line-height: 1.5;
 }
 .errors {
@@ -185,7 +186,7 @@ h1 {
     gap: 9px;
     margin: 12px 0;
     color: #5f6877;
-    font-size: 12px;
+    font-size: 13px;
 }
 .checkbox input {
     width: 15px;
@@ -213,14 +214,14 @@ h1 {
     margin-top: 22px;
     color: var(--muted);
     text-align: center;
-    font-size: 12px;
+    font-size: 13px;
 }
 .text-link a { color: var(--brand); font-weight: 800; }
 .alert {
     padding: 11px 13px;
     margin-bottom: 18px;
     border-radius: 8px;
-    font-size: 12px;
+    font-size: 13px;
     line-height: 1.5;
 }
 .alert-success { color: var(--success); background: var(--success-soft); border: 1px solid #c9ecd9; }
@@ -254,7 +255,7 @@ h1 {
     font-weight: 900;
 }
 .identity-copy h2 { margin: 0 0 5px; font-size: 22px; }
-.email { margin: 0; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+.email { margin: 0; color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
 .balance {
     display: flex;
     align-items: center;
@@ -266,7 +267,7 @@ h1 {
     color: #fff;
     background: var(--brand);
 }
-.balance span { font-size: 11px; opacity: .82; }
+.balance span { font-size: 13px; opacity: .86; }
 .balance strong { display: block; margin-top: 3px; font-size: 25px; }
 .balance small { opacity: .75; }
 .stats {
@@ -280,7 +281,7 @@ h1 {
     border: 1px solid var(--line);
     border-radius: 9px;
     color: var(--muted);
-    font-size: 10px;
+    font-size: 12px;
 }
 .stat strong { display: block; margin-top: 7px; color: var(--ink); font-size: 19px; }
 .stat:last-child { display: none; }
@@ -313,7 +314,7 @@ h1 {
     color: #fff;
     background: var(--brand);
     text-decoration: none;
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 800;
 }
 .registered-task-list { display: grid; gap: 10px; }
@@ -326,15 +327,15 @@ h1 {
     border: 1px solid var(--line);
     border-radius: 9px;
 }
-.registered-task-meta { display: flex; flex-wrap: wrap; gap: 8px; color: var(--muted); font-size: 10px; }
+.registered-task-meta { display: flex; flex-wrap: wrap; gap: 8px; color: var(--muted); font-size: 12px; }
 .registered-task-meta span:first-child { color: var(--brand); font-weight: 800; }
-.registered-task h3 { margin: 7px 0 5px; font-size: 14px; }
-.registered-task p { margin: 0; color: var(--muted); font-size: 11px; }
+.registered-task h3 { margin: 8px 0 6px; font-size: 16px; }
+.registered-task p { margin: 0; color: var(--muted); font-size: 13px; }
 .attachment-link {
     display: inline-block;
     margin-top: 8px;
     color: var(--brand);
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 800;
     text-decoration: none;
 }
@@ -353,7 +354,7 @@ h1 {
     color: #596273;
     background: #fff;
     font: inherit;
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 800;
     text-decoration: none;
     cursor: pointer;
@@ -367,7 +368,7 @@ h1 {
     border-radius: 9px;
     color: var(--muted);
     text-align: center;
-    font-size: 12px;
+    font-size: 14px;
 }
 @media (max-width: 760px) {
     body { padding: 0; }
