@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import org.example._nd_project.security.MemberPrincipal;
 import org.example._nd_project.submission.DisputeForm;
 import org.example._nd_project.submission.RevisionRequestForm;
+import org.example._nd_project.submission.ReviewForm;
 import org.example._nd_project.submission.SubmissionForm;
 import org.example._nd_project.submission.SubmissionService;
 import org.example._nd_project.submission.TaskCompletionService;
@@ -61,6 +62,9 @@ public class TaskProgressController {
         if (!model.containsAttribute("disputeForm")) {
             model.addAttribute("disputeForm", new DisputeForm());
         }
+        if (!model.containsAttribute("reviewForm")) {
+            model.addAttribute("reviewForm", new ReviewForm());
+        }
         return "task-progress";
     }
 
@@ -94,8 +98,15 @@ public class TaskProgressController {
 
     @PostMapping("/tasks/{taskId}/approve")
     public String approve(@AuthenticationPrincipal MemberPrincipal principal,
-                          @PathVariable Long taskId) {
-        taskCompletionService.approve(taskId, principal.memberId());
+                          @PathVariable Long taskId,
+                          @Valid @ModelAttribute("reviewForm") ReviewForm form,
+                          BindingResult bindingResult,
+                          RedirectAttributes redirectAttributes) {
+        if (bindingResult.hasErrors()) {
+            preserveErrors("reviewForm", form, bindingResult, redirectAttributes);
+            return redirectToProgress(taskId);
+        }
+        taskCompletionService.approve(taskId, principal.memberId(), form);
         return redirectToProgress(taskId) + "?approved";
     }
 

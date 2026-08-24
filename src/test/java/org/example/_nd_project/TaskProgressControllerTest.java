@@ -3,6 +3,7 @@ package org.example._nd_project;
 import org.example._nd_project.Controller.TaskProgressController;
 import org.example._nd_project.security.MemberPrincipal;
 import org.example._nd_project.submission.SubmissionService;
+import org.example._nd_project.submission.ReviewForm;
 import org.example._nd_project.submission.TaskCompletionService;
 import org.example._nd_project.submission.TaskProgressService;
 import org.example._nd_project.submission.TaskProgressView;
@@ -16,6 +17,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.List;
 
 import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -76,7 +79,8 @@ class TaskProgressControllerTest {
                         "결과 링크 열기",
                         "8월 24일 14:20",
                         null
-                )
+                ),
+                null
         );
         when(taskProgressService.getProgress(10L, 3L)).thenReturn(progress);
 
@@ -85,7 +89,8 @@ class TaskProgressControllerTest {
                 .andExpect(view().name("task-progress"))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("CLIENT-04 · 완료 승인 / 리뷰")))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("결과가 도착했어요")))
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("완료 승인하기")));
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("작업자 평점")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("후기 작성 및 완료 승인")));
     }
 
     @Test
@@ -135,6 +140,7 @@ class TaskProgressControllerTest {
                 2,
                 List.of("서비스 정상 응답 확인"),
                 List.of(),
+                null,
                 null
         );
         when(taskProgressService.getProgress(10L, 8L)).thenReturn(progress);
@@ -144,5 +150,57 @@ class TaskProgressControllerTest {
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("COMMON-03 · 업무 시작")))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("작업자로 선택되었어요")))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("업무 시작하기")));
+    }
+
+    @Test
+    void requesterApprovalSubmitsReview() throws Exception {
+        MemberPrincipal requester = new MemberPrincipal(
+                3L,
+                "requester@example.com",
+                "password",
+                "의뢰인",
+                "USER",
+                true
+        );
+
+        mockMvc.perform(post("/tasks/10/approve")
+                        .with(user(requester))
+                        .with(csrf())
+                        .param("rating", "5")
+                        .param("content", "빠르게 해결해주셨어요.")
+                        .param("deadlineMet", "true"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/tasks/10/progress?approved"));
+
+        verify(taskCompletionService).approve(
+                org.mockito.ArgumentMatchers.eq(10L),
+                org.mockito.ArgumentMatchers.eq(3L),
+                any(ReviewForm.class)
+        );
+    }
+
+    @Test
+    void approvalWithoutRatingDoesNotCompleteTask() throws Exception {
+        MemberPrincipal requester = new MemberPrincipal(
+                3L,
+                "requester@example.com",
+                "password",
+                "의뢰인",
+                "USER",
+                true
+        );
+
+        mockMvc.perform(post("/tasks/10/approve")
+                        .with(user(requester))
+                        .with(csrf())
+                        .param("content", "평점 없이 보낸 후기"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/tasks/10/progress"));
+
+        verify(taskCompletionService, never()).approve(
+                org.mockito.ArgumentMatchers.anyLong(),
+                org.mockito.ArgumentMatchers.anyLong(),
+                any(ReviewForm.class)
+        );
     }
 }
