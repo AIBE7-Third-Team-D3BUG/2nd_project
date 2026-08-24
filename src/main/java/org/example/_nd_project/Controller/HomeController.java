@@ -1,6 +1,7 @@
 package org.example._nd_project.Controller;
 
 import org.example._nd_project.member.MemberService;
+import org.example._nd_project.member.MemberProfileView;
 import org.example._nd_project.security.MemberPrincipal;
 import org.example._nd_project.task.TaskCategory;
 import org.example._nd_project.task.TaskCreateForm;
@@ -56,8 +57,12 @@ public class HomeController {
                     now.plusHours(24).withSecond(0).withNano(0)
             ));
         }
-        model.addAttribute("currentAvailablePum",
-                principal == null ? 0 : memberService.getProfile(principal.memberId()).availablePum());
+        MemberProfileView profile = principal == null ? null : memberService.getProfile(principal.memberId());
+        int availableMinutes = profile == null ? 0 : profile.availableMinutes();
+        model.addAttribute("currentAvailablePum", availableMinutes / 30);
+        if (!model.containsAttribute("maximumSpendableMinutes")) {
+            model.addAttribute("maximumSpendableMinutes", availableMinutes);
+        }
         if (!model.containsAttribute("taskForm")) {
             model.addAttribute("taskForm", new TaskCreateForm());
         }

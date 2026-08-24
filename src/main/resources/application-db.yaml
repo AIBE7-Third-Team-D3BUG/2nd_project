@@ -16,6 +16,12 @@ spring:
       validation-timeout: ${DB_VALIDATION_TIMEOUT_MS:5000}
       connection-init-sql: SET TIME ZONE 'Asia/Seoul'
 
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: 1
+    locations: classpath:db/migration
+
   jpa:
     open-in-view: false
     hibernate:

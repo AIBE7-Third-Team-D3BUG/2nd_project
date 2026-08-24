@@ -125,6 +125,11 @@ public class Task {
         this.referenceFileUrl = referenceFileUrl;
     }
 
+    public void cancel(Instant cancelledAt) {
+        this.status = TaskStatus.CANCELLED;
+        this.cancelledAt = cancelledAt;
+    }
+
     public Long getId() { return id; }
     public Long getRequesterId() { return requesterId; }
     public Long getWorkerId() { return workerId; }

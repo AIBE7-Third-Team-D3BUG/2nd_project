@@ -230,20 +230,24 @@
                     <div class="field">
                         <label for="task-minutes">요청 시간</label>
                         <select id="task-minutes" class="control" th:field="*{requestedMinutes}" required>
-                            <option value="30">1품 · 30분</option>
-                            <option value="60">2품 · 1시간</option>
-                            <option value="90">3품 · 1시간 30분</option>
-                            <option value="120">4품 · 2시간</option>
-                            <option value="180">6품 · 3시간</option>
-                            <option value="240">8품 · 4시간</option>
+                            <option value="30" th:disabled="${maximumSpendableMinutes < 30}">1품 · 30분</option>
+                            <option value="60" th:disabled="${maximumSpendableMinutes < 60}">2품 · 1시간</option>
+                            <option value="90" th:disabled="${maximumSpendableMinutes < 90}">3품 · 1시간 30분</option>
+                            <option value="120" th:disabled="${maximumSpendableMinutes < 120}">4품 · 2시간</option>
+                            <option value="180" th:disabled="${maximumSpendableMinutes < 180}">6품 · 3시간</option>
+                            <option value="240" th:disabled="${maximumSpendableMinutes < 240}">8품 · 4시간</option>
                         </select>
                         <div class="field-error" th:errors="*{requestedMinutes}"></div>
                         <div class="field-error" th:errors="*{requestedMinutesValid}"></div>
                     </div>
                     <div class="summary-row">
-                        <span>보유</span>
-                        <strong><span th:text="${currentAvailablePum}">8</span>품</strong>
+                        <span th:text="${editingTaskId != null} ? '수정 가능 한도' : '사용 가능'">사용 가능</span>
+                        <strong><span th:text="${editingTaskId != null ? maximumSpendableMinutes / 30 : currentAvailablePum}">8</span>품</strong>
                     </div>
+                    <p class="balance-guide" th:if="${editingTaskId == null}">게시하면 요청 품만큼 예약 차감됩니다.</p>
+                    <p class="balance-guide" th:if="${editingTaskId != null}">
+                        현재 예약분을 포함해 최대 <strong th:text="${maximumSpendableMinutes / 30}">4</strong>품까지 설정할 수 있습니다.
+                    </p>
                     <p class="side-copy">게시 후 지원자를 비교해 선택할 수 있어요.</p>
                     <button class="button full" type="submit"
                             th:text="${editingTaskId != null} ? '수정 내용 저장하기' : '확인하고 게시하기'">확인하고 게시하기</button>

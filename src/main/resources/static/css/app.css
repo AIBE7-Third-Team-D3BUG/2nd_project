@@ -239,6 +239,8 @@ select.control { cursor: pointer; }
 }
 .summary-row span { color: var(--muted); }
 .summary-row strong { font-size: 15px; }
+.balance-guide { margin: 8px 0 16px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+.balance-guide strong { color: var(--brand); }
 .tag-list { display: flex; flex-wrap: wrap; gap: 7px; }
 .tag {
     padding: 6px 10px;
