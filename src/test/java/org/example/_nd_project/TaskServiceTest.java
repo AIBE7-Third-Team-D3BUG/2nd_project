@@ -7,6 +7,7 @@ import org.example._nd_project.task.TaskService;
 import org.example._nd_project.task.TaskStatus;
 import org.example._nd_project.task.TaskStorageService;
 import org.example._nd_project.task.TaskSort;
+import org.example._nd_project.member.TimeLedgerService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -16,6 +17,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Optional;
 import java.util.List;
+import java.time.Instant;
 
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -29,6 +31,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.times;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 
 @ExtendWith(MockitoExtension.class)
@@ -36,12 +39,13 @@ class TaskServiceTest {
 
     @Mock TaskRepository taskRepository;
     @Mock TaskStorageService taskStorageService;
+    @Mock TimeLedgerService timeLedgerService;
 
     private TaskService taskService;
 
     @BeforeEach
     void setUp() {
-        taskService = new TaskService(taskRepository, taskStorageService);
+        taskService = new TaskService(taskRepository, taskStorageService, timeLedgerService);
     }
 
     @Test
@@ -52,7 +56,8 @@ class TaskServiceTest {
 
         taskService.delete(10L, 3L);
 
-        verify(taskRepository).delete(task);
+        verify(timeLedgerService).refundTaskReservation(3L, 10L);
+        verify(task).cancel(any(Instant.class));
         verify(taskRepository).flush();
     }
 
@@ -66,7 +71,7 @@ class TaskServiceTest {
         );
 
         assertEquals(404, exception.getStatusCode().value());
-        verify(taskRepository, never()).delete(org.mockito.ArgumentMatchers.any());
+        verify(timeLedgerService, never()).refundTaskReservation(anyLong(), anyLong());
     }
 
     @Test
@@ -81,7 +86,7 @@ class TaskServiceTest {
         );
 
         assertEquals(409, exception.getStatusCode().value());
-        verify(taskRepository, never()).delete(task);
+        verify(timeLedgerService, never()).refundTaskReservation(anyLong(), anyLong());
     }
 
     @Test
