@@ -424,7 +424,7 @@
                     </div>
                     
                     <!-- Action Button -->
-                    <button class="bg-white border border-gray-300 hover:bg-blue-600 hover:text-white hover:border-blue-600 text-gray-700 font-bold text-xs py-3.5 rounded-xl w-full text-center transition shadow-sm">
+                    <button onclick="confirmSelection('정대현')" class="bg-white border border-gray-300 hover:bg-blue-600 hover:text-white hover:border-blue-600 text-gray-700 font-bold text-xs py-3.5 rounded-xl w-full text-center transition shadow-sm">
                         이 작업자 선택
                     </button>
                 </div>
@@ -467,7 +467,7 @@
                     </div>
                     
                     <!-- Action Button -->
-                    <button class="bg-white border border-gray-300 hover:bg-blue-600 hover:text-white hover:border-blue-600 text-gray-700 font-bold text-xs py-3.5 rounded-xl w-full text-center transition shadow-sm">
+                    <button onclick="confirmSelection('제민기')" class="bg-white border border-gray-300 hover:bg-blue-600 hover:text-white hover:border-blue-600 text-gray-700 font-bold text-xs py-3.5 rounded-xl w-full text-center transition shadow-sm">
                         이 작업자 선택
                     </button>
                 </div>
@@ -510,7 +510,7 @@
                     </div>
                     
                     <!-- Action Button -->
-                    <button class="bg-white border border-gray-300 hover:bg-blue-600 hover:text-white hover:border-blue-600 text-gray-700 font-bold text-xs py-3.5 rounded-xl w-full text-center transition shadow-sm">
+                    <button onclick="confirmSelection('정주성')" class="bg-white border border-gray-300 hover:bg-blue-600 hover:text-white hover:border-blue-600 text-gray-700 font-bold text-xs py-3.5 rounded-xl w-full text-center transition shadow-sm">
                         이 작업자 선택
                     </button>
                 </div>
@@ -614,6 +614,12 @@
         taskCategoryFilter.addEventListener("change", function () {
             taskCategoryFilter.form.submit();
         });
+    }
+
+    function confirmSelection(name) {
+        if (window.confirm("이 지원자를 선택하시겠습니까?")) {
+            alert(name + " 지원자가 선택 완료되었습니다.");
+        }
     }
 
     const initialPage = document.body.dataset.activePage || "landing";
