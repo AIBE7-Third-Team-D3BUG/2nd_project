@@ -15,6 +15,7 @@ public record TaskListItem(
         String deadlineLabel,
         String statusLabel,
         boolean editable,
+        boolean progressAvailable,
         boolean urgent,
         boolean hasAttachment
 ) {

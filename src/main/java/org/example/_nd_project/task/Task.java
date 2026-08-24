@@ -12,6 +12,7 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
+import java.util.Objects;
 
 @Entity
 @Table(name = "tasks")
@@ -130,6 +131,64 @@ public class Task {
         this.cancelledAt = cancelledAt;
     }
 
+    public void submitResult(Long memberId, Instant submittedAt) {
+        requireWorker(memberId);
+        requireStatus(TaskStatus.IN_PROGRESS, "진행 중인 업무만 결과를 제출할 수 있습니다.");
+        this.status = TaskStatus.SUBMITTED;
+        this.submittedAt = submittedAt;
+    }
+
+    public void requestRevision(Long memberId) {
+        requireRequester(memberId);
+        requireStatus(TaskStatus.SUBMITTED, "제출된 결과만 수정을 요청할 수 있습니다.");
+        this.status = TaskStatus.IN_PROGRESS;
+    }
+
+    public void complete(Long memberId, Instant completedAt) {
+        requireRequester(memberId);
+        requireStatus(TaskStatus.SUBMITTED, "제출된 결과만 완료 승인할 수 있습니다.");
+        this.status = TaskStatus.COMPLETED;
+        this.completedAt = completedAt;
+    }
+
+    public void openDispute(Long memberId) {
+        if (!isParticipant(memberId)) {
+            throw new IllegalArgumentException("업무 참여자만 문제를 신고할 수 있습니다.");
+        }
+        requireStatus(TaskStatus.SUBMITTED, "제출된 결과에 대해서만 문제를 신고할 수 있습니다.");
+        this.status = TaskStatus.DISPUTED;
+    }
+
+    public boolean isRequester(Long memberId) {
+        return Objects.equals(requesterId, memberId);
+    }
+
+    public boolean isWorker(Long memberId) {
+        return workerId != null && Objects.equals(workerId, memberId);
+    }
+
+    public boolean isParticipant(Long memberId) {
+        return isRequester(memberId) || isWorker(memberId);
+    }
+
+    private void requireRequester(Long memberId) {
+        if (!isRequester(memberId)) {
+            throw new IllegalArgumentException("의뢰인만 처리할 수 있습니다.");
+        }
+    }
+
+    private void requireWorker(Long memberId) {
+        if (!isWorker(memberId)) {
+            throw new IllegalArgumentException("선택된 작업자만 처리할 수 있습니다.");
+        }
+    }
+
+    private void requireStatus(TaskStatus expected, String message) {
+        if (status != expected) {
+            throw new IllegalStateException(message);
+        }
+    }
+
     public Long getId() { return id; }
     public Long getRequesterId() { return requesterId; }
     public Long getWorkerId() { return workerId; }
@@ -142,5 +201,11 @@ public class Task {
     public String getDeliverableDescription() { return deliverableDescription; }
     public String getReferenceFileUrl() { return referenceFileUrl; }
     public TaskStatus getStatus() { return status; }
+    public Instant getMatchedAt() { return matchedAt; }
+    public Instant getStartedAt() { return startedAt; }
+    public Instant getSubmittedAt() { return submittedAt; }
+    public Instant getCompletedAt() { return completedAt; }
+    public Instant getCancelledAt() { return cancelledAt; }
     public Instant getCreatedAt() { return createdAt; }
+    public Instant getUpdatedAt() { return updatedAt; }
 }

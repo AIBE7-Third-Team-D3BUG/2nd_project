@@ -362,6 +362,8 @@ h1 {
 .task-action:hover { border-color: var(--brand); color: var(--brand); }
 .task-action.delete { color: var(--danger); }
 .task-action.delete:hover { border-color: var(--danger); background: var(--danger-soft); }
+.task-action.progress { min-width: 72px; color: #fff; background: var(--brand); border-color: var(--brand); }
+.task-action.progress:hover { color: #fff; background: var(--brand-hover); border-color: var(--brand-hover); }
 .registered-empty {
     padding: 34px 18px;
     border: 1px dashed var(--line-strong);

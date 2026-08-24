@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${progress.title()} + ' | D3BUG'">업무 진행 | D3BUG</title>
+    <link rel="stylesheet" href="../static/css/task-progress.css" th:href="@{/css/task-progress.css}">
+</head>
+<body>
+<div class="progress-shell">
+    <header class="progress-header">
+        <a class="brand" th:href="@{/}">D3BUG</a>
+        <nav aria-label="주요 메뉴">
+            <a th:href="@{/}">업무 찾기</a>
+            <a class="active" th:href="@{/profile}">내 업무</a>
+        </nav>
+        <a class="profile-link" th:href="@{/profile}">내 프로필</a>
+    </header>
+
+    <main>
+        <p class="breadcrumb"
+           th:text="${progress.requester() ? 'CLIENT-04 · 완료 승인 / 리뷰' : 'COMMON-03 · 업무 진행 / 결과 제출'}">
+            COMMON-03 · 업무 진행 / 결과 제출
+        </p>
+
+        <section class="hero">
+            <div>
+                <span class="status-pill" th:text="${progress.statusLabel()}">진행 중</span>
+                <h1 th:text="${progress.canReview() ? '결과가 도착했어요' : progress.title()}">
+                    AWS 배포 후 502 오류 해결
+                </h1>
+                <p th:if="${progress.canReview()}">완료 기준을 확인한 뒤 승인하거나 수정을 요청하세요.</p>
+                <p th:unless="${progress.canReview()}" th:text="${progress.title()}">업무 진행 상황을 확인하세요.</p>
+            </div>
+            <div class="deadline-badge" th:text="${progress.deadlineLabel()}">2시간 42분 남음</div>
+        </section>
+
+        <section class="task-summary" aria-label="업무 요약">
+            <div><span>의뢰인</span><strong th:text="${progress.requesterName()}">의뢰인</strong></div>
+            <div><span>작업자</span><strong th:text="${progress.workerName()}">작업자</strong></div>
+            <div><span>정산 예정</span><strong><span th:text="${progress.requestedPum()}">4</span>품</strong></div>
+            <div><span>마감</span><strong th:text="${progress.deadlineLabel()}">2시간 42분 남음</strong></div>
+        </section>
+
+        <ol class="stepper" aria-label="업무 진행 단계">
+            <li th:each="label, step : ${ {'매칭', '진행 중', '결과 제출', '완료 승인', '정산'} }"
+                th:classappend="${step.index + 1 < progress.currentStep() ? 'done' : (step.index + 1 == progress.currentStep() ? 'current' : '')}">
+                <span class="step-dot" th:text="${step.index + 1 < progress.currentStep() ? '✓' : step.index + 1}">1</span>
+                <strong th:text="${label}">매칭</strong>
+            </li>
+        </ol>
+
+        <div class="notice success" th:if="${param.submitted}">결과를 제출했습니다. 의뢰인의 확인을 기다려주세요.</div>
+        <div class="notice success" th:if="${param.approved}">완료 승인과 시간 정산이 완료되었습니다.</div>
+        <div class="notice success" th:if="${param.revisionRequested}">작업자에게 수정 요청을 전달했습니다.</div>
+        <div class="notice warning" th:if="${param.reported}">문제 신고가 접수되었습니다. 정산은 검토가 끝날 때까지 보류됩니다.</div>
+
+        <div class="content-grid">
+            <section class="left-column">
+                <article class="panel activity-panel">
+                    <div class="panel-heading">
+                        <div>
+                            <p class="panel-kicker">ACTIVITY</p>
+                            <h2>업무 진행 기록</h2>
+                        </div>
+                        <span class="record-count"><span th:text="${#lists.size(progress.activities())}">3</span>개 기록</span>
+                    </div>
+                    <ol class="activity-list" th:if="${!#lists.isEmpty(progress.activities())}">
+                        <li th:each="activity : ${progress.activities()}" th:classappend="${activity.current() ? 'current' : ''}">
+                            <span class="activity-dot"></span>
+                            <div>
+                                <strong th:text="${activity.title()}">작업이 시작되었습니다.</strong>
+                                <p th:text="${activity.description()}">작업자</p>
+                            </div>
+                            <time th:text="${activity.timeLabel()}">8월 24일 14:20</time>
+                        </li>
+                    </ol>
+                    <p class="empty-copy" th:if="${#lists.isEmpty(progress.activities())}">아직 기록된 활동이 없습니다.</p>
+                </article>
+
+                <article class="panel criteria-panel">
+                    <p class="panel-kicker">COMPLETION CRITERIA</p>
+                    <h2>완료 기준</h2>
+                    <ul>
+                        <li th:each="criterion : ${progress.completionCriteria()}">
+                            <span>✓</span><p th:text="${criterion}">완료 기준</p>
+                        </li>
+                    </ul>
+                </article>
+            </section>
+
+            <aside class="right-column">
+                <article class="panel submit-panel" th:if="${progress.canSubmit()}">
+                    <p class="panel-kicker">COMMON-03</p>
+                    <h2 th:text="${progress.submission() == null ? '결과 제출' : '수정 결과 제출'}">결과 제출</h2>
+                    <p class="panel-description">해결한 내용과 의뢰인이 확인할 방법을 남겨주세요.</p>
+
+                    <div class="revision-note" th:if="${progress.submission() != null and progress.submission().hasRequesterNote()}">
+                        <strong>최근 수정 요청</strong>
+                        <p th:text="${progress.submission().requesterNote()}">수정 요청 내용</p>
+                    </div>
+
+                    <form th:action="@{/tasks/{id}/submissions(id=${progress.taskId()})}"
+                          th:object="${submissionForm}" method="post" enctype="multipart/form-data">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                        <div class="form-errors" th:if="${#fields.hasGlobalErrors()}" th:each="error : ${#fields.globalErrors()}" th:text="${error}"></div>
+                        <div class="field">
+                            <label for="resultDescription">작업 내용 <span>필수</span></label>
+                            <textarea id="resultDescription" th:field="*{resultDescription}" maxlength="5000" required
+                                      placeholder="무엇을 해결했고 의뢰인이 무엇을 확인하면 되는지 적어주세요."></textarea>
+                            <small th:errors="*{resultDescription}"></small>
+                        </div>
+                        <div class="field">
+                            <label for="resultFile">결과 파일</label>
+                            <label class="file-control" for="resultFile">
+                                <span>파일 선택</span>
+                                <em id="fileName">6MB 이하 파일을 올려주세요.</em>
+                            </label>
+                            <input class="file-input" id="resultFile" name="resultFile" type="file">
+                        </div>
+                        <div class="or"><span>또는</span></div>
+                        <div class="field">
+                            <label for="resultLink">결과 링크</label>
+                            <input id="resultLink" type="url" th:field="*{resultLink}" maxlength="1500" placeholder="https://">
+                            <small th:errors="*{resultLink}"></small>
+                            <small th:errors="*{resultLinkValid}"></small>
+                        </div>
+                        <button class="primary-action" type="submit"
+                                th:text="${progress.submission() == null ? '결과 제출하기' : '수정 결과 제출하기'}">
+                            결과 제출하기
+                        </button>
+                    </form>
+                </article>
+
+                <article class="panel result-panel" th:if="${progress.submission() != null and !progress.canSubmit()}">
+                    <div class="result-status"><span>✓</span> 제출 완료</div>
+                    <h2 th:text="${progress.title()}">AWS 배포 후 502 오류 해결</h2>
+                    <p class="result-meta">
+                        <span th:text="${progress.submission().submittedAtLabel()}">8월 24일 14:20</span>
+                        · <span th:text="${progress.workerName()}">작업자</span>
+                    </p>
+                    <div class="result-copy">
+                        <span>작업 내용</span>
+                        <p th:text="${progress.submission().resultDescription()}">작업 결과 설명</p>
+                    </div>
+                    <a class="result-asset" th:if="${progress.submission().hasResultAsset()}"
+                       th:href="@{/tasks/{id}/result(id=${progress.taskId()})}" target="_blank" rel="noopener">
+                        <span>↗</span><strong th:text="${progress.submission().resultAssetLabel()}">제출 파일 열기</strong>
+                    </a>
+                    <div class="revision-note" th:if="${progress.submission().hasRequesterNote()}">
+                        <strong>최근 수정 요청</strong>
+                        <p th:text="${progress.submission().requesterNote()}">수정 요청 내용</p>
+                    </div>
+                </article>
+
+                <article class="panel approval-panel" th:if="${progress.canReview()}">
+                    <p class="panel-kicker">CLIENT-04</p>
+                    <h2>승인하면 정산됩니다</h2>
+                    <p class="panel-description">예약된 시간이 즉시 작업자에게 전달되며 승인 후에는 되돌릴 수 없습니다.</p>
+                    <div class="settlement-row">
+                        <span>정산 예정</span>
+                        <strong><span th:text="${progress.requestedPum()}">4</span>품</strong>
+                    </div>
+                    <form class="approve-form" th:action="@{/tasks/{id}/approve(id=${progress.taskId()})}" method="post">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                        <button class="primary-action" type="submit">완료 승인하기</button>
+                    </form>
+
+                    <details class="action-details" th:open="${openAction == 'revision'}">
+                        <summary>수정 요청</summary>
+                        <form th:action="@{/tasks/{id}/revision-requests(id=${progress.taskId()})}"
+                              th:object="${revisionForm}" method="post">
+                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                            <label for="requesterNote">수정이 필요한 부분</label>
+                            <textarea id="requesterNote" th:field="*{requesterNote}" maxlength="1000"
+                                      placeholder="수정할 내용을 구체적으로 적어주세요."></textarea>
+                            <small th:errors="*{requesterNote}"></small>
+                            <button class="secondary-action" type="submit">수정 요청 보내기</button>
+                        </form>
+                    </details>
+
+                    <details class="action-details danger-details" th:open="${openAction == 'dispute'}">
+                        <summary>문제가 있나요? 문제 신고</summary>
+                        <form th:action="@{/tasks/{id}/disputes(id=${progress.taskId()})}"
+                              th:object="${disputeForm}" method="post">
+                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                            <label for="disputeDescription">문제 내용</label>
+                            <textarea id="disputeDescription" th:field="*{description}" maxlength="5000"
+                                      placeholder="확인이 필요한 문제를 자세히 적어주세요."></textarea>
+                            <small th:errors="*{description}"></small>
+                            <button class="danger-action" type="submit">문제 신고 접수</button>
+                        </form>
+                    </details>
+                </article>
+
+                <article class="panel state-panel" th:if="${progress.completed()}">
+                    <span class="state-icon success-icon">✓</span>
+                    <h2>완료 승인 및 정산 완료</h2>
+                    <p><strong th:text="${progress.requestedPum()}">4</strong>품이 작업자에게 전달되었습니다.</p>
+                </article>
+
+                <article class="panel state-panel" th:if="${progress.disputed()}">
+                    <span class="state-icon warning-icon">!</span>
+                    <h2>문제를 검토하고 있어요</h2>
+                    <p>검토가 완료될 때까지 시간 정산이 보류됩니다.</p>
+                </article>
+
+                <article class="panel state-panel"
+                         th:if="${!progress.canSubmit() and !progress.canReview() and !progress.completed() and !progress.disputed() and progress.submission() == null}">
+                    <span class="state-icon waiting-icon">…</span>
+                    <h2 th:text="${progress.requester() ? '작업 결과를 기다리고 있어요' : '업무가 시작되면 제출할 수 있어요'}">
+                        작업 결과를 기다리고 있어요
+                    </h2>
+                    <p>상태가 변경되면 이 화면에서 다음 작업을 진행할 수 있습니다.</p>
+                </article>
+            </aside>
+        </div>
+    </main>
+</div>
+<script>
+    const fileInput = document.getElementById("resultFile");
+    const fileName = document.getElementById("fileName");
+    if (fileInput && fileName) {
+        fileInput.addEventListener("change", function () {
+            fileName.textContent = fileInput.files.length ? fileInput.files[0].name : "6MB 이하 파일을 올려주세요.";
+        });
+    }
+    const approveForm = document.querySelector(".approve-form");
+    if (approveForm) {
+        approveForm.addEventListener("submit", function (event) {
+            if (!window.confirm("완료 승인 후 즉시 정산됩니다. 승인하시겠습니까?")) {
+                event.preventDefault();
+            }
+        });
+    }
+</script>
+</body>
+</html>

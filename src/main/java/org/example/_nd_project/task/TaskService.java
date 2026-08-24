@@ -203,6 +203,7 @@ public class TaskService {
                 formatDeadline(task.getDeadlineAt(), remaining),
                 task.getStatus().getLabel(),
                 task.getStatus() == TaskStatus.OPEN,
+                task.getStatus() != TaskStatus.OPEN && task.getStatus() != TaskStatus.CANCELLED,
                 urgent,
                 task.getReferenceFileUrl() != null && !task.getReferenceFileUrl().isBlank()
         );

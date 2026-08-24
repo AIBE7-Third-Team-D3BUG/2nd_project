@@ -122,6 +122,10 @@
                                 <button class="task-action delete" type="submit">삭제</button>
                             </form>
                         </div>
+                        <div class="task-actions" th:if="${task.progressAvailable()}">
+                            <a class="task-action progress"
+                               th:href="@{/tasks/{id}/progress(id=${task.id()})}">진행 화면</a>
+                        </div>
                     </div>
                 </article>
 

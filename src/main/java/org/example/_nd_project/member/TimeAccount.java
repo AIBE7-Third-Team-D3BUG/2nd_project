@@ -62,6 +62,23 @@ public class TimeAccount {
         availableMinutes += minutes;
     }
 
+    public void spendReserved(int minutes) {
+        if (minutes <= 0) {
+            throw new IllegalArgumentException("정산 시간은 0보다 커야 합니다.");
+        }
+        if (reservedMinutes < minutes) {
+            throw new IllegalStateException("예약 재화보다 많은 재화를 정산할 수 없습니다.");
+        }
+        reservedMinutes -= minutes;
+    }
+
+    public void credit(int minutes) {
+        if (minutes <= 0) {
+            throw new IllegalArgumentException("지급 시간은 0보다 커야 합니다.");
+        }
+        availableMinutes += minutes;
+    }
+
     public Long getMemberId() { return memberId; }
     public int getAvailableMinutes() { return availableMinutes; }
     public int getReservedMinutes() { return reservedMinutes; }
