@@ -35,7 +35,7 @@
         }
     </script>
 </head>
-<body data-active-page="landing" th:data-active-page="${activePage}">
+<body data-active-page="landing" th:data-active-page="${activePage}" th:data-member-id="${currentMemberId}">
 <div class="app-shell">
     <header class="app-header">
         <a class="brand" th:href="@{/}">D3BUG</a>
@@ -94,6 +94,7 @@
                          class="task-card"
                          th:classappend="${task.urgent()} ? ' urgent' : ''"
                          data-page="detail"
+                         th:data-requester-id="${task.requesterId()}"
                          tabindex="0">
                     <div>
                         <div class="task-meta">
@@ -313,6 +314,7 @@
                 </article>
 
                 <aside class="panel side-panel">
+                    <button id="btn-view-applicants" class="button full" type="button" onclick="showPage('compare')" style="margin-bottom: 16px; background-color: #2563eb; color: white; border: none; display: none;">지원자 비교 보기</button>
                     <h2 class="side-title">이 업무에 지원할까요?</h2>
                     <p class="side-copy">현재 지원 가능한 상태입니다.</p>
                     <div class="summary-row"><span>요청 시간</span><strong>4품</strong></div>
@@ -579,13 +581,30 @@
         window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
+    function checkOwnerDetail(button) {
+        if (button.classList.contains("task-card")) {
+            const requesterId = button.dataset.requesterId;
+            const currentMemberId = document.body.dataset.memberId;
+            const btn = document.getElementById("btn-view-applicants");
+            if (btn) {
+                if (requesterId && currentMemberId && requesterId === currentMemberId) {
+                    btn.style.display = "block";
+                } else {
+                    btn.style.display = "none";
+                }
+            }
+        }
+    }
+
     pageButtons.forEach(function (button) {
         button.addEventListener("click", function () {
+            checkOwnerDetail(button);
             showPage(button.dataset.page);
         });
         button.addEventListener("keydown", function (event) {
             if (event.key === "Enter" || event.key === " ") {
                 event.preventDefault();
+                checkOwnerDetail(button);
                 showPage(button.dataset.page);
             }
         });
