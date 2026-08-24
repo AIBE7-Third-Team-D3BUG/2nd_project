@@ -18,23 +18,26 @@ public class TaskCompletionService {
     private final TaskRepository taskRepository;
     private final SubmissionRepository submissionRepository;
     private final DisputeRepository disputeRepository;
+    private final ReviewRepository reviewRepository;
     private final TimeLedgerService timeLedgerService;
     private final MemberRepository memberRepository;
 
     public TaskCompletionService(TaskRepository taskRepository,
                                  SubmissionRepository submissionRepository,
                                  DisputeRepository disputeRepository,
+                                 ReviewRepository reviewRepository,
                                  TimeLedgerService timeLedgerService,
                                  MemberRepository memberRepository) {
         this.taskRepository = taskRepository;
         this.submissionRepository = submissionRepository;
         this.disputeRepository = disputeRepository;
+        this.reviewRepository = reviewRepository;
         this.timeLedgerService = timeLedgerService;
         this.memberRepository = memberRepository;
     }
 
     @Transactional
-    public void approve(Long taskId, Long requesterId) {
+    public void approve(Long taskId, Long requesterId, ReviewForm form) {
         Task task = findLockedRequesterTask(taskId, requesterId);
         ensureSubmitted(task);
         if (task.getWorkerId() == null) {
@@ -42,6 +45,9 @@ public class TaskCompletionService {
         }
         if (submissionRepository.findByTaskId(taskId).isEmpty()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "제출된 결과를 찾을 수 없습니다.");
+        }
+        if (reviewRepository.existsByTaskId(taskId)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 후기가 작성된 업무입니다.");
         }
         try {
             timeLedgerService.settleTask(
@@ -53,8 +59,16 @@ public class TaskCompletionService {
         } catch (IllegalStateException exception) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, exception.getMessage(), exception);
         }
+        reviewRepository.save(Review.create(
+                task.getId(),
+                requesterId,
+                task.getWorkerId(),
+                form.getRating(),
+                form.getContent(),
+                form.isDeadlineMet()
+        ));
         task.complete(requesterId, Instant.now());
-        memberRepository.incrementCompletedTaskCount(task.getWorkerId());
+        memberRepository.recordCompletedTaskReview(task.getWorkerId(), form.getRating());
     }
 
     @Transactional

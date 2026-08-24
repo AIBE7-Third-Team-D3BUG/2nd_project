@@ -21,7 +21,8 @@ public record TaskProgressView(
         int currentStep,
         List<String> completionCriteria,
         List<ActivityView> activities,
-        SubmissionView submission
+        SubmissionView submission,
+        ReviewView review
 ) {
     public int requestedPum() {
         return requestedMinutes / 30;
@@ -66,6 +67,16 @@ public record TaskProgressView(
     ) {
         public boolean hasRequesterNote() {
             return requesterNote != null && !requesterNote.isBlank();
+        }
+    }
+
+    public record ReviewView(int rating, String content, Boolean deadlineMet) {
+        public boolean hasContent() {
+            return content != null && !content.isBlank();
+        }
+
+        public String ratingLabel() {
+            return "★".repeat(rating) + "☆".repeat(5 - rating) + " " + rating + ".0";
         }
     }
 }

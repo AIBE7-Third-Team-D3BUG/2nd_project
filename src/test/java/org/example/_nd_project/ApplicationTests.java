@@ -4,6 +4,7 @@ import org.example._nd_project.member.MemberRepository;
 import org.example._nd_project.member.TimeAccountRepository;
 import org.example._nd_project.member.TimeTransactionRepository;
 import org.example._nd_project.submission.DisputeRepository;
+import org.example._nd_project.submission.ReviewRepository;
 import org.example._nd_project.submission.SubmissionRepository;
 import org.example._nd_project.task.TaskRepository;
 import org.example._nd_project.volunteer.VolunteerRepository;
@@ -22,6 +23,7 @@ class ApplicationTests {
     @MockitoBean TaskRepository taskRepository;
     @MockitoBean SubmissionRepository submissionRepository;
     @MockitoBean DisputeRepository disputeRepository;
+    @MockitoBean ReviewRepository reviewRepository;
     @MockitoBean VolunteerRepository volunteerRepository;
 
     @Test

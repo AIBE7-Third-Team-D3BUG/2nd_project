@@ -25,13 +25,16 @@ public class TaskProgressService {
 
     private final TaskRepository taskRepository;
     private final SubmissionRepository submissionRepository;
+    private final ReviewRepository reviewRepository;
     private final MemberRepository memberRepository;
 
     public TaskProgressService(TaskRepository taskRepository,
                                SubmissionRepository submissionRepository,
+                               ReviewRepository reviewRepository,
                                MemberRepository memberRepository) {
         this.taskRepository = taskRepository;
         this.submissionRepository = submissionRepository;
+        this.reviewRepository = reviewRepository;
         this.memberRepository = memberRepository;
     }
 
@@ -72,7 +75,8 @@ public class TaskProgressService {
                 currentStep(task.getStatus()),
                 completionCriteria(task),
                 activities(task, requesterName, workerName),
-                toSubmissionView(submission, task)
+                toSubmissionView(submission, task),
+                reviewRepository.findByTaskId(taskId).map(this::toReviewView).orElse(null)
         );
     }
 
@@ -120,6 +124,14 @@ public class TaskProgressService {
                 isExternalUrl(submission.getResultFileUrl()) ? "결과 링크 열기" : "제출 파일 열기",
                 formatInstant(task.getSubmittedAt() != null ? task.getSubmittedAt() : submission.getUpdatedAt()),
                 submission.getRequesterNote()
+        );
+    }
+
+    private TaskProgressView.ReviewView toReviewView(Review review) {
+        return new TaskProgressView.ReviewView(
+                review.getRating(),
+                review.getContent(),
+                review.getDeadlineMet()
         );
     }
 
