@@ -96,7 +96,9 @@
             </div>
 
             <div class="registered-task-list">
-                <article class="registered-task" th:each="task : ${registeredTasks}">
+                <article class="registered-task" th:each="task : ${registeredTasks}"
+                         th:onclick="|location.href='/?view=detail&taskId=' + ${task.id()}|"
+                         style="cursor: pointer;">
                     <div>
                         <div class="registered-task-meta">
                             <span th:text="${task.statusLabel()}">모집 중</span>
@@ -114,6 +116,7 @@
                     <div class="registered-task-side">
                         <strong><span th:text="${task.requestedPum()}">4</span>품</strong>
                         <div class="task-actions" th:if="${task.editable()}">
+                            <a class="task-action compare" th:href="@{/(view='compare',taskId=${task.id()})}" style="color: #2563eb; border-color: #3b82f6;">지원자 비교</a>
                             <a class="task-action edit"
                                th:href="@{/tasks/{id}/edit(id=${task.id()},returnTo='profile')}">수정</a>
                             <form class="delete-task-form" th:action="@{/tasks/{id}/delete(id=${task.id()})}" method="post">
@@ -138,6 +141,12 @@
             if (!window.confirm("이 업무를 삭제하시겠습니까? 삭제한 업무는 복구할 수 없습니다.")) {
                 event.preventDefault();
             }
+        });
+    });
+
+    document.querySelectorAll(".task-actions, .attachment-link").forEach(function (el) {
+        el.addEventListener("click", function (event) {
+            event.stopPropagation();
         });
     });
 </script>

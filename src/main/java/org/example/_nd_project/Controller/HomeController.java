@@ -5,6 +5,7 @@ import org.example._nd_project.member.MemberProfileView;
 import org.example._nd_project.security.MemberPrincipal;
 import org.example._nd_project.task.TaskCategory;
 import org.example._nd_project.task.TaskCreateForm;
+import org.example._nd_project.task.TaskListItem;
 import org.example._nd_project.task.TaskService;
 import org.example._nd_project.task.TaskSort;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 @Controller
 public class HomeController {
@@ -33,19 +35,30 @@ public class HomeController {
 
     @GetMapping("/")
     public String home(@RequestParam(name = "view", required = false) String view,
+                       @RequestParam(name = "taskId", required = false) Long taskId,
                        @RequestParam(name = "sort", required = false) String sort,
                        @RequestParam(name = "category", required = false) String category,
                        @AuthenticationPrincipal MemberPrincipal principal,
                        Model model) {
         TaskSort selectedSort = TaskSort.from(sort);
         TaskCategory selectedCategory = parseCategory(category);
-        model.addAttribute("availableTasks", taskService.findOpenTasks(selectedSort, selectedCategory));
+        List<TaskListItem> availableTasks = taskService.findOpenTasks(selectedSort, selectedCategory);
+        model.addAttribute("availableTasks", availableTasks);
         model.addAttribute("taskSorts", TaskSort.values());
         model.addAttribute("selectedSort", selectedSort);
         model.addAttribute("taskCategories", TaskCategory.values());
         model.addAttribute("selectedCategory", selectedCategory);
         model.addAttribute("activePage", normalizeView(view));
         model.addAttribute("currentMemberId", principal == null ? null : principal.memberId());
+
+        TaskListItem selectedTask = null;
+        if (taskId != null) {
+            selectedTask = taskService.findTaskById(taskId).orElse(null);
+        } else if (!availableTasks.isEmpty()) {
+            selectedTask = availableTasks.get(0);
+        }
+        model.addAttribute("selectedTask", selectedTask);
+
         LocalDateTime now = LocalDateTime.now(KOREA);
         if (!model.containsAttribute("minDeadline")) {
             model.addAttribute("minDeadline", DATETIME_INPUT.format(
@@ -72,7 +85,7 @@ public class HomeController {
     private String normalizeView(String view) {
         return switch (view == null ? "" : view) {
             case "register", "confirm" -> "confirm";
-            case "dashboard", "profile", "detail" -> view;
+            case "dashboard", "profile", "detail", "compare" -> view;
             default -> "landing";
         };
     }
