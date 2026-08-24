@@ -85,7 +85,7 @@ public class HomeController {
     private String normalizeView(String view) {
         return switch (view == null ? "" : view) {
             case "register", "confirm" -> "confirm";
-            case "dashboard", "profile", "detail" -> view;
+            case "dashboard", "profile", "detail", "compare" -> view;
             default -> "landing";
         };
     }

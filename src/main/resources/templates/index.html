@@ -121,6 +121,7 @@
                         <span th:text="${task.statusLabel()}">모집 중</span>
                         <div class="owner-actions"
                              th:if="${currentMemberId != null and task.requesterId() == currentMemberId and task.editable()}">
+                            <button class="owner-action compare" type="button" onclick="openCompareFromCard(this)" style="color: #2563eb; border-color: #3b82f6;">지원자 비교</button>
                             <a class="owner-action edit"
                                th:href="@{/tasks/{id}/edit(id=${task.id()},returnTo='home')}">수정</a>
                             <form class="delete-task-form" th:action="@{/tasks/{id}/delete(id=${task.id()})}" method="post">
@@ -324,7 +325,7 @@
                          style="display: none;">
                         <h2 class="side-title" style="margin-bottom: 6px;">지원자 현황</h2>
                         <p class="side-copy" style="margin-bottom: 14px;">현재 접수된 지원자들을 비교하고 선택할 수 있습니다.</p>
-                        <button id="btn-view-applicants" class="button full" type="button" onclick="showPage('compare')"
+                        <button id="btn-view-applicants" class="button full" type="button" onclick="goToCompare()"
                                 style="background-color: #2563eb; color: #ffffff; border: none; font-weight: bold;">
                             지원자 비교 보기
                         </button>
@@ -399,11 +400,11 @@
             <div class="bg-[#F8F9FA] rounded-xl border border-[#E5E8EB] p-4 flex items-center justify-between mb-8 shadow-sm">
                 <div class="flex items-center">
                     <span class="text-xs font-bold text-gray-500">업무</span>
-                    <span class="text-sm font-bold text-[#191F28] ml-6">AWS 배포 후 502 오류 해결</span>
+                    <span id="compare-task-title" class="text-sm font-bold text-[#191F28] ml-6" th:text="${selectedTask != null ? selectedTask.title() : 'AWS 배포 후 502 오류 해결'}">AWS 배포 후 502 오류 해결</span>
                 </div>
                 <div class="flex items-center">
                     <span class="text-xs font-bold text-gray-500">예약 예정</span>
-                    <span class="text-lg font-black text-[#191F28] ml-6">4품</span>
+                    <span id="compare-task-pum" class="text-lg font-black text-[#191F28] ml-6" th:text="${selectedTask != null ? selectedTask.requestedPum() + '품' : '4품'}">4품</span>
                 </div>
             </div>
             
@@ -719,23 +720,39 @@
         }
     }
 
+    function goToCompare() {
+        const title = document.getElementById("detail-title") ? document.getElementById("detail-title").textContent : "";
+        const pum = document.getElementById("detail-pum") ? document.getElementById("detail-pum").textContent : "";
+        if (title) {
+            const compareTitle = document.getElementById("compare-task-title");
+            if (compareTitle) compareTitle.textContent = title;
+        }
+        if (pum) {
+            const comparePum = document.getElementById("compare-task-pum");
+            if (comparePum) comparePum.textContent = pum.includes("품") ? pum : pum + "품";
+        }
+        showPage('compare');
+    }
+
+    function openCompareFromCard(btn) {
+        const card = btn.closest(".task-card");
+        if (card) {
+            const title = card.dataset.title;
+            const pum = card.dataset.pum;
+            if (title) {
+                const compareTitle = document.getElementById("compare-task-title");
+                if (compareTitle) compareTitle.textContent = title;
+            }
+            if (pum) {
+                const comparePum = document.getElementById("compare-task-pum");
+                if (comparePum) comparePum.textContent = pum.includes("품") ? pum : pum + "품";
+            }
+        }
+        showPage('compare');
+    }
+
     const initialPage = document.body.dataset.activePage || "landing";
     showPage(initialPage);
-
-    const urlParams = new URLSearchParams(window.location.search);
-    const viewParam = urlParams.get('view');
-    const reqIdParam = urlParams.get('requesterId');
-    const currentMemberId = document.body.dataset.memberId;
-
-    if (viewParam === 'detail') {
-        const btn = document.getElementById("btn-view-applicants");
-        const panel = document.getElementById("panel-view-applicants");
-        if (btn || panel) {
-            const show = (reqIdParam && currentMemberId && reqIdParam === currentMemberId);
-            if (btn) btn.style.display = show ? "block" : "none";
-            if (panel) panel.style.display = show ? "block" : "none";
-        }
-    }
 </script>
 </body>
 </html>

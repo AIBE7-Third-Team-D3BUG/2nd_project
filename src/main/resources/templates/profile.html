@@ -97,7 +97,7 @@
 
             <div class="registered-task-list">
                 <article class="registered-task" th:each="task : ${registeredTasks}"
-                         th:onclick="|location.href='@{/(view='detail', taskId=${task.id()})}'|"
+                         th:onclick="|location.href='/?view=detail&taskId=' + ${task.id()}|"
                          style="cursor: pointer;">
                     <div>
                         <div class="registered-task-meta">
@@ -116,6 +116,7 @@
                     <div class="registered-task-side">
                         <strong><span th:text="${task.requestedPum()}">4</span>품</strong>
                         <div class="task-actions" th:if="${task.editable()}">
+                            <a class="task-action compare" th:href="@{/(view='compare',taskId=${task.id()})}" style="color: #2563eb; border-color: #3b82f6;">지원자 비교</a>
                             <a class="task-action edit"
                                th:href="@{/tasks/{id}/edit(id=${task.id()},returnTo='profile')}">수정</a>
                             <form class="delete-task-form" th:action="@{/tasks/{id}/delete(id=${task.id()})}" method="post">
