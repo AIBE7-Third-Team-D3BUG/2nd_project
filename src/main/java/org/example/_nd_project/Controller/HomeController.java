@@ -59,12 +59,19 @@ public class HomeController {
         }
         MemberProfileView profile = principal == null ? null : memberService.getProfile(principal.memberId());
         int availableMinutes = profile == null ? 0 : profile.availableMinutes();
+        int reservedMinutes = profile == null ? 0 : profile.reservedMinutes();
         model.addAttribute("currentAvailablePum", availableMinutes / 30);
+        model.addAttribute("currentReservedPum", reservedMinutes / 30);
+        model.addAttribute("canCreateTask", principal != null && availableMinutes >= 30);
         if (!model.containsAttribute("maximumSpendableMinutes")) {
             model.addAttribute("maximumSpendableMinutes", availableMinutes);
         }
         if (!model.containsAttribute("taskForm")) {
-            model.addAttribute("taskForm", new TaskCreateForm());
+            TaskCreateForm form = new TaskCreateForm();
+            if (availableMinutes > 0 && availableMinutes < form.getRequestedMinutes()) {
+                form.setRequestedMinutes(availableMinutes);
+            }
+            model.addAttribute("taskForm", form);
         }
         return "index";
     }
