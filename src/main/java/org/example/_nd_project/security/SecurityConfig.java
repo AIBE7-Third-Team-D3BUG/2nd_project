@@ -40,7 +40,7 @@ public class SecurityConfig {
                 .authenticationManager(authenticationManager)
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/", "/signup", "/login", "/error", "/css/**", "/images/**", "/favicon.ico").permitAll()
-                        .requestMatchers("/profile/**", "/tasks/**").authenticated()
+                        .requestMatchers("/profile/**", "/chat", "/chat/**").authenticated()
                         .anyRequest().permitAll()
                 )
                 .formLogin(form -> form
