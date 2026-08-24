@@ -61,8 +61,17 @@ public class VolunteerService {
         Volunteer volunteer = volunteerRepository.findByTaskIdAndMemberId(taskId, memberId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "지원 정보를 찾을 수 없습니다."));
 
-        if (volunteer.getStatus() != VolunteerStatus.APPLIED) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "모집 중인 상태의 지원만 취소할 수 있습니다.");
+        if (volunteer.getStatus() == VolunteerStatus.ACCEPTED) {
+            Task task = taskRepository.findById(taskId).orElse(null);
+            if (task != null && task.getWorkerId() != null && task.getWorkerId().equals(memberId)) {
+                task.unassignWorker();
+            }
+            List<Volunteer> remaining = volunteerRepository.findByTaskIdAndStatusNotOrderByCreatedAtAsc(taskId, VolunteerStatus.CANCELLED);
+            for (Volunteer v : remaining) {
+                if (v != volunteer && (volunteer.getId() == null || !volunteer.getId().equals(v.getId()))) {
+                    v.resetToApplied();
+                }
+            }
         }
 
         volunteerRepository.delete(volunteer);
@@ -89,7 +98,7 @@ public class VolunteerService {
         if (taskId == null) {
             return List.of();
         }
-        List<Volunteer> volunteers = volunteerRepository.findByTaskIdOrderByCreatedAtAsc(taskId);
+        List<Volunteer> volunteers = volunteerRepository.findByTaskIdAndStatusNotOrderByCreatedAtAsc(taskId, VolunteerStatus.CANCELLED);
         return volunteers.stream()
                 .map(this::toCardView)
                 .toList();
@@ -107,7 +116,7 @@ public class VolunteerService {
         Volunteer selected = volunteerRepository.findByIdAndTaskId(volunteerId, taskId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "지원자를 찾을 수 없습니다."));
 
-        List<Volunteer> allVolunteers = volunteerRepository.findByTaskIdOrderByCreatedAtAsc(taskId);
+        List<Volunteer> allVolunteers = volunteerRepository.findByTaskIdAndStatusNotOrderByCreatedAtAsc(taskId, VolunteerStatus.CANCELLED);
         for (Volunteer v : allVolunteers) {
             if (v.getId().equals(selected.getId())) {
                 v.accept();
@@ -135,7 +144,7 @@ public class VolunteerService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "선택된 작업자만 선택을 취소할 수 있습니다.");
         }
 
-        List<Volunteer> allVolunteers = volunteerRepository.findByTaskIdOrderByCreatedAtAsc(taskId);
+        List<Volunteer> allVolunteers = volunteerRepository.findByTaskIdAndStatusNotOrderByCreatedAtAsc(taskId, VolunteerStatus.CANCELLED);
         for (Volunteer v : allVolunteers) {
             v.resetToApplied();
         }
