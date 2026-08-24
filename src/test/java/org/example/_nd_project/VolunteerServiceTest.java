@@ -100,6 +100,26 @@ class VolunteerServiceTest {
     }
 
     @Test
+    void cancelAcceptedApplicationReopensTask() {
+        Task task = Task.create(1L, "title", "desc", TaskCategory.DEVELOPMENT, new String[0], 60,
+                Instant.now().plusSeconds(3600), "deliverable", null);
+        task.assignWorker(2L, Instant.now());
+
+        Volunteer volunteer = Volunteer.create(10L, 2L, "msg");
+        volunteer.accept();
+
+        when(volunteerRepository.findByTaskIdAndMemberId(10L, 2L)).thenReturn(Optional.of(volunteer));
+        when(taskRepository.findById(10L)).thenReturn(Optional.of(task));
+        when(volunteerRepository.findByTaskIdAndStatusNotOrderByCreatedAtAsc(10L, VolunteerStatus.CANCELLED))
+                .thenReturn(java.util.List.of(volunteer));
+
+        volunteerService.cancelApplication(10L, 2L);
+
+        org.mockito.Mockito.verify(volunteerRepository).delete(volunteer);
+        assertEquals(org.example._nd_project.task.TaskStatus.OPEN, task.getStatus());
+    }
+
+    @Test
     void unselectVolunteerSucceeds() {
         Task task = Task.create(1L, "title", "desc", TaskCategory.DEVELOPMENT, new String[0], 60,
                 Instant.now().plusSeconds(3600), "deliverable", null);
@@ -110,7 +130,8 @@ class VolunteerServiceTest {
 
         when(taskRepository.findById(10L)).thenReturn(Optional.of(task));
         when(volunteerRepository.findByIdAndTaskId(50L, 10L)).thenReturn(Optional.of(volunteer));
-        when(volunteerRepository.findByTaskIdOrderByCreatedAtAsc(10L)).thenReturn(java.util.List.of(volunteer));
+        when(volunteerRepository.findByTaskIdAndStatusNotOrderByCreatedAtAsc(10L, VolunteerStatus.CANCELLED))
+                .thenReturn(java.util.List.of(volunteer));
 
         volunteerService.unselectVolunteer(10L, 1L, 50L);
 
