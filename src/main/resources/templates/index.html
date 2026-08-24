@@ -140,6 +140,7 @@
                     <nav class="hidden md:flex items-center space-x-7 text-[14px] font-semibold text-[#4E5968]">
                         <a href="javascript:void(0)" onclick="showPage('landing')" id="nav-landing" class="nav-item-active py-5 transition hover:text-[#191F28]">홈</a>
                         <a href="javascript:void(0)" onclick="showPage('dashboard')" id="nav-dashboard" class="py-5 transition hover:text-[#191F28]">긴급 의뢰 현황</a>
+                        <a href="javascript:void(0)" onclick="showPage('compare')" id="nav-compare" class="py-5 transition hover:text-blue-600 font-bold text-blue-600">내 업무</a>
                         <a href="javascript:void(0)" onclick="showPage('profile')" id="nav-profile" class="py-5 transition hover:text-[#191F28]">도움 주는 사람 찾기</a>
                         <a href="javascript:void(0)" onclick="showPage('dashboard')" class="py-5 transition hover:text-[#191F28] flex items-center gap-1.5">
                             AI 매칭 데스크
@@ -743,6 +744,166 @@
                 </div>
             </div>
         </section>
+
+        <!-- ================= PAGE 5: APPLICANT COMPARISON (img.png Mockup) ================= -->
+        <section id="page-compare" class="page-section hidden max-w-7xl mx-auto px-6 py-10">
+            <!-- Breadcrumbs -->
+            <div class="text-[11px] font-bold text-gray-400 tracking-wider">
+                CLIENT-03 &middot; 지원자 비교 / 선택
+            </div>
+            
+            <!-- Heading -->
+            <div class="mt-2 mb-6">
+                <h1 class="text-3xl font-extrabold text-[#191F28] tracking-tight">지원자 3명</h1>
+                <p class="text-xs text-[#8B95A1] font-semibold mt-1">같은 기준으로 비교하고 작업자를 선택하세요.</p>
+            </div>
+            
+            <!-- Task Summary Bar -->
+            <div class="bg-[#F8F9FA] rounded-xl border border-[#E5E8EB] p-4 flex items-center justify-between mb-8 shadow-sm">
+                <div class="flex items-center">
+                    <span class="text-xs font-bold text-gray-500">업무</span>
+                    <span class="text-sm font-bold text-[#191F28] ml-6">AWS 배포 후 502 오류 해결</span>
+                </div>
+                <div class="flex items-center">
+                    <span class="text-xs font-bold text-gray-500">예약 예정</span>
+                    <span class="text-lg font-black text-[#191F28] ml-6">4품</span>
+                </div>
+            </div>
+            
+            <!-- Cards Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                
+                <!-- Card 1: 정대현 -->
+                <div class="bg-white rounded-2xl border border-[#E5E8EB] p-6 shadow-sm flex flex-col justify-between relative hover:shadow-md transition">
+                    <div>
+                        <!-- Header: Avatar & Name -->
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 rounded-full bg-gray-400 text-white flex items-center justify-center text-xs font-bold">
+                                대현
+                            </div>
+                            <div>
+                                <h3 class="text-base font-extrabold text-[#191F28]">정대현</h3>
+                                <p class="text-xs text-gray-400 font-semibold mt-0.5">완료 12건 &middot; &star; 4.8</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Badge -->
+                        <div class="mt-4">
+                            <span class="bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-lg px-2.5 py-1 text-[11px] font-bold">지금 가능</span>
+                        </div>
+                        
+                        <!-- Specifications -->
+                        <div class="mt-6 space-y-3 text-xs border-b border-gray-100 pb-5">
+                            <div class="flex justify-between">
+                                <span class="text-gray-400 font-medium">예상 소요</span>
+                                <span class="text-[#191F28] font-bold">2시간</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-400 font-medium">관련 기술</span>
+                                <span class="text-[#191F28] font-bold">AWS &middot; Nginx</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Quote -->
+                        <div class="py-6 text-center text-xs text-gray-500 font-medium italic">
+                            &ldquo;최근 비슷한 배포 오류를 해결했습니다.&rdquo;
+                        </div>
+                    </div>
+                    
+                    <!-- Action Button -->
+                    <button class="bg-white border border-gray-300 hover:bg-blue-600 hover:text-white hover:border-blue-600 text-gray-700 font-bold text-xs py-3.5 rounded-xl w-full text-center transition shadow-sm">
+                        이 작업자 선택
+                    </button>
+                </div>
+                
+                <!-- Card 2: 제민기 -->
+                <div class="bg-white rounded-2xl border border-[#E5E8EB] p-6 shadow-sm flex flex-col justify-between relative hover:shadow-md transition">
+                    <div>
+                        <!-- Header: Avatar & Name -->
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 rounded-full bg-gray-400 text-white flex items-center justify-center text-xs font-bold">
+                                민기
+                            </div>
+                            <div>
+                                <h3 class="text-base font-extrabold text-[#191F28]">제민기</h3>
+                                <p class="text-xs text-gray-400 font-semibold mt-0.5">완료 3건 &middot; &star; 4.7</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Badge -->
+                        <div class="mt-4">
+                            <span class="bg-gray-100 text-gray-600 border border-gray-200 rounded-lg px-2.5 py-1 text-[11px] font-bold">30분 뒤 가능</span>
+                        </div>
+                        
+                        <!-- Specifications -->
+                        <div class="mt-6 space-y-3 text-xs border-b border-gray-100 pb-5">
+                            <div class="flex justify-between">
+                                <span class="text-gray-400 font-medium">예상 소요</span>
+                                <span class="text-[#191F28] font-bold">2시간 30분</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-400 font-medium">관련 기술</span>
+                                <span class="text-[#191F28] font-bold">Spring &middot; EC2</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Quote -->
+                        <div class="py-6 text-center text-xs text-gray-500 font-medium italic">
+                            &ldquo;로그부터 차근차근 같이 확인하겠습니다.&rdquo;
+                        </div>
+                    </div>
+                    
+                    <!-- Action Button -->
+                    <button class="bg-white border border-gray-300 hover:bg-blue-600 hover:text-white hover:border-blue-600 text-gray-700 font-bold text-xs py-3.5 rounded-xl w-full text-center transition shadow-sm">
+                        이 작업자 선택
+                    </button>
+                </div>
+                
+                <!-- Card 3: 정주성 -->
+                <div class="bg-white rounded-2xl border border-[#E5E8EB] p-6 shadow-sm flex flex-col justify-between relative hover:shadow-md transition">
+                    <div>
+                        <!-- Header: Avatar & Name -->
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 rounded-full bg-gray-400 text-white flex items-center justify-center text-xs font-bold">
+                                주성
+                            </div>
+                            <div>
+                                <h3 class="text-base font-extrabold text-[#191F28]">정주성</h3>
+                                <p class="text-xs text-gray-400 font-semibold mt-0.5">완료 5건 &middot; &star; 4.9</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Badge -->
+                        <div class="mt-4">
+                            <span class="bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-lg px-2.5 py-1 text-[11px] font-bold">지금 가능</span>
+                        </div>
+                        
+                        <!-- Specifications -->
+                        <div class="mt-6 space-y-3 text-xs border-b border-gray-100 pb-5">
+                            <div class="flex justify-between">
+                                <span class="text-gray-400 font-medium">예상 소요</span>
+                                <span class="text-[#191F28] font-bold">3시간</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-400 font-medium">관련 기술</span>
+                                <span class="text-[#191F28] font-bold">Linux &middot; AWS</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Quote -->
+                        <div class="py-6 text-center text-xs text-gray-500 font-medium italic">
+                            &ldquo;배포 환경에 대한 원인을 찾아보겠습니다.&rdquo;
+                        </div>
+                    </div>
+                    
+                    <!-- Action Button -->
+                    <button class="bg-white border border-gray-300 hover:bg-blue-600 hover:text-white hover:border-blue-600 text-gray-700 font-bold text-xs py-3.5 rounded-xl w-full text-center transition shadow-sm">
+                        이 작업자 선택
+                    </button>
+                </div>
+                
+            </div>
+        </section>
     </main>
 
     <!-- 푸터 -->
@@ -797,7 +958,8 @@
             const navMap = {
                 'landing': 'nav-landing',
                 'dashboard': 'nav-dashboard',
-                'profile': 'nav-profile'
+                'profile': 'nav-profile',
+                'compare': 'nav-compare'
             };
             document.querySelectorAll('nav a').forEach(a => a.classList.remove('nav-item-active'));
             if (navMap[pageId] && document.getElementById(navMap[pageId])) {
