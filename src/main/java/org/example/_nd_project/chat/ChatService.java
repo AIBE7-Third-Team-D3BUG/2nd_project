@@ -179,7 +179,7 @@ public class ChatService {
         return new ChatMessageView(
                 message.getId(), message.getSenderId(), senderNickname, message.getContent(),
                 message.getAttachmentName(), message.getAttachmentSize(), previewableImage,
-                formatTime(message.getSentAt()), mine, mine || message.getReadAt() != null
+                formatTime(message.getSentAt()), mine, message.getReadAt() != null
         );
     }
 

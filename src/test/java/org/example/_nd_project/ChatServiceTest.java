@@ -19,10 +19,13 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -86,6 +89,23 @@ class ChatServiceTest {
         assertEquals("확인해주세요", captor.getValue().getContent());
         assertEquals("chats/1/private.png", captor.getValue().getAttachmentObjectPath());
         assertEquals("확인해주세요", room.getLastMessagePreview());
+    }
+
+    @Test
+    void sentMessageIsUnreadUntilOtherMemberOpensRoom() {
+        ChatRoom room = roomWithId(1L, 10L, 1L, 2L);
+        ChatMessage message = ChatMessage.create(1L, 1L, "확인해주세요", null, null, null, null);
+        ReflectionTestUtils.setField(message, "id", 100L);
+        when(chatRoomRepository.findById(1L)).thenReturn(Optional.of(room));
+        when(chatMessageRepository.findTop100ByRoomIdOrderBySentAtDescIdDesc(1L))
+                .thenReturn(List.of(message));
+
+        var beforeRead = chatService.openRoom(1L, 1L);
+        assertFalse(beforeRead.messages().get(0).read());
+
+        ReflectionTestUtils.setField(message, "readAt", Instant.now());
+        var afterRead = chatService.openRoom(1L, 1L);
+        assertTrue(afterRead.messages().get(0).read());
     }
 
     private ChatRoom roomWithId(Long roomId, Long taskId, Long requesterId, Long workerId) {
