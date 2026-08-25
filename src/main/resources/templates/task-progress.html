@@ -12,7 +12,7 @@
         <a class="brand" th:href="@{/}">D3BUG</a>
         <nav aria-label="주요 메뉴">
             <a th:href="@{/}">업무 찾기</a>
-            <a class="active" th:href="@{/profile}">내 업무</a>
+            <a class="active" th:href="@{/tasks/{id}/progress(id=${progress.taskId()})}">내 업무</a>
         </nav>
         <a class="profile-link" th:href="@{/profile}">내 프로필</a>
     </header>
@@ -161,9 +161,30 @@
                         <span>정산 예정</span>
                         <strong><span th:text="${progress.requestedPum()}">4</span>품</strong>
                     </div>
-                    <form class="approve-form" th:action="@{/tasks/{id}/approve(id=${progress.taskId()})}" method="post">
+                    <form class="approve-form" th:action="@{/tasks/{id}/approve(id=${progress.taskId()})}"
+                          th:object="${reviewForm}" method="post">
                         <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-                        <button class="primary-action" type="submit">완료 승인하기</button>
+                        <fieldset class="review-rating">
+                            <legend>작업자 평점 <span>필수</span></legend>
+                            <div class="rating-options">
+                                <label th:each="score : ${#numbers.sequence(1, 5)}">
+                                    <input type="radio" th:field="*{rating}" th:value="${score}">
+                                    <span th:text="|${score}점|">5점</span>
+                                </label>
+                            </div>
+                            <small th:errors="*{rating}"></small>
+                        </fieldset>
+                        <div class="field review-content">
+                            <label for="reviewContent">후기 <em>선택</em></label>
+                            <textarea id="reviewContent" th:field="*{content}" maxlength="1000"
+                                      placeholder="작업 결과와 소통에 대한 후기를 남겨주세요."></textarea>
+                            <small th:errors="*{content}"></small>
+                        </div>
+                        <label class="deadline-check">
+                            <input type="checkbox" th:field="*{deadlineMet}">
+                            <span>약속한 마감 시간을 지켰어요</span>
+                        </label>
+                        <button class="primary-action" type="submit">후기 작성 및 완료 승인</button>
                     </form>
 
                     <details class="action-details" th:open="${openAction == 'revision'}">
@@ -197,6 +218,11 @@
                     <span class="state-icon success-icon">✓</span>
                     <h2>완료 승인 및 정산 완료</h2>
                     <p><strong th:text="${progress.requestedPum()}">4</strong>품이 작업자에게 전달되었습니다.</p>
+                    <div class="completed-review" th:if="${progress.review() != null}">
+                        <strong th:text="${progress.review().ratingLabel()}">★★★★★ 5.0</strong>
+                        <span th:text="${progress.review().deadlineMet() == true ? '마감 준수' : '마감 준수 미선택'}">마감 준수</span>
+                        <p th:if="${progress.review().hasContent()}" th:text="${progress.review().content()}">작성한 후기</p>
+                    </div>
                 </article>
 
                 <article class="panel state-panel" th:if="${progress.disputed()}">

@@ -79,7 +79,6 @@
                     <div class="summary-item"><span>최근 메시지</span><strong th:text="${selectedRoom.lastMessageAt != null ? #temporals.format(selectedRoom.lastMessageAt, 'MM/dd HH:mm') : '없음'}">오늘 18:00</strong></div>
                 </div>
 
-
                 <div class="message-list" aria-label="대화 내용" th:if="${selectedRoom != null}" id="messageList" th:attr="data-room-id=${selectedRoom.id()}, data-current-member-id=${currentMemberId}">
                     <article class="message" th:each="message : ${selectedRoom.messages()}" th:classappend="${message.mine()} ? ' outgoing' : ' incoming'">
                         <div class="message-meta">

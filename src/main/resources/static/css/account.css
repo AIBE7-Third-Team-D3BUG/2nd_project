@@ -1,3 +1,5 @@
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css");
+
 :root {
     color-scheme: light;
     --brand: #315cf4;
@@ -48,6 +50,7 @@ a { color: inherit; }
     flex: 0 0 auto;
     color: #242933;
     text-decoration: none;
+    font-family: Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     font-size: 17px;
     font-weight: 900;
     letter-spacing: -.04em;
@@ -376,6 +379,40 @@ h1 {
     text-align: center;
     font-size: 14px;
 }
+.public-profile-main { padding-top: 42px; }
+.profile-layout { display: grid; gap: 18px; max-width: 1050px; margin: 0 auto; }
+.profile-overview-card { padding: 30px 34px; }
+.profile-overview-card .eyebrow { margin-bottom: 24px; }
+.profile-overview { display: flex; align-items: center; justify-content: space-between; gap: 28px; }
+.profile-person-block { display: flex; align-items: center; min-width: 0; gap: 22px; }
+.profile-photo { width: 96px; height: 96px; overflow: hidden; font-size: 24px; }
+.profile-photo img { width: 100%; height: 100%; object-fit: cover; }
+.profile-overview h1 { margin-bottom: 8px; font-size: 25px; }
+.profile-introduction { max-width: 620px; margin: 0 0 12px; color: #687181; line-height: 1.65; white-space: pre-wrap; }
+.profile-tags { display: flex; flex-wrap: wrap; gap: 7px; }
+.profile-tags span { padding: 6px 12px; border-radius: 999px; color: #5d6674; background: #f3f5f8; font-size: 12px; font-weight: 700; }
+.profile-tags span:first-child { color: var(--brand); background: var(--brand-soft); }
+.portfolio-link { display: inline-block; margin-top: 12px; color: var(--brand); font-size: 13px; font-weight: 800; text-decoration: none; }
+.profile-actions { display: grid; flex: 0 0 130px; gap: 8px; }
+.profile-actions .availability { padding: 10px 14px; border-radius: 7px; color: var(--brand); background: var(--brand-soft); text-align: center; text-decoration: none; font-size: 13px; font-weight: 800; }
+.logout.compact { margin: 0; }
+.profile-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+.profile-metrics.public-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.metric-card { min-height: 105px; padding: 22px; border: 1px solid var(--line); border-radius: 12px; background: #fff; }
+.metric-card span { color: var(--muted); font-size: 12px; }
+.metric-card strong { display: block; margin-top: 12px; color: var(--ink); font-size: 24px; }
+.metric-card strong span { color: inherit; font-size: inherit; }
+.secondary-button { color: #606978; background: #fff; border: 1px solid var(--line-strong); }
+.edit-profile-main { padding-top: 46px; }
+.profile-edit-card { width: min(100%, 610px); margin: 0 auto; }
+.profile-image-field { display: flex; align-items: center; gap: 20px; padding: 18px; margin-bottom: 24px; border: 1px solid var(--line); border-radius: 10px; background: #fafbfc; }
+.profile-image-field .profile-photo { width: 82px; height: 82px; }
+.file-button, .cancel-button { display: inline-flex; align-items: center; justify-content: center; padding: 10px 14px; border: 1px solid var(--line-strong); border-radius: 7px; color: #505968; background: #fff; cursor: pointer; font-size: 13px; font-weight: 800; text-decoration: none; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.hidden { display: none !important; }
+.remove-photo { margin-bottom: 0; }
+.edit-profile-actions { display: grid; grid-template-columns: 120px 1fr; gap: 10px; margin-top: 20px; }
+.edit-profile-actions .primary-button { margin-top: 0; }
 @media (max-width: 760px) {
     body { padding: 0; }
     .account-header { border-radius: 0; border-left: 0; border-right: 0; padding: 0 20px; }
@@ -389,4 +426,10 @@ h1 {
     .applied-tasks-card { grid-column: auto; }
     .registered-tasks-heading { align-items: stretch; flex-direction: column; }
     .small-button { text-align: center; }
+    .profile-overview { align-items: flex-start; flex-direction: column; }
+    .profile-person-block { align-items: flex-start; flex-direction: column; }
+    .profile-actions { width: 100%; grid-template-columns: 1fr 1fr; }
+    .profile-metrics, .profile-metrics.public-metrics { grid-template-columns: 1fr 1fr; }
+    .registered-task { align-items: flex-start; }
+    .edit-profile-actions { grid-template-columns: 1fr; }
 }
