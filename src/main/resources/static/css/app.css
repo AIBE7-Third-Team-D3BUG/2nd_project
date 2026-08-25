@@ -52,6 +52,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .brand {
     color: #242933;
     text-decoration: none;
+    font-family: Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     font-size: 17px;
     font-weight: 900;
     letter-spacing: -.04em;
@@ -193,6 +194,8 @@ select.control { cursor: pointer; }
     text-overflow: ellipsis;
     white-space: nowrap;
 }
+.requester-profile-link { display: inline-block; margin-top: 12px; color: var(--brand); font-size: 12px; font-weight: 800; text-decoration: none; }
+.requester-profile-link:hover { text-decoration: underline; }
 .task-credit {
     display: grid;
     grid-template-columns: 1fr auto;

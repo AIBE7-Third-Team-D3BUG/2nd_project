@@ -95,6 +95,7 @@ class HomeControllerTest {
                 "member@example.com",
                 "회원",
                 null,
+                false,
                 null,
                 List.of(),
                 true,

@@ -205,6 +205,14 @@ public class TaskService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public List<TaskListItem> findWorkingTasks(Long workerId) {
+        return taskRepository.findByWorkerIdAndStatusInOrderByUpdatedAtDesc(workerId, ACTIVE_STATUSES)
+                .stream()
+                .map(this::toListItem)
+                .toList();
+    }
+
     private static final List<TaskStatus> ACTIVE_STATUSES = List.of(
             TaskStatus.MATCHED, TaskStatus.IN_PROGRESS, TaskStatus.SUBMITTED, TaskStatus.DISPUTED
     );

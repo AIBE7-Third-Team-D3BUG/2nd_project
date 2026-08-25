@@ -20,6 +20,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     List<Task> findByStatusAndDeadlineAtBefore(TaskStatus status, Instant now);
     List<Task> findByRequesterIdAndStatusNotOrderByCreatedAtDesc(Long requesterId, TaskStatus excludedStatus);
     List<Task> findByWorkerIdAndStatusNotOrderByUpdatedAtDesc(Long workerId, TaskStatus excludedStatus);
+    List<Task> findByWorkerIdAndStatusInOrderByUpdatedAtDesc(Long workerId, List<TaskStatus> statuses);
     Optional<Task> findByIdAndRequesterId(Long id, Long requesterId);
 
     @Query("select count(t) > 0 from Task t where (t.requesterId = :memberId or t.workerId = :memberId) and t.status in :statuses")

@@ -8,6 +8,7 @@ public record MemberProfileView(
         String email,
         String nickname,
         String introduction,
+        boolean hasProfileImage,
         String portfolioUrl,
         List<String> skillTags,
         boolean notificationEnabled,
