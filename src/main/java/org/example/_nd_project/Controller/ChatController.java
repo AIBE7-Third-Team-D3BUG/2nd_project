@@ -5,6 +5,7 @@ import org.example._nd_project.chat.ChatService;
 import org.example._nd_project.security.MemberPrincipal;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.Authentication;
+import org.springframework.context.annotation.Profile;
 import org.springframework.ui.Model;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import java.util.List;
 
 @Controller
+@Profile("db")
 public class ChatController {
 
     private final ChatService chatService;

@@ -5,6 +5,7 @@ import org.example._nd_project.member.MemberRepository;
 import org.example._nd_project.security.MemberPrincipal;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
+import org.springframework.context.annotation.Profile;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +20,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
+@Profile("db")
 public class ChatService {
 
     private final ChatRoomRepository chatRoomRepository;
