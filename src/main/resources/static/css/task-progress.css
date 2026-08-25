@@ -317,6 +317,29 @@ main { padding: 34px 36px 60px; }
 .settlement-row span { color: #697282; font-size: 12px; }
 .settlement-row strong { color: var(--brand); font-size: 20px; }
 .approve-form { margin: 0; }
+.review-rating { margin: 0 0 18px; padding: 0; border: 0; }
+.review-rating legend { margin-bottom: 9px; color: #353b46; font-size: 12px; font-weight: 800; }
+.review-rating legend span { color: var(--danger); }
+.rating-options { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.rating-options label { cursor: pointer; }
+.rating-options input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.rating-options span {
+    min-height: 38px;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--line-strong);
+    border-radius: 7px;
+    color: #697282;
+    background: #fff;
+    font-size: 12px;
+    font-weight: 800;
+}
+.rating-options input:checked + span { color: #9a6700; border-color: #e7b94f; background: #fff8df; }
+.review-rating small { display: block; margin-top: 6px; color: var(--danger); font-size: 11px; }
+.review-content textarea { min-height: 90px; }
+.review-content label em { color: #8992a0; font-style: normal; font-weight: 500; }
+.deadline-check { display: flex; align-items: center; gap: 8px; margin: -3px 0 18px; color: #596273; cursor: pointer; font-size: 12px; }
+.deadline-check input { width: 16px; height: 16px; accent-color: var(--brand); }
 .action-details { margin-top: 10px; border: 1px solid var(--line); border-radius: 7px; }
 .action-details summary { padding: 12px; color: #626b79; cursor: pointer; font-size: 12px; font-weight: 800; text-align: center; list-style: none; }
 .action-details summary::-webkit-details-marker { display: none; }
@@ -331,6 +354,10 @@ main { padding: 34px 36px 60px; }
 .waiting-icon { color: var(--brand); background: var(--brand-soft); }
 .state-panel p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.6; }
 .state-panel .start-form { margin: 20px 0 0; }
+.completed-review { margin-top: 18px; padding: 14px; border-radius: 8px; background: #f7f8fa; text-align: left; }
+.completed-review > strong { display: block; color: #9a6700; font-size: 14px; }
+.completed-review > span { display: inline-block; margin-top: 7px; color: var(--success); font-size: 11px; font-weight: 800; }
+.completed-review p { margin-top: 10px; color: #596273; white-space: pre-wrap; }
 
 @media (max-width: 900px) {
     .content-grid { grid-template-columns: 1fr; }
