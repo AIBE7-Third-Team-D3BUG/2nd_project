@@ -68,6 +68,21 @@ class HomeControllerTest {
         homeController.home("confirm", null, null, null, null, model);
 
         assertFalse((boolean) model.get("canCreateTask"));
+        assertFalse((boolean) model.get("hasActiveTask"));
+    }
+
+    @Test
+    void activeTaskExposesNavigationWhenMemberHasMatchedOrInProgressTask() {
+        MemberPrincipal principal = principal();
+        when(taskService.hasActiveTask(3L)).thenReturn(true);
+        when(taskService.findLatestActiveTaskId(3L)).thenReturn(java.util.Optional.of(42L));
+        when(memberService.getProfile(3L)).thenReturn(profile(60, 60));
+        ExtendedModelMap model = new ExtendedModelMap();
+
+        homeController.home("landing", null, null, null, principal, model);
+
+        assertTrue((boolean) model.get("hasActiveTask"));
+        assertEquals(42L, model.get("activeTaskId"));
     }
 
     private MemberPrincipal principal() {
