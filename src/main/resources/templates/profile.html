@@ -11,6 +11,7 @@
     <a class="brand" th:href="@{/}">D3BUG</a>
     <nav class="account-nav" aria-label="주요 메뉴">
         <a th:href="@{/}">업무 찾기</a>
+        <a sec:authorize="isAuthenticated()" th:href="@{/chat}">채팅</a>
         <a sec:authorize="isAuthenticated()" th:classappend="${isOwner} ? 'active'" th:href="@{/profile}">내 프로필</a>
         <a sec:authorize="isAnonymous()" th:href="@{/login}">로그인</a>
     </nav>
