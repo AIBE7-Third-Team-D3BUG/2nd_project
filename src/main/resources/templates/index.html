@@ -188,6 +188,8 @@
                                 </div>
                                 <a class="task-action progress" th:if="${task.progressAvailable()}"
                                    th:href="@{/tasks/{id}/progress(id=${task.id()})}">진행 화면</a>
+                                <a class="task-action progress" th:if="${task.progressAvailable()}"
+                                   th:href="@{/tasks/{id}/chat(id=${task.id()})}">대화방</a>
                             </div>
                         </article>
                         <div class="registered-empty" th:if="${#lists.isEmpty(registeredTasks)}">아직 등록한 업무가 없습니다.</div>
@@ -220,6 +222,7 @@
                                 <strong><span th:text="${task.requestedPum()}">4</span>품</strong>
                                 <div class="task-actions">
                                     <a class="task-action progress" th:href="@{/tasks/{id}/progress(id=${task.id()})}">진행 화면</a>
+                                    <a class="task-action progress" th:href="@{/tasks/{id}/chat(id=${task.id()})}">대화방</a>
                                 </div>
                             </div>
                         </article>

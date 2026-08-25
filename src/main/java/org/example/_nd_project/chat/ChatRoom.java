@@ -30,6 +30,8 @@ public class ChatRoom {
     private Instant createdAt;
     @Column(name = "updated_at", nullable = false, insertable = false, updatable = false)
     private Instant updatedAt;
+    private boolean requesterLeft;
+    private boolean workerLeft;
 
     protected ChatRoom() {}
 
@@ -52,6 +54,9 @@ public class ChatRoom {
         throw new IllegalArgumentException("채팅방 참여자가 아닙니다.");
     }
     public void refreshLastMessage(String preview, Instant sentAt) { this.lastMessagePreview = preview; this.lastMessageAt = sentAt; }
+    public boolean hasLeft(Long memberId) { return requesterMemberId.equals(memberId) ? requesterLeft : workerLeft; }
+    public void leave(Long memberId) { if (requesterMemberId.equals(memberId)) requesterLeft = true; else workerLeft = true; }
+    public void reenter(Long memberId) { if (requesterMemberId.equals(memberId)) requesterLeft = false; else workerLeft = false; }
     public Long getId() { return id; }
     public Long getTaskId() { return taskId; }
     public Long getRequesterMemberId() { return requesterMemberId; }
