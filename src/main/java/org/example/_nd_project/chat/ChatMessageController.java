@@ -3,6 +3,7 @@ package org.example._nd_project.chat;
 import org.example._nd_project.security.MemberPrincipal;
 import org.springframework.core.io.Resource;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Controller;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -18,6 +19,7 @@ import org.springframework.http.HttpStatus;
 import java.nio.charset.StandardCharsets;
 
 @Controller
+@Profile("db")
 public class ChatMessageController {
 
     private final ChatService chatService;

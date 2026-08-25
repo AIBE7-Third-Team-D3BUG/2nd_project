@@ -39,4 +39,8 @@ out/
 .env
 !.env.sample
 
+### Local artifacts ###
+.DS_Store
+uploads/
+
 shoting.txt

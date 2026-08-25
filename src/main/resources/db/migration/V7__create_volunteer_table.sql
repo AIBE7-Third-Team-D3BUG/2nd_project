@@ -1,5 +1,5 @@
 -- volunteer (업무 지원자) 테이블
-CREATE TABLE volunteer (
+CREATE TABLE IF NOT EXISTS volunteer (
     id          BIGSERIAL PRIMARY KEY,
     task_id     BIGINT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
     member_id   BIGINT NOT NULL REFERENCES members(id) ON DELETE CASCADE,
@@ -11,5 +11,5 @@ CREATE TABLE volunteer (
     CONSTRAINT ck_volunteer_status CHECK (status IN ('APPLIED', 'ACCEPTED', 'REJECTED', 'CANCELLED'))
 );
 
-CREATE INDEX idx_volunteer_task_id ON volunteer(task_id);
-CREATE INDEX idx_volunteer_member_id ON volunteer(member_id);
+CREATE INDEX IF NOT EXISTS idx_volunteer_task_id ON volunteer(task_id);
+CREATE INDEX IF NOT EXISTS idx_volunteer_member_id ON volunteer(member_id);
