@@ -14,6 +14,7 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 import static org.springframework.http.HttpStatus.CONFLICT;
@@ -153,8 +154,29 @@ public class TaskService {
         }
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
+    public int expireOverdueOpenTasks() {
+        Instant now = Instant.now();
+        List<Task> overdueTasks = taskRepository.findByStatusAndDeadlineAtBefore(TaskStatus.OPEN, now);
+        for (Task task : overdueTasks) {
+            expireTask(task, now);
+        }
+        return overdueTasks.size();
+    }
+
+    private void expireTask(Task task, Instant now) {
+        String reference = task.getReferenceFileUrl();
+        timeLedgerService.refundTaskReservation(task.getRequesterId(), task.getId(), "모집 기한 만료에 따른 예약 재화 반환");
+        task.cancel(now);
+        taskRepository.flush();
+        if (isStoredObject(reference)) {
+            taskStorageService.deleteQuietly(reference);
+        }
+    }
+
+    @Transactional
     public List<TaskListItem> findOpenTasks(TaskSort taskSort, TaskCategory category) {
+        expireOverdueOpenTasks();
         Instant now = Instant.now();
         PageRequest page = PageRequest.of(0, 20, taskSort.getSort());
         List<Task> tasks = category == null
@@ -166,12 +188,57 @@ public class TaskService {
                 .toList();
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<TaskListItem> findRegisteredTasks(Long requesterId) {
+        expireOverdueOpenTasks();
         return taskRepository.findByRequesterIdAndStatusNotOrderByCreatedAtDesc(requesterId, TaskStatus.CANCELLED)
                 .stream()
                 .map(this::toListItem)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<TaskListItem> findAssignedTasks(Long workerId) {
+        return taskRepository.findByWorkerIdAndStatusNotOrderByUpdatedAtDesc(workerId, TaskStatus.CANCELLED)
+                .stream()
+                .map(this::toListItem)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<TaskListItem> findWorkingTasks(Long workerId) {
+        return taskRepository.findByWorkerIdAndStatusInOrderByUpdatedAtDesc(workerId, ACTIVE_STATUSES)
+                .stream()
+                .map(this::toListItem)
+                .toList();
+    }
+
+    private static final List<TaskStatus> ACTIVE_STATUSES = List.of(
+            TaskStatus.MATCHED, TaskStatus.IN_PROGRESS, TaskStatus.SUBMITTED, TaskStatus.DISPUTED
+    );
+
+    @Transactional(readOnly = true)
+    public boolean hasActiveTask(Long memberId) {
+        if (memberId == null) {
+            return false;
+        }
+        return taskRepository.existsActiveTaskByMemberId(memberId, ACTIVE_STATUSES);
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<Long> findLatestActiveTaskId(Long memberId) {
+        if (memberId == null) {
+            return Optional.empty();
+        }
+        List<Task> activeTasks = taskRepository.findActiveTasksByMemberId(
+                memberId, ACTIVE_STATUSES, PageRequest.of(0, 1)
+        );
+        return activeTasks.isEmpty() ? Optional.empty() : Optional.of(activeTasks.get(0).getId());
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<TaskListItem> findTaskById(Long taskId) {
+        return taskRepository.findById(taskId).map(this::toListItem);
     }
 
     @Transactional(readOnly = true)
@@ -203,8 +270,10 @@ public class TaskService {
                 formatDeadline(task.getDeadlineAt(), remaining),
                 task.getStatus().getLabel(),
                 task.getStatus() == TaskStatus.OPEN,
+                task.getStatus() != TaskStatus.OPEN && task.getStatus() != TaskStatus.CANCELLED,
                 urgent,
-                task.getReferenceFileUrl() != null && !task.getReferenceFileUrl().isBlank()
+                task.getReferenceFileUrl() != null && !task.getReferenceFileUrl().isBlank(),
+                task.getDeliverableDescription()
         );
     }
 
