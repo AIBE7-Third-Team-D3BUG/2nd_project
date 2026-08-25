@@ -63,6 +63,7 @@ public class ProfileController {
                                 @RequestParam(name = "profileImage", required = false) MultipartFile profileImage,
                                 Model model) {
         if (bindingResult.hasErrors()) {
+            taskService.expireOverdueOpenTasks();
             model.addAttribute("profile", memberService.getProfile(principal.memberId()));
             return "profile-edit";
         }
@@ -70,6 +71,7 @@ public class ProfileController {
             memberService.updateProfile(principal.memberId(), form, profileImage);
         } catch (DuplicateMemberException exception) {
             bindingResult.rejectValue(exception.getField(), "duplicate", exception.getMessage());
+            taskService.expireOverdueOpenTasks();
             model.addAttribute("profile", memberService.getProfile(principal.memberId()));
             return "profile-edit";
         } catch (TaskStorageException exception) {
