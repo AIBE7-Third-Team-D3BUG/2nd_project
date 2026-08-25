@@ -180,10 +180,10 @@
             <div style="margin-bottom: 24px;">
                 <h4 style="margin: 0 0 12px; font-size: 14px; font-weight: 800; color: #22252a; display: flex; align-items: center; gap: 8px;">
                     <span>내가 맡은 업무</span>
-                    <span style="font-size: 11px; background: #eef2ff; color: var(--brand); padding: 2px 7px; border-radius: 999px; font-weight: 800;" th:text="${#lists.size(assignedTasks)}">0</span>
+                    <span style="font-size: 11px; background: #eef2ff; color: var(--brand); padding: 2px 7px; border-radius: 999px; font-weight: 800;" th:text="${#lists.size(workingTasks)}">0</span>
                 </h4>
                 <div class="registered-task-list">
-                    <article class="registered-task" th:each="task : ${assignedTasks}"
+                    <article class="registered-task" th:each="task : ${workingTasks}"
                              th:onclick="|location.href='@{/tasks/{id}/progress(id=${task.id()})}'|"
                              style="cursor: pointer;">
                         <div>
@@ -207,7 +207,7 @@
                         </div>
                     </article>
 
-                    <div class="registered-empty" th:if="${#lists.isEmpty(assignedTasks)}" style="padding: 20px; font-size: 13px;">
+                    <div class="registered-empty" th:if="${#lists.isEmpty(workingTasks)}" style="padding: 20px; font-size: 13px;">
                         아직 배정받거나 진행 중인 업무가 없습니다.
                     </div>
                 </div>
