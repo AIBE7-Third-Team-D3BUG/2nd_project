@@ -35,3 +35,47 @@
 | API 명세 | Swagger/OpenAPI | 백엔드 API 명세 자동화 |
 | 실시간 소통 | Discord 또는 Slack | 빠른 질문, 장애·배포 알림 |
 | AI 제품 기능 | OpenAI API | 의뢰서 구조화, 요약, 안전성 검사 |
+
+## 현재 구현 범위
+
+- 회원가입·로그인과 프로필 관리
+- 업무 등록·수정·삭제, 재화 예약·반환·정산
+- 업무 지원, 작업자 선택, 진행·제출·수정 요청·완료 승인
+- 작업자 선택 시 업무별 1:1 채팅방 자동 생성
+- 채팅 메시지 읽음 처리와 비공개 첨부 파일 다운로드
+
+## 채팅 기능 실행 조건
+
+채팅방은 의뢰인이 지원자를 작업자로 선택할 때 자동으로 생성됩니다. 의뢰인과 선택된 작업자만 채팅방, 메시지, 첨부 파일에 접근할 수 있습니다.
+
+`db` 프로필로 애플리케이션을 실행하면 Flyway가 기존 V4~V7 이력을 검증하고 `V8__align_chat_schema.sql`을 적용해 현재 채팅 모델과 기존 DB 스키마를 호환시킵니다. 이미 운영 DB에 적용된 마이그레이션 파일은 수정하지 않습니다.
+
+Supabase Storage는 다음 조건으로 설정합니다.
+
+- 버킷 이름: `SUPABASE_STORAGE_BUCKET` 값과 동일하게 설정
+- 공개 버킷: 비활성화
+- 최대 파일 크기: 6MB 이상
+- 허용 MIME 유형: `image/*, text/*, application/pdf, application/zip, application/x-zip-compressed, application/vnd.openxmlformats-officedocument.wordprocessingml.document, application/vnd.openxmlformats-officedocument.presentationml.presentation, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/x-hwp, application/haansofthwp`
+- `SUPABASE_SERVICE_ROLE_KEY`는 서버 환경변수로만 관리하고 브라우저와 Git 저장소에 노출하지 않음
+
+첨부 파일은 공개 URL을 저장하지 않습니다. 서버가 채팅 참여자 여부를 검사한 후 5분 동안 유효한 서명 URL을 발급합니다.
+
+## 로컬 실행 및 테스트
+
+`.env.sample`을 참고해 환경변수를 설정하고 Java 17로 실행합니다.
+
+```powershell
+.\gradlew.bat bootRun
+```
+
+Supabase 연결 없이 자동화 테스트를 실행하려면 다음 명령을 사용합니다.
+
+```powershell
+.\gradlew.bat test
+```
+
+Supabase 통합 테스트는 별도로 실행합니다.
+
+```powershell
+.\gradlew.bat supabaseTest
+```
