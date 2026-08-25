@@ -93,6 +93,7 @@ public class ProfileController {
         model.addAttribute("isOwner", isOwner);
         model.addAttribute("registeredTasks", taskService.findRegisteredTasks(memberId));
         model.addAttribute("workingTasks", taskService.findWorkingTasks(memberId));
+        model.addAttribute("assignedTasks", taskService.findWorkingTasks(memberId));
         model.addAttribute("appliedTasks", isOwner ? volunteerService.findAppliedTasks(memberId) : java.util.List.of());
     }
 
