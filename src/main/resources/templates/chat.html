@@ -12,7 +12,8 @@
         <a class="brand" th:href="@{/}">D3BUG</a>
         <nav aria-label="주요 메뉴">
             <a th:href="@{/}">업무 찾기</a>
-            <a th:href="@{/profile}">내 업무</a>
+            <a th:if="${selectedRoom != null and selectedRoom.taskId() != null}" th:href="@{/tasks/{id}/progress(id=${selectedRoom.taskId()})}">내 업무</a>
+            <a th:if="${selectedRoom == null or selectedRoom.taskId() == null}" th:href="@{/}">내 업무</a>
             <a class="active" th:href="@{/chat}">채팅</a>
         </nav>
         <a class="profile-link" th:href="@{/profile}">내 프로필</a>

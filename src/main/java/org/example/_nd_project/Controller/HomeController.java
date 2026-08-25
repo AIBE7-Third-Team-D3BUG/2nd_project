@@ -61,6 +61,10 @@ public class HomeController {
         model.addAttribute("hasActiveTask", hasActiveTask);
         model.addAttribute("activeTaskId", activeTaskId);
 
+        model.addAttribute("registeredTasks", principal != null ? taskService.findRegisteredTasks(principal.memberId()) : List.of());
+        model.addAttribute("workingTasks", principal != null ? taskService.findWorkingTasks(principal.memberId()) : List.of());
+        model.addAttribute("appliedTasks", principal != null ? volunteerService.findAppliedTasks(principal.memberId()) : List.of());
+
         TaskListItem selectedTask = null;
         if (taskId != null) {
             selectedTask = taskService.findTaskById(taskId).orElse(null);
