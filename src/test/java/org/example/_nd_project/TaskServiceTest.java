@@ -133,4 +133,35 @@ class TaskServiceTest {
 
         verify(taskRepository).findByWorkerIdAndStatusNotOrderByUpdatedAtDesc(8L, TaskStatus.CANCELLED);
     }
+
+    @Test
+    void expireOverdueOpenTasksCancelsTasksAndRefundsReservations() {
+        Task task = mock(Task.class);
+        when(task.getId()).thenReturn(101L);
+        when(task.getRequesterId()).thenReturn(5L);
+        when(task.getReferenceFileUrl()).thenReturn(null);
+
+        when(taskRepository.findByStatusAndDeadlineAtBefore(eq(TaskStatus.OPEN), any(Instant.class)))
+                .thenReturn(List.of(task));
+
+        int expired = taskService.expireOverdueOpenTasks();
+
+        assertEquals(1, expired);
+        verify(timeLedgerService).refundTaskReservation(eq(5L), eq(101L), any(String.class));
+        verify(task).cancel(any(Instant.class));
+        verify(taskRepository).flush();
+    }
+
+    @Test
+    void findRegisteredTasksTriggersOverdueExpiration() {
+        when(taskRepository.findByStatusAndDeadlineAtBefore(eq(TaskStatus.OPEN), any(Instant.class)))
+                .thenReturn(List.of());
+        when(taskRepository.findByRequesterIdAndStatusNotOrderByCreatedAtDesc(5L, TaskStatus.CANCELLED))
+                .thenReturn(List.of());
+
+        taskService.findRegisteredTasks(5L);
+
+        verify(taskRepository).findByStatusAndDeadlineAtBefore(eq(TaskStatus.OPEN), any(Instant.class));
+        verify(taskRepository).findByRequesterIdAndStatusNotOrderByCreatedAtDesc(5L, TaskStatus.CANCELLED);
+    }
 }

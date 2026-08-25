@@ -31,6 +31,7 @@ public class ProfileController {
 
     @GetMapping("/profile")
     public String profile(@AuthenticationPrincipal MemberPrincipal principal, Model model) {
+        taskService.expireOverdueOpenTasks();
         MemberProfileView profile = memberService.getProfile(principal.memberId());
         ProfileUpdateForm form = new ProfileUpdateForm();
         form.setNickname(profile.nickname());
@@ -50,6 +51,7 @@ public class ProfileController {
                                 BindingResult bindingResult,
                                 Model model) {
         if (bindingResult.hasErrors()) {
+            taskService.expireOverdueOpenTasks();
             model.addAttribute("profile", memberService.getProfile(principal.memberId()));
             addTaskLists(model, principal.memberId());
             return "profile";
@@ -58,6 +60,7 @@ public class ProfileController {
             memberService.updateProfile(principal.memberId(), form);
         } catch (DuplicateMemberException exception) {
             bindingResult.rejectValue(exception.getField(), "duplicate", exception.getMessage());
+            taskService.expireOverdueOpenTasks();
             model.addAttribute("profile", memberService.getProfile(principal.memberId()));
             addTaskLists(model, principal.memberId());
             return "profile";

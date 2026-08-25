@@ -44,6 +44,7 @@ public class HomeController {
                        @RequestParam(name = "category", required = false) String category,
                        @AuthenticationPrincipal MemberPrincipal principal,
                        Model model) {
+        taskService.expireOverdueOpenTasks();
         TaskSort selectedSort = TaskSort.from(sort);
         TaskCategory selectedCategory = parseCategory(category);
         List<TaskListItem> availableTasks = taskService.findOpenTasks(selectedSort, selectedCategory);
@@ -54,6 +55,11 @@ public class HomeController {
         model.addAttribute("selectedCategory", selectedCategory);
         model.addAttribute("activePage", normalizeView(view));
         model.addAttribute("currentMemberId", principal == null ? null : principal.memberId());
+
+        boolean hasActiveTask = principal != null && taskService.hasActiveTask(principal.memberId());
+        Long activeTaskId = hasActiveTask ? taskService.findLatestActiveTaskId(principal.memberId()).orElse(null) : null;
+        model.addAttribute("hasActiveTask", hasActiveTask);
+        model.addAttribute("activeTaskId", activeTaskId);
 
         TaskListItem selectedTask = null;
         if (taskId != null) {
