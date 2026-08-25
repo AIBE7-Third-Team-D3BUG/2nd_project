@@ -12,7 +12,9 @@
         <a class="brand" th:href="@{/}">D3BUG</a>
         <nav aria-label="주요 메뉴">
             <a th:href="@{/}">업무 찾기</a>
-            <a class="active" th:href="@{/tasks/{id}/progress(id=${progress.taskId()})}">내 업무</a>
+            <a th:href="@{/(view='dashboard')}">내 업무</a>
+            <a class="active" th:href="@{/tasks/{id}/progress(id=${progress.taskId()})}">진행상황</a>
+            <a th:href="@{/tasks/{id}/chat(id=${progress.taskId()})}">채팅</a>
         </nav>
         <a class="profile-link" th:href="@{/profile}">내 프로필</a>
     </header>

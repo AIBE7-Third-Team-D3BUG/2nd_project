@@ -21,8 +21,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.view.RedirectView;
 
-import java.util.List;
-
 @Controller
 public class ProfileController {
 
@@ -94,9 +92,9 @@ public class ProfileController {
         model.addAttribute("profile", memberService.getProfile(memberId));
         model.addAttribute("isOwner", isOwner);
         model.addAttribute("registeredTasks", taskService.findRegisteredTasks(memberId));
-        model.addAttribute("assignedTasks", taskService.findAssignedTasks(memberId));
         model.addAttribute("workingTasks", taskService.findWorkingTasks(memberId));
-        model.addAttribute("appliedTasks", isOwner ? volunteerService.findAppliedTasks(memberId) : List.of());
+        model.addAttribute("assignedTasks", taskService.findWorkingTasks(memberId));
+        model.addAttribute("appliedTasks", isOwner ? volunteerService.findAppliedTasks(memberId) : java.util.List.of());
     }
 
     private ProfileUpdateForm toForm(MemberProfileView profile) {

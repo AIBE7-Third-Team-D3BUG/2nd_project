@@ -4,17 +4,15 @@ import org.example._nd_project.chat.ChatRoomView;
 import org.example._nd_project.chat.ChatService;
 import org.example._nd_project.security.MemberPrincipal;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.Authentication;
-import org.springframework.context.annotation.Profile;
-import org.springframework.ui.Model;
 import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 
 @Controller
-@Profile("db")
 public class ChatController {
 
     private final ChatService chatService;
@@ -25,19 +23,26 @@ public class ChatController {
 
     @GetMapping("/chat")
     public String chat(@AuthenticationPrincipal MemberPrincipal principal,
-                       @RequestParam(value = "room", required = false) Long roomId,
+                       @RequestParam(name = "room", required = false) Long selectedRoomId,
                        Model model) {
-        if (principal == null) {
-            return "redirect:/login";
+        List<ChatRoomView> rooms = chatService.getRooms(principal.memberId());
+        Long roomId = selectedRoomId != null
+                ? selectedRoomId
+                : rooms.stream().findFirst().map(ChatRoomView::id).orElse(null);
+        ChatRoomView selectedRoom = roomId == null ? null : chatService.openRoom(roomId, principal.memberId());
+        if (selectedRoom != null) {
+            rooms = chatService.getRooms(principal.memberId());
         }
-        chatService.ensureDemoRoomFor(principal);
-        List<ChatRoomView> rooms = chatService.getRoomsFor(principal);
-        ChatRoomView selectedRoom = rooms.isEmpty()
-                ? null
-                : rooms.stream().filter(room -> room.id().equals(roomId)).findFirst().orElse(rooms.get(0));
         model.addAttribute("chatRooms", rooms);
         model.addAttribute("selectedRoom", selectedRoom);
         model.addAttribute("currentMemberId", principal.memberId());
         return "chat";
+    }
+
+    @GetMapping("/tasks/{taskId}/chat")
+    public String taskChat(@AuthenticationPrincipal MemberPrincipal principal,
+                           @PathVariable Long taskId) {
+        Long roomId = chatService.findRoomIdForTask(taskId, principal.memberId());
+        return "redirect:/chat?room=" + roomId;
     }
 }
