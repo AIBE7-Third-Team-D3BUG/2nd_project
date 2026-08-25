@@ -11,6 +11,8 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
+import org.example._nd_project.task.TaskRepository;
+
 import java.net.URI;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -30,15 +32,18 @@ public class ChatService {
     private final ChatMessageRepository chatMessageRepository;
     private final MemberRepository memberRepository;
     private final TaskStorageService taskStorageService;
+    private final TaskRepository taskRepository;
 
     public ChatService(ChatRoomRepository chatRoomRepository,
                        ChatMessageRepository chatMessageRepository,
                        MemberRepository memberRepository,
-                       TaskStorageService taskStorageService) {
+                       TaskStorageService taskStorageService,
+                       TaskRepository taskRepository) {
         this.chatRoomRepository = chatRoomRepository;
         this.chatMessageRepository = chatMessageRepository;
         this.memberRepository = memberRepository;
         this.taskStorageService = taskStorageService;
+        this.taskRepository = taskRepository;
     }
 
     @Transactional
@@ -86,11 +91,22 @@ public class ChatService {
         return toRoomView(room, memberId, messages);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public Long findRoomIdForTask(Long taskId, Long memberId) {
-        ChatRoom room = chatRoomRepository.findByTaskId(taskId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "채팅방을 찾을 수 없습니다."));
-        requireMembership(room, memberId);
+        ChatRoom room = chatRoomRepository.findByTaskId(taskId).orElse(null);
+        if (room == null) {
+            Task task = taskRepository.findById(taskId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "업무를 찾을 수 없습니다."));
+            if (task.getWorkerId() == null) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "작업자가 매칭된 이후에 채팅이 가능합니다.");
+            }
+            if (!task.isParticipant(memberId)) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "업무 참여자만 채팅방에 접근할 수 있습니다.");
+            }
+            room = ensureRoomForTask(task);
+        } else {
+            requireMembership(room, memberId);
+        }
         return room.getId();
     }
 

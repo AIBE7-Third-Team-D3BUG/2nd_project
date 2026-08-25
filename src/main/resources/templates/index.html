@@ -41,9 +41,8 @@
         <a class="brand" th:href="@{/}">D3BUG</a>
         <nav class="main-nav" aria-label="주요 메뉴">
             <button class="nav-link active" type="button" data-page="landing">업무 찾기</button>
-            <a class="nav-link" th:if="${hasActiveTask and activeTaskId != null}" th:href="@{/tasks/{id}/progress(id=${activeTaskId})}" style="text-decoration: none;">내 업무</a>
-            <button class="nav-link" type="button" data-page="dashboard" th:if="${hasActiveTask and activeTaskId == null}">내 업무</button>
-            <a sec:authorize="isAuthenticated()" class="nav-link" th:href="@{/chat}" style="text-decoration: none;">채팅</a>
+            <button class="nav-link" type="button" data-page="dashboard">내 업무</button>
+            <a sec:authorize="isAuthenticated()" class="nav-link" th:href="@{/chat}">채팅</a>
         </nav>
         <div class="header-actions">
             <a sec:authorize="isAnonymous()" class="header-link" th:href="@{/login}">로그인</a>
@@ -139,45 +138,134 @@
         </section>
 
         <section id="page-dashboard" class="page-section hidden">
-            <p class="eyebrow">COMMON-03 · 업무 진행 / 결과 제출</p>
+            <p class="eyebrow">COMMON-03 · 내 업무 대시보드</p>
             <div class="page-heading">
-                <h1>AWS 배포 후 502 오류 해결</h1>
-                <p>의뢰인 김민규 · 작업자 정태현 · 오늘 18:00 마감</p>
+                <h1>내 업무 현황</h1>
+                <p>내가 등록한 업무, 작업 중인 업무, 지원한 업무를 한곳에서 관리하세요.</p>
             </div>
 
-            <div class="status-track" aria-label="업무 진행 상태">
-                <div class="status-step done">매칭</div>
-                <div class="status-step current">진행 중</div>
-                <div class="status-step">결과 제출</div>
-                <div class="status-step">완료 승인</div>
-                <div class="status-step">정산</div>
+            <div sec:authorize="isAnonymous()" class="empty-state" style="padding: 60px 20px; text-align: center; border: 1px dashed var(--line); border-radius: 12px; background: #fafbfc; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                <p style="font-size: 16px; font-weight: 700; color: #4b5563; margin-bottom: 16px; text-align: center;">로그인 후 내 업무를 확인할 수 있습니다.</p>
+                <a class="button" th:href="@{/login}" style="display: inline-flex; align-items: center; justify-content: center; text-align: center; text-decoration: none; min-width: 120px; height: 42px; padding: 0 20px;">로그인하기</a>
             </div>
 
-            <div class="section-grid">
-                <div class="panel">
-                    <h2>활동 기록</h2>
-                    <div class="review">
-                        <strong>작업자가 업무를 시작했습니다.</strong>
-                        <p>오늘 15:18 · 예상 완료 시간은 약 2시간입니다.</p>
+            <div sec:authorize="isAuthenticated()" style="display: grid; gap: 28px;">
+                <!-- 내가 등록한 업무 -->
+                <div class="registered-tasks-card">
+                    <div class="registered-tasks-heading">
+                        <div>
+                            <p class="eyebrow">CLIENT · 내가 등록한 업무</p>
+                            <h2>내가 등록한 업무</h2>
+                            <p class="subtitle">게시한 업무의 마감과 진행 상태를 확인할 수 있습니다.</p>
+                        </div>
+                        <button class="small-button" type="button" data-page="confirm">새 업무 등록</button>
                     </div>
-                    <div class="review">
-                        <strong>작업자가 선택되었습니다.</strong>
-                        <p>오늘 15:05 · 정태현 님과 매칭되었습니다.</p>
-                    </div>
-                    <div class="review">
-                        <strong>업무가 게시되었습니다.</strong>
-                        <p>오늘 14:42 · 4품이 예약되었습니다.</p>
+                    <div class="registered-task-list">
+                        <article class="registered-task" th:each="task : ${registeredTasks}"
+                                 th:onclick="|location.href='/?view=detail&taskId=' + ${task.id()}|"
+                                 style="cursor: pointer;">
+                            <div>
+                                <div class="registered-task-meta">
+                                    <span th:text="${task.statusLabel()}">모집 중</span>
+                                    <span th:text="${task.deadlineLabel()}">2시간 남음</span>
+                                    <span th:text="${task.categoryLabel()}">개발</span>
+                                </div>
+                                <h3 th:text="${task.title()}">업무 제목</h3>
+                                <p th:text="${#lists.isEmpty(task.skillTags()) ? task.description() : #strings.listJoin(task.skillTags(), ' · ')}">기술</p>
+                                <a class="attachment-link" th:if="${task.hasAttachment()}"
+                                   th:href="@{/tasks/{id}/attachment(id=${task.id()})}">첨부 파일 열기</a>
+                            </div>
+                            <div class="registered-task-side">
+                                <strong><span th:text="${task.requestedPum()}">4</span>품</strong>
+                                <div class="task-actions" th:if="${task.editable()}">
+                                    <a class="task-action compare" th:href="@{/(view='compare',taskId=${task.id()})}">지원자 비교</a>
+                                    <a class="task-action edit" th:href="@{/tasks/{id}/edit(id=${task.id()},returnTo='home')}">수정</a>
+                                    <form class="delete-task-form" th:action="@{/tasks/{id}/delete(id=${task.id()})}" method="post">
+                                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                        <input type="hidden" name="returnTo" value="home">
+                                        <button class="task-action delete" type="submit">삭제</button>
+                                    </form>
+                                </div>
+                                <a class="task-action progress" th:if="${task.progressAvailable()}"
+                                   th:href="@{/tasks/{id}/progress(id=${task.id()})}">진행 화면</a>
+                            </div>
+                        </article>
+                        <div class="registered-empty" th:if="${#lists.isEmpty(registeredTasks)}">아직 등록한 업무가 없습니다.</div>
                     </div>
                 </div>
-                <aside class="panel side-panel">
-                    <h2 class="side-title">결과 제출</h2>
-                    <p class="side-copy">작업 내용을 정리하고 결과 파일을 첨부하세요.</p>
-                    <div class="field">
-                        <label for="result-note">작업 내용</label>
-                        <textarea id="result-note" placeholder="무엇을 해결했고 의뢰인이 무엇을 확인하면 되는지 적어주세요."></textarea>
+
+                <!-- 내가 작업 중인 업무 -->
+                <div class="registered-tasks-card">
+                    <div class="registered-tasks-heading">
+                        <div>
+                            <p class="eyebrow">WORKER · 진행 업무</p>
+                            <h2>내가 작업 중인 업무</h2>
+                            <p class="subtitle">현재 배정되었거나 진행 중인 업무입니다.</p>
+                        </div>
                     </div>
-                    <button class="button full" type="button">결과 제출하기</button>
-                </aside>
+                    <div class="registered-task-list">
+                        <article class="registered-task" th:each="task : ${workingTasks}"
+                                 th:onclick="|location.href='@{/tasks/{id}/progress(id=${task.id()})}'|"
+                                 style="cursor: pointer;">
+                            <div>
+                                <div class="registered-task-meta">
+                                    <span th:text="${task.statusLabel()}">진행 중</span>
+                                    <span th:text="${task.deadlineLabel()}">오늘 마감</span>
+                                    <span th:text="${task.categoryLabel()}">개발</span>
+                                </div>
+                                <h3 th:text="${task.title()}">업무 제목</h3>
+                                <p th:text="${#lists.isEmpty(task.skillTags()) ? task.description() : #strings.listJoin(task.skillTags(), ' · ')}">기술</p>
+                            </div>
+                            <div class="registered-task-side">
+                                <strong><span th:text="${task.requestedPum()}">4</span>품</strong>
+                                <div class="task-actions">
+                                    <a class="task-action progress" th:href="@{/tasks/{id}/progress(id=${task.id()})}">진행 화면</a>
+                                </div>
+                            </div>
+                        </article>
+                        <div class="registered-empty" th:if="${#lists.isEmpty(workingTasks)}">현재 작업 중인 업무가 없습니다.</div>
+                    </div>
+                </div>
+
+                <!-- 내가 지원한 업무 -->
+                <div class="registered-tasks-card">
+                    <div class="registered-tasks-heading">
+                        <div>
+                            <p class="eyebrow">WORKER · 지원 업무</p>
+                            <h2>내가 지원한 업무</h2>
+                            <p class="subtitle">지원 결과와 모집 상태를 확인하세요.</p>
+                        </div>
+                    </div>
+                    <div class="registered-task-list">
+                        <article class="registered-task" th:each="app : ${appliedTasks}"
+                                 th:onclick="|location.href='/?view=detail&taskId=' + ${app.taskId()}|"
+                                 style="cursor: pointer;">
+                            <div>
+                                <div class="registered-task-meta">
+                                    <span th:text="${app.volunteerStatusLabel()}">지원 완료</span>
+                                    <span th:text="${app.deadlineLabel()}">2시간 남음</span>
+                                    <span th:text="${app.categoryLabel()}">개발</span>
+                                    <span style="font-size: 11px; color: #6b7280;" th:text="|지원일: ${app.appliedDateLabel()}|">지원일: 8월 24일</span>
+                                </div>
+                                <h3 th:text="${app.title()}">업무 제목</h3>
+                                <p th:text="${app.skillTags() == null or #lists.isEmpty(app.skillTags()) ? app.description() : T(java.lang.String).join(' · ', app.skillTags())}">기술</p>
+                            </div>
+                            <div class="registered-task-side">
+                                <strong><span th:text="${app.requestedPum()}">4</span>품</strong>
+                                <div class="task-actions">
+                                    <span class="task-action" style="cursor: default; background-color: #f3f4f6; border-color: #e5e7eb; color: #374151;" th:text="${app.taskStatusLabel()}">모집 중</span>
+                                    <form class="cancel-apply-form" th:if="${app.volunteerStatus() == T(org.example._nd_project.volunteer.VolunteerStatus).APPLIED}"
+                                          th:action="@{/tasks/{id}/cancel-apply(id=${app.taskId()})}" method="post">
+                                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                        <input type="hidden" name="returnTo" value="home">
+                                        <button class="task-action delete" type="submit">지원 취소</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </article>
+                        <div class="registered-empty" th:if="${#lists.isEmpty(appliedTasks)}">아직 지원한 업무가 없습니다.</div>
+                    </div>
+                </div>
             </div>
         </section>
 
@@ -779,6 +867,20 @@
             if (!window.confirm("이 업무를 삭제하시겠습니까? 삭제한 업무는 복구할 수 없습니다.")) {
                 event.preventDefault();
             }
+        });
+    });
+
+    document.querySelectorAll(".cancel-apply-form").forEach(function (form) {
+        form.addEventListener("submit", function (event) {
+            if (!window.confirm("이 업무에 대한 지원을 취소하시겠습니까?")) {
+                event.preventDefault();
+            }
+        });
+    });
+
+    document.querySelectorAll(".task-actions, .attachment-link").forEach(function (el) {
+        el.addEventListener("click", function (event) {
+            event.stopPropagation();
         });
     });
 
