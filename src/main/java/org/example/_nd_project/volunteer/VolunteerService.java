@@ -48,8 +48,13 @@ public class VolunteerService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "본인이 등록한 업무에는 지원할 수 없습니다.");
         }
 
-        if (volunteerRepository.existsByTaskIdAndMemberIdAndStatusNot(taskId, memberId, VolunteerStatus.CANCELLED)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 지원한 업무입니다.");
+        Volunteer existing = volunteerRepository.findByTaskIdAndMemberId(taskId, memberId).orElse(null);
+        if (existing != null) {
+            if (existing.getStatus() == VolunteerStatus.APPLIED || existing.getStatus() == VolunteerStatus.ACCEPTED) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 지원한 업무입니다.");
+            }
+            existing.resetToApplied();
+            return volunteerRepository.save(existing);
         }
 
         Volunteer volunteer = Volunteer.create(taskId, memberId, message == null ? "" : message.trim());
@@ -61,8 +66,17 @@ public class VolunteerService {
         Volunteer volunteer = volunteerRepository.findByTaskIdAndMemberId(taskId, memberId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "지원 정보를 찾을 수 없습니다."));
 
-        if (volunteer.getStatus() != VolunteerStatus.APPLIED) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "모집 중인 상태의 지원만 취소할 수 있습니다.");
+        if (volunteer.getStatus() == VolunteerStatus.ACCEPTED) {
+            Task task = taskRepository.findById(taskId).orElse(null);
+            if (task != null && task.getWorkerId() != null && task.getWorkerId().equals(memberId)) {
+                task.unassignWorker();
+            }
+            List<Volunteer> remaining = volunteerRepository.findByTaskIdAndStatusNotOrderByCreatedAtAsc(taskId, VolunteerStatus.CANCELLED);
+            for (Volunteer v : remaining) {
+                if (v != volunteer && (volunteer.getId() == null || !volunteer.getId().equals(v.getId()))) {
+                    v.resetToApplied();
+                }
+            }
         }
 
         volunteerRepository.delete(volunteer);
@@ -73,7 +87,7 @@ public class VolunteerService {
         if (taskId == null || memberId == null) {
             return false;
         }
-        return volunteerRepository.existsByTaskIdAndMemberIdAndStatusNot(taskId, memberId, VolunteerStatus.CANCELLED);
+        return volunteerRepository.existsByTaskIdAndMemberIdAndStatusIn(taskId, memberId, List.of(VolunteerStatus.APPLIED, VolunteerStatus.ACCEPTED));
     }
 
     @Transactional(readOnly = true)
@@ -89,7 +103,7 @@ public class VolunteerService {
         if (taskId == null) {
             return List.of();
         }
-        List<Volunteer> volunteers = volunteerRepository.findByTaskIdOrderByCreatedAtAsc(taskId);
+        List<Volunteer> volunteers = volunteerRepository.findByTaskIdAndStatusNotOrderByCreatedAtAsc(taskId, VolunteerStatus.CANCELLED);
         return volunteers.stream()
                 .map(this::toCardView)
                 .toList();
@@ -107,7 +121,7 @@ public class VolunteerService {
         Volunteer selected = volunteerRepository.findByIdAndTaskId(volunteerId, taskId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "지원자를 찾을 수 없습니다."));
 
-        List<Volunteer> allVolunteers = volunteerRepository.findByTaskIdOrderByCreatedAtAsc(taskId);
+        List<Volunteer> allVolunteers = volunteerRepository.findByTaskIdAndStatusNotOrderByCreatedAtAsc(taskId, VolunteerStatus.CANCELLED);
         for (Volunteer v : allVolunteers) {
             if (v.getId().equals(selected.getId())) {
                 v.accept();
@@ -135,12 +149,12 @@ public class VolunteerService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "선택된 작업자만 선택을 취소할 수 있습니다.");
         }
 
-        List<Volunteer> allVolunteers = volunteerRepository.findByTaskIdOrderByCreatedAtAsc(taskId);
+        task.unassignWorker();
+
+        List<Volunteer> allVolunteers = volunteerRepository.findByTaskIdAndStatusNotOrderByCreatedAtAsc(taskId, VolunteerStatus.CANCELLED);
         for (Volunteer v : allVolunteers) {
             v.resetToApplied();
         }
-
-        task.unassignWorker();
     }
 
     @Transactional(readOnly = true)
@@ -148,11 +162,11 @@ public class VolunteerService {
         if (memberId == null) {
             return List.of();
         }
-        List<Volunteer> applications = volunteerRepository.findByMemberIdAndStatusNotOrderByCreatedAtDesc(memberId, VolunteerStatus.CANCELLED);
+        List<Volunteer> applications = volunteerRepository.findByMemberIdAndStatusOrderByCreatedAtDesc(memberId, VolunteerStatus.APPLIED);
         List<AppliedTaskItem> result = new java.util.ArrayList<>();
         for (Volunteer v : applications) {
             Task task = taskRepository.findById(v.getTaskId()).orElse(null);
-            if (task == null) {
+            if (task == null || task.getStatus() == TaskStatus.CANCELLED) {
                 continue;
             }
             Instant appliedAt = v.getCreatedAt() != null ? v.getCreatedAt() : Instant.now();
@@ -161,7 +175,7 @@ public class VolunteerService {
             String deadlineLabel = formatDeadline(task.getDeadlineAt());
             result.add(new AppliedTaskItem(
                     v.getId(),
-                    task.getId(),
+                    v.getTaskId(),
                     task.getTitle(),
                     task.getDescription(),
                     task.getCategory().getLabel(),

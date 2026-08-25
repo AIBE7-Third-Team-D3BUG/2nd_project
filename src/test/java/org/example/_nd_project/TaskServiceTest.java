@@ -123,4 +123,14 @@ class TaskServiceTest {
                 eq(TaskStatus.OPEN), eq(TaskCategory.DESIGN), any(), any(Pageable.class)
         );
     }
+
+    @Test
+    void workerCanLoadTasksAssignedByMatchingFlow() {
+        when(taskRepository.findByWorkerIdAndStatusNotOrderByUpdatedAtDesc(8L, TaskStatus.CANCELLED))
+                .thenReturn(List.of());
+
+        taskService.findAssignedTasks(8L);
+
+        verify(taskRepository).findByWorkerIdAndStatusNotOrderByUpdatedAtDesc(8L, TaskStatus.CANCELLED);
+    }
 }

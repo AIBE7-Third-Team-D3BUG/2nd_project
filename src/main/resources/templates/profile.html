@@ -134,6 +134,10 @@
                                 <button class="task-action delete" type="submit">삭제</button>
                             </form>
                         </div>
+                        <div class="task-actions" th:if="${task.progressAvailable()}">
+                            <a class="task-action progress"
+                               th:href="@{/tasks/{id}/progress(id=${task.id()})}">진행 화면</a>
+                        </div>
                     </div>
                 </article>
 
@@ -143,52 +147,95 @@
             </div>
         </section>
 
-        <section class="card applied-tasks-card">
+        <section class="card registered-tasks-card">
             <div class="registered-tasks-heading">
                 <div>
-                    <p class="eyebrow">WORKER · 내가 지원한 업무</p>
-                    <h2>내가 지원한 업무</h2>
-                    <p class="subtitle">지원한 업무의 마감과 매칭 및 진행 상태를 확인하세요.</p>
+                    <p class="eyebrow">WORKER · 나의 업무</p>
+                    <h2>나의 업무</h2>
+                    <p class="subtitle">내가 맡은 업무와 지원한 업무의 진행 상태를 확인하세요.</p>
                 </div>
                 <a class="small-button secondary" th:href="@{/}">업무 찾아보기</a>
             </div>
 
-            <div class="registered-task-list">
-                <article class="registered-task" th:each="app : ${appliedTasks}"
-                         th:onclick="|location.href='/?view=detail&taskId=' + ${app.taskId()}|"
-                         style="cursor: pointer;">
-                    <div>
-                        <div class="registered-task-meta">
-                            <span class="status-badge" 
-                                  th:style="${app.volunteerStatus() == T(org.example._nd_project.volunteer.VolunteerStatus).ACCEPTED ? 'background-color: #2563eb; color: #fff; border-radius: 4px; padding: 2px 6px; font-weight: bold; font-size: 11px;' : 'background-color: #eff6ff; color: #1d4ed8; border-radius: 4px; padding: 2px 6px; font-weight: bold; font-size: 11px;'}" 
-                                  th:text="${app.volunteerStatusLabel()}">지원 완료</span>
-                            <span th:text="${app.deadlineLabel()}">2시간 42분 남음</span>
-                            <span th:text="${app.categoryLabel()}">개발</span>
-                            <span style="font-size: 11px; color: #6b7280;" th:text="|지원일: ${app.appliedDateLabel()}|">지원일: 8월 24일</span>
+            <!-- Sub-section 1: 내가 맡은 업무 -->
+            <div style="margin-bottom: 24px;">
+                <h4 style="margin: 0 0 12px; font-size: 14px; font-weight: 800; color: #22252a; display: flex; align-items: center; gap: 8px;">
+                    <span>내가 맡은 업무</span>
+                    <span style="font-size: 11px; background: #eef2ff; color: var(--brand); padding: 2px 7px; border-radius: 999px; font-weight: 800;" th:text="${#lists.size(assignedTasks)}">0</span>
+                </h4>
+                <div class="registered-task-list">
+                    <article class="registered-task" th:each="task : ${assignedTasks}"
+                             th:onclick="|location.href='@{/tasks/{id}/progress(id=${task.id()})}'|"
+                             style="cursor: pointer;">
+                        <div>
+                            <div class="registered-task-meta">
+                                <span class="status-badge" style="background-color: var(--brand); color: #fff; border-radius: 4px; padding: 2px 6px; font-weight: 800; font-size: 11px;"
+                                      th:text="${task.statusLabel()}">매칭 완료</span>
+                                <span th:text="${task.deadlineLabel()}">2시간 42분 남음</span>
+                                <span th:text="${task.categoryLabel()}">개발</span>
+                            </div>
+                            <h3 th:text="${task.title()}">AWS 배포 후 502 오류 해결</h3>
+                            <p th:text="${#lists.isEmpty(task.skillTags()) ? task.description() : #strings.listJoin(task.skillTags(), ' · ')}">
+                                Spring · AWS · Nginx
+                            </p>
                         </div>
-                        <h3 th:text="${app.title()}">AWS 배포 후 502 오류 해결</h3>
-                        <p th:text="${app.skillTags() == null or #lists.isEmpty(app.skillTags()) ? app.description() : T(java.lang.String).join(' · ', app.skillTags())}">
-                            Spring · AWS · Nginx
-                        </p>
-                    </div>
-                    <div class="registered-task-side">
-                        <strong><span th:text="${app.requestedPum()}">4</span>품</strong>
-                        <div class="task-actions">
-                            <span class="task-action" style="cursor: default; background-color: #f3f4f6; border-color: #e5e7eb; color: #374151;" th:text="${app.taskStatusLabel()}">모집 중</span>
-                            <form th:if="${app.volunteerStatus() == T(org.example._nd_project.volunteer.VolunteerStatus).APPLIED}"
-                                  class="cancel-apply-form"
-                                  th:action="@{/tasks/{id}/cancel-apply(id=${app.taskId()})}" method="post"
-                                  style="margin: 0;">
-                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-                                <input type="hidden" name="returnTo" value="profile">
-                                <button class="task-action delete" type="submit" style="color: #dc2626; border-color: #fca5a5;">지원 취소</button>
-                            </form>
+                        <div class="registered-task-side">
+                            <strong><span th:text="${task.requestedPum()}">4</span>품</strong>
+                            <div class="task-actions">
+                                <a class="task-action progress"
+                                   th:href="@{/tasks/{id}/progress(id=${task.id()})}">진행 화면</a>
+                            </div>
                         </div>
-                    </div>
-                </article>
+                    </article>
 
-                <div class="registered-empty" th:if="${#lists.isEmpty(appliedTasks)}">
-                    아직 지원한 업무가 없습니다. 메인 페이지에서 긴급 업무를 찾아 지원해보세요.
+                    <div class="registered-empty" th:if="${#lists.isEmpty(assignedTasks)}" style="padding: 20px; font-size: 13px;">
+                        아직 배정받거나 진행 중인 업무가 없습니다.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sub-section 2: 내가 지원한 업무 -->
+            <div style="padding-top: 20px; border-top: 1px dashed var(--line-strong);">
+                <h4 style="margin: 0 0 12px; font-size: 14px; font-weight: 800; color: #22252a; display: flex; align-items: center; gap: 8px;">
+                    <span>내가 지원한 업무</span>
+                    <span style="font-size: 11px; background: #f4f5f7; color: var(--muted); padding: 2px 7px; border-radius: 999px; font-weight: 800;" th:text="${#lists.size(appliedTasks)}">0</span>
+                </h4>
+                <div class="registered-task-list">
+                    <article class="registered-task" th:each="app : ${appliedTasks}"
+                             th:onclick="|location.href='/?view=detail&taskId=' + ${app.taskId()}|"
+                             style="cursor: pointer;">
+                        <div>
+                            <div class="registered-task-meta">
+                                <span class="status-badge" style="background-color: #eff6ff; color: #1d4ed8; border-radius: 4px; padding: 2px 6px; font-weight: bold; font-size: 11px;"
+                                      th:text="${app.volunteerStatusLabel()}">지원 완료</span>
+                                <span th:text="${app.deadlineLabel()}">2시간 42분 남음</span>
+                                <span th:text="${app.categoryLabel()}">개발</span>
+                                <span style="font-size: 11px; color: #6b7280;" th:text="|지원일: ${app.appliedDateLabel()}|">지원일: 8월 24일</span>
+                            </div>
+                            <h3 th:text="${app.title()}">AWS 배포 후 502 오류 해결</h3>
+                            <p th:text="${app.skillTags() == null or #lists.isEmpty(app.skillTags()) ? app.description() : T(java.lang.String).join(' · ', app.skillTags())}">
+                                Spring · AWS · Nginx
+                            </p>
+                        </div>
+                        <div class="registered-task-side">
+                            <strong><span th:text="${app.requestedPum()}">4</span>품</strong>
+                            <div class="task-actions">
+                                <span class="task-action" style="cursor: default; background-color: #f3f4f6; border-color: #e5e7eb; color: #374151;" th:text="${app.taskStatusLabel()}">모집 중</span>
+                                <form th:if="${app.volunteerStatus() == T(org.example._nd_project.volunteer.VolunteerStatus).APPLIED}"
+                                      class="cancel-apply-form"
+                                      th:action="@{/tasks/{id}/cancel-apply(id=${app.taskId()})}" method="post"
+                                      style="margin: 0;">
+                                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                    <input type="hidden" name="returnTo" value="profile">
+                                    <button class="task-action delete" type="submit" style="color: #dc2626; border-color: #fca5a5;">지원 취소</button>
+                                </form>
+                            </div>
+                        </div>
+                    </article>
+
+                    <div class="registered-empty" th:if="${#lists.isEmpty(appliedTasks)}" style="padding: 16px; font-size: 13px;">
+                        아직 지원한 업무가 없습니다.
+                    </div>
                 </div>
             </div>
         </section>

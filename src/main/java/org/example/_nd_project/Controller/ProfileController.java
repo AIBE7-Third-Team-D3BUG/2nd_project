@@ -40,8 +40,7 @@ public class ProfileController {
         form.setNotificationEnabled(profile.notificationEnabled());
         model.addAttribute("profile", profile);
         model.addAttribute("profileForm", form);
-        model.addAttribute("registeredTasks", taskService.findRegisteredTasks(principal.memberId()));
-        model.addAttribute("appliedTasks", volunteerService.findAppliedTasks(principal.memberId()));
+        addTaskLists(model, principal.memberId());
         return "profile";
     }
 
@@ -52,8 +51,7 @@ public class ProfileController {
                                 Model model) {
         if (bindingResult.hasErrors()) {
             model.addAttribute("profile", memberService.getProfile(principal.memberId()));
-            model.addAttribute("registeredTasks", taskService.findRegisteredTasks(principal.memberId()));
-            model.addAttribute("appliedTasks", volunteerService.findAppliedTasks(principal.memberId()));
+            addTaskLists(model, principal.memberId());
             return "profile";
         }
         try {
@@ -61,10 +59,15 @@ public class ProfileController {
         } catch (DuplicateMemberException exception) {
             bindingResult.rejectValue(exception.getField(), "duplicate", exception.getMessage());
             model.addAttribute("profile", memberService.getProfile(principal.memberId()));
-            model.addAttribute("registeredTasks", taskService.findRegisteredTasks(principal.memberId()));
-            model.addAttribute("appliedTasks", volunteerService.findAppliedTasks(principal.memberId()));
+            addTaskLists(model, principal.memberId());
             return "profile";
         }
         return "redirect:/profile?updated";
+    }
+
+    private void addTaskLists(Model model, Long memberId) {
+        model.addAttribute("registeredTasks", taskService.findRegisteredTasks(memberId));
+        model.addAttribute("appliedTasks", volunteerService.findAppliedTasks(memberId));
+        model.addAttribute("assignedTasks", taskService.findAssignedTasks(memberId));
     }
 }
