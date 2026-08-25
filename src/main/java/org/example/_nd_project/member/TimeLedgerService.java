@@ -48,7 +48,12 @@ public class TimeLedgerService {
 
     @Transactional(propagation = Propagation.MANDATORY)
     public void refundTaskReservation(Long memberId, Long taskId) {
-        setTaskReservation(memberId, taskId, 0, "업무 삭제에 따른 예약 재화 반환");
+        refundTaskReservation(memberId, taskId, "업무 삭제에 따른 예약 재화 반환");
+    }
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void refundTaskReservation(Long memberId, Long taskId, String reason) {
+        setTaskReservation(memberId, taskId, 0, reason);
     }
 
     @Transactional(propagation = Propagation.MANDATORY)

@@ -25,6 +25,8 @@ public class ProfileUpdateForm {
 
     private boolean notificationEnabled;
 
+    private boolean removeProfileImage;
+
     @AssertTrue(message = "포트폴리오 주소는 http 또는 https URL이어야 합니다.")
     public boolean isPortfolioUrlValid() {
         if (portfolioUrl == null || portfolioUrl.isBlank()) {
@@ -73,4 +75,6 @@ public class ProfileUpdateForm {
     public void setSkillTags(String skillTags) { this.skillTags = skillTags; }
     public boolean isNotificationEnabled() { return notificationEnabled; }
     public void setNotificationEnabled(boolean notificationEnabled) { this.notificationEnabled = notificationEnabled; }
+    public boolean isRemoveProfileImage() { return removeProfileImage; }
+    public void setRemoveProfileImage(boolean removeProfileImage) { this.removeProfileImage = removeProfileImage; }
 }

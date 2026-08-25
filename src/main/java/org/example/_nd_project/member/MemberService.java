@@ -1,9 +1,11 @@
 package org.example._nd_project.member;
 
+import org.example._nd_project.task.TaskStorageService;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Instant;
 import java.util.Arrays;
@@ -19,15 +21,18 @@ public class MemberService {
     private final TimeAccountRepository timeAccountRepository;
     private final TimeTransactionRepository timeTransactionRepository;
     private final PasswordEncoder passwordEncoder;
+    private final TaskStorageService taskStorageService;
 
     public MemberService(MemberRepository memberRepository,
                          TimeAccountRepository timeAccountRepository,
                          TimeTransactionRepository timeTransactionRepository,
-                         PasswordEncoder passwordEncoder) {
+                         PasswordEncoder passwordEncoder,
+                         TaskStorageService taskStorageService) {
         this.memberRepository = memberRepository;
         this.timeAccountRepository = timeAccountRepository;
         this.timeTransactionRepository = timeTransactionRepository;
         this.passwordEncoder = passwordEncoder;
+        this.taskStorageService = taskStorageService;
     }
 
     @Transactional
@@ -69,6 +74,7 @@ public class MemberService {
                 : (double) member.getRatingSum() / member.getReviewCount();
         return new MemberProfileView(
                 member.getId(), member.getEmail(), member.getNickname(), member.getIntroduction(),
+                member.getProfileImageUrl() != null && !member.getProfileImageUrl().isBlank(),
                 member.getPortfolioUrl(), Arrays.asList(member.getSkillTags()), member.isNotificationEnabled(),
                 member.getCompletedTaskCount(), member.getReviewCount(), rating,
                 account.getAvailableMinutes(), account.getReservedMinutes(), member.getCreatedAt()
@@ -76,7 +82,7 @@ public class MemberService {
     }
 
     @Transactional
-    public void updateProfile(Long memberId, ProfileUpdateForm form) {
+    public void updateProfile(Long memberId, ProfileUpdateForm form, MultipartFile profileImage) {
         Member member = requireMember(memberId);
         String nickname = form.getNickname().trim();
         if (memberRepository.existsByNicknameAndIdNot(nickname, memberId)) {
@@ -89,6 +95,33 @@ public class MemberService {
                 form.normalizedSkillTags(),
                 form.isNotificationEnabled()
         );
+
+        String previousImage = member.getProfileImageUrl();
+        String uploadedImage = null;
+        try {
+            if (profileImage != null && !profileImage.isEmpty()) {
+                uploadedImage = taskStorageService.uploadProfileImage(memberId, profileImage);
+                member.replaceProfileImage(uploadedImage);
+            } else if (form.isRemoveProfileImage()) {
+                member.replaceProfileImage(null);
+            }
+            memberRepository.flush();
+            if (previousImage != null && !previousImage.equals(member.getProfileImageUrl())) {
+                taskStorageService.deleteQuietly(previousImage);
+            }
+        } catch (RuntimeException exception) {
+            taskStorageService.deleteQuietly(uploadedImage);
+            throw exception;
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public java.net.URI createProfileImageUrl(Long memberId) {
+        Member member = requireMember(memberId);
+        if (member.getProfileImageUrl() == null || member.getProfileImageUrl().isBlank()) {
+            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND);
+        }
+        return taskStorageService.createSignedDownloadUrl(member.getProfileImageUrl());
     }
 
     @Transactional

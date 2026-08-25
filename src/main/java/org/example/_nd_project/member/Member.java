@@ -102,6 +102,10 @@ public class Member {
         this.notificationEnabled = notificationEnabled;
     }
 
+    public void replaceProfileImage(String profileImageUrl) {
+        this.profileImageUrl = profileImageUrl;
+    }
+
     public void recordLogin(Instant loginAt) {
         this.lastLoginAt = loginAt;
     }

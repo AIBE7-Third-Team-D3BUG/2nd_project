@@ -1,5 +1,6 @@
 package org.example._nd_project.volunteer;
 
+import org.example._nd_project.chat.ChatService;
 import org.example._nd_project.member.Member;
 import org.example._nd_project.member.MemberRepository;
 import org.example._nd_project.task.Task;
@@ -26,13 +27,16 @@ public class VolunteerService {
     private final VolunteerRepository volunteerRepository;
     private final TaskRepository taskRepository;
     private final MemberRepository memberRepository;
+    private final ChatService chatService;
 
     public VolunteerService(VolunteerRepository volunteerRepository,
                             TaskRepository taskRepository,
-                            MemberRepository memberRepository) {
+                            MemberRepository memberRepository,
+                            ChatService chatService) {
         this.volunteerRepository = volunteerRepository;
         this.taskRepository = taskRepository;
         this.memberRepository = memberRepository;
+        this.chatService = chatService;
     }
 
     @Transactional
@@ -48,8 +52,13 @@ public class VolunteerService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "본인이 등록한 업무에는 지원할 수 없습니다.");
         }
 
-        if (volunteerRepository.existsByTaskIdAndMemberIdAndStatusNot(taskId, memberId, VolunteerStatus.CANCELLED)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 지원한 업무입니다.");
+        Volunteer existing = volunteerRepository.findByTaskIdAndMemberId(taskId, memberId).orElse(null);
+        if (existing != null) {
+            if (existing.getStatus() == VolunteerStatus.APPLIED || existing.getStatus() == VolunteerStatus.ACCEPTED) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 지원한 업무입니다.");
+            }
+            existing.resetToApplied();
+            return volunteerRepository.save(existing);
         }
 
         Volunteer volunteer = Volunteer.create(taskId, memberId, message == null ? "" : message.trim());
@@ -64,6 +73,7 @@ public class VolunteerService {
         if (volunteer.getStatus() == VolunteerStatus.ACCEPTED) {
             Task task = taskRepository.findById(taskId).orElse(null);
             if (task != null && task.getWorkerId() != null && task.getWorkerId().equals(memberId)) {
+                chatService.deleteRoomForTask(taskId);
                 task.unassignWorker();
             }
             List<Volunteer> remaining = volunteerRepository.findByTaskIdAndStatusNotOrderByCreatedAtAsc(taskId, VolunteerStatus.CANCELLED);
@@ -82,7 +92,7 @@ public class VolunteerService {
         if (taskId == null || memberId == null) {
             return false;
         }
-        return volunteerRepository.existsByTaskIdAndMemberIdAndStatusNot(taskId, memberId, VolunteerStatus.CANCELLED);
+        return volunteerRepository.existsByTaskIdAndMemberIdAndStatusIn(taskId, memberId, List.of(VolunteerStatus.APPLIED, VolunteerStatus.ACCEPTED));
     }
 
     @Transactional(readOnly = true)
@@ -126,6 +136,7 @@ public class VolunteerService {
         }
 
         task.assignWorker(selected.getMemberId(), Instant.now());
+        chatService.ensureRoomForTask(task);
     }
 
     @Transactional
@@ -144,6 +155,7 @@ public class VolunteerService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "선택된 작업자만 선택을 취소할 수 있습니다.");
         }
 
+        chatService.deleteRoomForTask(taskId);
         task.unassignWorker();
 
         List<Volunteer> allVolunteers = volunteerRepository.findByTaskIdAndStatusNotOrderByCreatedAtAsc(taskId, VolunteerStatus.CANCELLED);
@@ -157,11 +169,11 @@ public class VolunteerService {
         if (memberId == null) {
             return List.of();
         }
-        List<Volunteer> applications = volunteerRepository.findByMemberIdAndStatusNotOrderByCreatedAtDesc(memberId, VolunteerStatus.CANCELLED);
+        List<Volunteer> applications = volunteerRepository.findByMemberIdAndStatusOrderByCreatedAtDesc(memberId, VolunteerStatus.APPLIED);
         List<AppliedTaskItem> result = new java.util.ArrayList<>();
         for (Volunteer v : applications) {
             Task task = taskRepository.findById(v.getTaskId()).orElse(null);
-            if (task == null) {
+            if (task == null || task.getStatus() == TaskStatus.CANCELLED) {
                 continue;
             }
             Instant appliedAt = v.getCreatedAt() != null ? v.getCreatedAt() : Instant.now();
@@ -170,7 +182,7 @@ public class VolunteerService {
             String deadlineLabel = formatDeadline(task.getDeadlineAt());
             result.add(new AppliedTaskItem(
                     v.getId(),
-                    task.getId(),
+                    v.getTaskId(),
                     task.getTitle(),
                     task.getDescription(),
                     task.getCategory().getLabel(),

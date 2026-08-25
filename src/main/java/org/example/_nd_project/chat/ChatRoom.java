@@ -12,61 +12,57 @@ import java.time.Instant;
 @Entity
 @Table(name = "chat_rooms")
 public class ChatRoom {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
     @Column(name = "task_id", nullable = false, unique = true)
     private Long taskId;
-
     @Column(name = "requester_member_id", nullable = false)
     private Long requesterMemberId;
-
     @Column(name = "worker_member_id", nullable = false)
     private Long workerMemberId;
-
     @Column(name = "task_title", nullable = false, length = 120)
     private String taskTitle;
-
-    @Column(name = "task_status", nullable = false, length = 20)
-    private String taskStatus;
-
     @Column(name = "last_message_preview", length = 500)
     private String lastMessagePreview;
-
     @Column(name = "last_message_at")
     private Instant lastMessageAt;
-
     @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
     private Instant createdAt;
-
     @Column(name = "updated_at", nullable = false, insertable = false, updatable = false)
     private Instant updatedAt;
+    private boolean requesterLeft;
+    private boolean workerLeft;
 
-    protected ChatRoom() {
-    }
+    protected ChatRoom() {}
 
-    public ChatRoom(Long taskId, Long requesterMemberId, Long workerMemberId, String taskTitle, String taskStatus) {
+    private ChatRoom(Long taskId, Long requesterMemberId, Long workerMemberId, String taskTitle) {
         this.taskId = taskId;
         this.requesterMemberId = requesterMemberId;
         this.workerMemberId = workerMemberId;
         this.taskTitle = taskTitle;
-        this.taskStatus = taskStatus;
     }
 
+    public static ChatRoom create(Long taskId, Long requesterMemberId, Long workerMemberId, String taskTitle) {
+        if (requesterMemberId.equals(workerMemberId)) throw new IllegalArgumentException("의뢰인과 작업자는 서로 달라야 합니다.");
+        return new ChatRoom(taskId, requesterMemberId, workerMemberId, taskTitle);
+    }
+
+    public boolean hasMember(Long memberId) { return requesterMemberId.equals(memberId) || workerMemberId.equals(memberId); }
+    public Long otherMemberId(Long memberId) {
+        if (requesterMemberId.equals(memberId)) return workerMemberId;
+        if (workerMemberId.equals(memberId)) return requesterMemberId;
+        throw new IllegalArgumentException("채팅방 참여자가 아닙니다.");
+    }
+    public void refreshLastMessage(String preview, Instant sentAt) { this.lastMessagePreview = preview; this.lastMessageAt = sentAt; }
+    public boolean hasLeft(Long memberId) { return requesterMemberId.equals(memberId) ? requesterLeft : workerLeft; }
+    public void leave(Long memberId) { if (requesterMemberId.equals(memberId)) requesterLeft = true; else workerLeft = true; }
+    public void reenter(Long memberId) { if (requesterMemberId.equals(memberId)) requesterLeft = false; else workerLeft = false; }
     public Long getId() { return id; }
     public Long getTaskId() { return taskId; }
     public Long getRequesterMemberId() { return requesterMemberId; }
     public Long getWorkerMemberId() { return workerMemberId; }
     public String getTaskTitle() { return taskTitle; }
-    public String getTaskStatus() { return taskStatus; }
     public String getLastMessagePreview() { return lastMessagePreview; }
     public Instant getLastMessageAt() { return lastMessageAt; }
     public Instant getUpdatedAt() { return updatedAt; }
-
-    public void refreshLastMessage(String preview, Instant sentAt) {
-        this.lastMessagePreview = preview;
-        this.lastMessageAt = sentAt;
-    }
 }
