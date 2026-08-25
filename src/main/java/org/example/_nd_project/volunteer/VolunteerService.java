@@ -1,5 +1,6 @@
 package org.example._nd_project.volunteer;
 
+import org.example._nd_project.chat.ChatService;
 import org.example._nd_project.member.Member;
 import org.example._nd_project.member.MemberRepository;
 import org.example._nd_project.task.Task;
@@ -26,13 +27,16 @@ public class VolunteerService {
     private final VolunteerRepository volunteerRepository;
     private final TaskRepository taskRepository;
     private final MemberRepository memberRepository;
+    private final ChatService chatService;
 
     public VolunteerService(VolunteerRepository volunteerRepository,
                             TaskRepository taskRepository,
-                            MemberRepository memberRepository) {
+                            MemberRepository memberRepository,
+                            ChatService chatService) {
         this.volunteerRepository = volunteerRepository;
         this.taskRepository = taskRepository;
         this.memberRepository = memberRepository;
+        this.chatService = chatService;
     }
 
     @Transactional
@@ -69,6 +73,7 @@ public class VolunteerService {
         if (volunteer.getStatus() == VolunteerStatus.ACCEPTED) {
             Task task = taskRepository.findById(taskId).orElse(null);
             if (task != null && task.getWorkerId() != null && task.getWorkerId().equals(memberId)) {
+                chatService.deleteRoomForTask(taskId);
                 task.unassignWorker();
             }
             List<Volunteer> remaining = volunteerRepository.findByTaskIdAndStatusNotOrderByCreatedAtAsc(taskId, VolunteerStatus.CANCELLED);
@@ -131,6 +136,7 @@ public class VolunteerService {
         }
 
         task.assignWorker(selected.getMemberId(), Instant.now());
+        chatService.ensureRoomForTask(task);
     }
 
     @Transactional
@@ -149,6 +155,7 @@ public class VolunteerService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "선택된 작업자만 선택을 취소할 수 있습니다.");
         }
 
+        chatService.deleteRoomForTask(taskId);
         task.unassignWorker();
 
         List<Volunteer> allVolunteers = volunteerRepository.findByTaskIdAndStatusNotOrderByCreatedAtAsc(taskId, VolunteerStatus.CANCELLED);

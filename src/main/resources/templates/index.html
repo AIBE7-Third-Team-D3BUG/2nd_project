@@ -43,6 +43,7 @@
             <button class="nav-link active" type="button" data-page="landing">업무 찾기</button>
             <a class="nav-link" th:if="${hasActiveTask and activeTaskId != null}" th:href="@{/tasks/{id}/progress(id=${activeTaskId})}" style="text-decoration: none;">내 업무</a>
             <button class="nav-link" type="button" data-page="dashboard" th:if="${hasActiveTask and activeTaskId == null}">내 업무</button>
+            <a sec:authorize="isAuthenticated()" class="nav-link" th:href="@{/chat}" style="text-decoration: none;">채팅</a>
         </nav>
         <div class="header-actions">
             <a sec:authorize="isAnonymous()" class="header-link" th:href="@{/login}">로그인</a>

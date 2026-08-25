@@ -125,6 +125,34 @@ public class TaskStorageService {
         }
     }
 
+    public StoredObject uploadChatAttachment(Long roomId, MultipartFile file) {
+        validateConfiguration();
+        validateFile(file);
+        String extension = extensionOf(file.getOriginalFilename());
+        String contentType = resolveContentType(file.getContentType(), extension);
+        String suffix = extension.isEmpty() ? "" : "." + extension;
+        String objectPath = "chats/" + roomId + "/" + UUID.randomUUID() + suffix;
+        try {
+            HttpRequest request = authorizedRequest(
+                    URI.create(supabaseUrl + "/storage/v1/object/" + bucket + "/" + objectPath)
+            )
+                    .header("Content-Type", contentType)
+                    .header("x-upsert", "false")
+                    .POST(HttpRequest.BodyPublishers.ofByteArray(file.getBytes()))
+                    .build();
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() < 200 || response.statusCode() >= 300) {
+                throw new TaskStorageException("채팅 첨부 파일 업로드에 실패했습니다. 잠시 후 다시 시도해주세요.");
+            }
+            return new StoredObject(objectPath, contentType);
+        } catch (IOException exception) {
+            throw new TaskStorageException("채팅 첨부 파일을 읽거나 업로드하지 못했습니다.", exception);
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            throw new TaskStorageException("채팅 첨부 파일 업로드가 중단되었습니다.", exception);
+        }
+    }
+
     public URI createSignedDownloadUrl(String objectPath) {
         validateConfiguration();
         try {
@@ -239,4 +267,6 @@ public class TaskStorageService {
         String extension = filename.substring(dot + 1).toLowerCase(Locale.ROOT);
         return extension.matches("[a-z0-9]{1,10}") ? extension : "";
     }
+
+    public record StoredObject(String objectPath, String contentType) {}
 }

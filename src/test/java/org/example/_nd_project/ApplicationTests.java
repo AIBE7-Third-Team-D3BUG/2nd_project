@@ -1,5 +1,7 @@
 package org.example._nd_project;
 
+import org.example._nd_project.chat.ChatMessageRepository;
+import org.example._nd_project.chat.ChatRoomRepository;
 import org.example._nd_project.member.MemberRepository;
 import org.example._nd_project.member.TimeAccountRepository;
 import org.example._nd_project.member.TimeTransactionRepository;
@@ -25,6 +27,8 @@ class ApplicationTests {
     @MockitoBean DisputeRepository disputeRepository;
     @MockitoBean ReviewRepository reviewRepository;
     @MockitoBean VolunteerRepository volunteerRepository;
+    @MockitoBean ChatRoomRepository chatRoomRepository;
+    @MockitoBean ChatMessageRepository chatMessageRepository;
 
     @Test
     void contextLoads() {
