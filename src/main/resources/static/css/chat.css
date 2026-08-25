@@ -24,8 +24,8 @@ main { padding: 32px 42px 42px; }
 .page-heading p { margin: 0 0 10px; color: #69758b; font-size: 13px; font-weight: 800; }
 .page-heading h1 { margin: 0 0 6px; font-size: 30px; letter-spacing: -1px; }
 .page-heading span { color: var(--muted); font-size: 15px; }
-.chat-layout { display: grid; grid-template-columns: 340px minmax(0, 1fr); height: 680px; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
-.room-list { border-right: 1px solid var(--line); overflow-y: auto; background: #fbfcfe; }
+.chat-layout { display: grid; grid-template-columns: 340px minmax(0, 1fr); height: 680px; min-height: 0; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.room-list { min-height: 0; border-right: 1px solid var(--line); overflow-y: auto; background: #fbfcfe; }
 .room-list-title { height: 70px; padding: 0 22px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); background: white; }
 .room-list-title h2 { margin: 0; font-size: 19px; }
 .room-list-title span { min-width: 28px; padding: 4px 8px; text-align: center; color: var(--blue); background: var(--blue-soft); border-radius: 999px; font-weight: 800; }
@@ -41,11 +41,11 @@ main { padding: 32px 42px 42px; }
 .room-copy em { overflow: hidden; color: #57647b; font-size: 12px; font-style: normal; text-overflow: ellipsis; white-space: nowrap; }
 .room-preview { overflow: hidden; color: #8892a4; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
 .unread { position: absolute; right: 16px; bottom: 14px; min-width: 21px; padding: 3px 6px; color: white; background: var(--blue); border-radius: 999px; text-align: center; font-size: 11px; font-weight: 800; }
-.conversation { min-width: 0; display: grid; grid-template-rows: 70px minmax(0, 1fr) auto auto; background: #f8f9fc; }
+.conversation { min-width: 0; min-height: 0; height: 100%; display: grid; grid-template-rows: 70px minmax(0, 1fr) auto auto; overflow: hidden; background: #f8f9fc; }
 .conversation-header { display: flex; align-items: center; gap: 12px; padding: 0 24px; background: white; border-bottom: 1px solid var(--line); }
 .conversation-header h2 { margin: 0 0 3px; font-size: 17px; }
 .conversation-header a { color: var(--blue); font-size: 13px; font-weight: 700; }
-.messages { padding: 24px; overflow-y: auto; }
+.messages { min-width: 0; min-height: 0; padding: 24px; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; }
 .empty-messages, .no-rooms { height: 100%; display: grid; place-content: center; justify-items: center; text-align: center; color: var(--muted); }
 .empty-messages span, .no-rooms > span { font-size: 40px; }
 .empty-messages strong { margin-top: 10px; color: var(--ink); font-size: 17px; }
@@ -60,13 +60,13 @@ main { padding: 32px 42px 42px; }
 .bubble p { margin: 0; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
 .image-attachment { display: block; margin-top: 7px; }
 .image-attachment:first-child { margin-top: 0; }
-.image-attachment img { display: block; max-width: min(100%, 420px); max-height: 300px; object-fit: contain; border-radius: 9px; }
+.image-attachment img { display: block; width: auto; height: auto; max-width: min(100%, 420px); max-height: min(300px, 38vh); object-fit: contain; border-radius: 9px; }
 .file-attachment { display: flex; align-items: center; gap: 8px; margin-top: 8px; padding: 9px 11px; color: var(--ink); background: rgba(255,255,255,.92); border-radius: 8px; font-size: 13px; }
 .file-attachment strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .message-meta { display: flex; gap: 7px; margin-top: 5px; color: #929bad; font-size: 11px; }
 .mine .message-meta { justify-content: flex-end; }
 .chat-error { margin: 0 24px 10px; padding: 9px 12px; color: #b33030; background: #fff0f0; border-radius: 8px; font-size: 13px; }
-.composer { display: grid; grid-template-columns: 42px minmax(0, 1fr) 78px; align-items: end; gap: 10px; padding: 15px 20px 18px; background: white; border-top: 1px solid var(--line); }
+.composer { position: relative; z-index: 2; min-height: 76px; display: grid; grid-template-columns: 42px minmax(0, 1fr) 78px; align-items: end; gap: 10px; padding: 15px 20px 18px; background: white; border-top: 1px solid var(--line); }
 .attach-button { width: 42px; height: 42px; display: grid; place-items: center; color: var(--blue); background: var(--blue-soft); border-radius: 9px; cursor: pointer; font-size: 25px; }
 #attachment { display: none; }
 .composer-main { min-width: 0; padding: 9px 12px; background: #f6f7fa; border: 1px solid #e0e4ec; border-radius: 10px; }

@@ -122,7 +122,15 @@
 </div>
 <script>
     const messages = document.getElementById("messages");
-    if (messages) messages.scrollTop = messages.scrollHeight;
+    const scrollMessagesToBottom = () => {
+        if (messages) messages.scrollTop = messages.scrollHeight;
+    };
+    if (messages) {
+        requestAnimationFrame(scrollMessagesToBottom);
+        messages.querySelectorAll(".image-attachment img").forEach((image) => {
+            if (!image.complete) image.addEventListener("load", scrollMessagesToBottom, { once: true });
+        });
+    }
 
     const fileInput = document.getElementById("attachment");
     const selectedFile = document.getElementById("selectedFile");
