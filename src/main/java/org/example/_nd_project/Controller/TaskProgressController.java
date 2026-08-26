@@ -80,9 +80,9 @@ public class TaskProgressController {
     }
 
     @PostMapping("/tasks/{taskId}/cancel")
-    public String cancelInProgressTask(@AuthenticationPrincipal MemberPrincipal principal,
-                                       @PathVariable Long taskId) {
-        taskService.cancelInProgressTask(taskId, principal.memberId());
+    public String cancelActiveTask(@AuthenticationPrincipal MemberPrincipal principal,
+                                   @PathVariable Long taskId) {
+        taskService.cancelActiveTask(taskId, principal.memberId());
         return "redirect:/profile?cancelledTask";
     }
 

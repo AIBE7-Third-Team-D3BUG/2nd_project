@@ -104,7 +104,23 @@ class TaskServiceTest {
         when(taskRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(task));
         when(submissionRepository.findByTaskId(10L)).thenReturn(Optional.empty());
 
-        taskService.cancelInProgressTask(10L, 3L);
+        taskService.cancelActiveTask(10L, 3L);
+
+        verify(timeLedgerService).refundTaskReservation(eq(3L), eq(10L), anyString());
+        verify(chatService).deleteRoomForTask(10L);
+        verify(taskRepository).delete(task);
+        verify(taskRepository).flush();
+    }
+
+    @Test
+    void requesterCanCancelMatchedTaskAndReceiveReservationRefund() {
+        Task task = mock(Task.class);
+        when(task.getRequesterId()).thenReturn(3L);
+        when(task.getStatus()).thenReturn(TaskStatus.MATCHED);
+        when(taskRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(task));
+        when(submissionRepository.findByTaskId(10L)).thenReturn(Optional.empty());
+
+        taskService.cancelActiveTask(10L, 3L);
 
         verify(timeLedgerService).refundTaskReservation(eq(3L), eq(10L), anyString());
         verify(chatService).deleteRoomForTask(10L);
@@ -120,7 +136,7 @@ class TaskServiceTest {
 
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
-                () -> taskService.cancelInProgressTask(10L, 8L)
+                () -> taskService.cancelActiveTask(10L, 8L)
         );
 
         assertEquals(404, exception.getStatusCode().value());

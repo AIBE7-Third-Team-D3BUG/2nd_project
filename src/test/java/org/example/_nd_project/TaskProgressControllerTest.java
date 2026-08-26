@@ -124,7 +124,7 @@ class TaskProgressControllerTest {
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/profile?cancelledTask"));
 
-        verify(taskService).cancelInProgressTask(10L, 3L);
+        verify(taskService).cancelActiveTask(10L, 3L);
     }
 
     @Test

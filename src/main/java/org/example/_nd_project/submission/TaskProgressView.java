@@ -26,7 +26,7 @@ public record TaskProgressView(
         ReviewView review
 ) {
     public boolean canCancel() {
-        return requester && currentStep == 3 && !cancelled;
+        return requester && (currentStep == 2 || currentStep == 3) && !cancelled;
     }
 
     public int requestedPum() {
