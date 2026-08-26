@@ -71,6 +71,7 @@ public class TaskProgressService {
                 task.isWorker(memberId) && task.getStatus() == TaskStatus.IN_PROGRESS,
                 task.isRequester(memberId) && task.getStatus() == TaskStatus.SUBMITTED,
                 task.getStatus() == TaskStatus.COMPLETED,
+                task.getStatus() == TaskStatus.CANCELLED,
                 task.getStatus() == TaskStatus.DISPUTED,
                 currentStep(task.getStatus()),
                 completionCriteria(task),
@@ -97,6 +98,8 @@ public class TaskProgressService {
                 task.getStatus() == TaskStatus.SUBMITTED);
         addActivity(activities, "완료 승인 및 정산이 완료되었습니다.", requesterName, task.getCompletedAt(),
                 task.getStatus() == TaskStatus.COMPLETED);
+        addActivity(activities, "의뢰자가 업무를 중도 취소했습니다.", requesterName, task.getCancelledAt(),
+                task.getStatus() == TaskStatus.CANCELLED);
         return activities;
     }
 
@@ -138,6 +141,9 @@ public class TaskProgressService {
     private String formatDeadline(Task task) {
         if (task.getStatus() == TaskStatus.COMPLETED) {
             return "완료";
+        }
+        if (task.getStatus() == TaskStatus.CANCELLED) {
+            return "취소됨";
         }
         Duration remaining = Duration.between(Instant.now(), task.getDeadlineAt());
         if (remaining.isNegative()) {

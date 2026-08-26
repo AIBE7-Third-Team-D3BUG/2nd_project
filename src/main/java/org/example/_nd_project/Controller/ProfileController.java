@@ -24,6 +24,9 @@ import org.springframework.web.servlet.view.RedirectView;
 @Controller
 public class ProfileController {
 
+    private static final int HISTORY_PAGE_SIZE = 10;
+    private static final int MAX_HISTORY_SIZE = 1_000;
+
     private final MemberService memberService;
     private final TaskService taskService;
     private final VolunteerService volunteerService;
@@ -35,8 +38,10 @@ public class ProfileController {
     }
 
     @GetMapping("/profile")
-    public String myProfile(@AuthenticationPrincipal MemberPrincipal principal, Model model) {
-        addProfileModel(model, principal.memberId(), true);
+    public String myProfile(@AuthenticationPrincipal MemberPrincipal principal,
+                            @RequestParam(defaultValue = "10") int historySize,
+                            Model model) {
+        addProfileModel(model, principal.memberId(), true, normalizeHistorySize(historySize));
         return "profile";
     }
 
@@ -44,7 +49,7 @@ public class ProfileController {
     public String publicProfile(@PathVariable Long memberId,
                                 @AuthenticationPrincipal MemberPrincipal principal,
                                 Model model) {
-        addProfileModel(model, memberId, principal != null && memberId.equals(principal.memberId()));
+        addProfileModel(model, memberId, principal != null && memberId.equals(principal.memberId()), HISTORY_PAGE_SIZE);
         return "profile";
     }
 
@@ -87,10 +92,23 @@ public class ProfileController {
         return new RedirectView(memberService.createProfileImageUrl(memberId).toString());
     }
 
-    private void addProfileModel(Model model, Long memberId, boolean isOwner) {
+    private void addProfileModel(Model model, Long memberId, boolean isOwner, int historySize) {
         taskService.expireOverdueOpenTasks();
         model.addAttribute("profile", memberService.getProfile(memberId));
         model.addAttribute("isOwner", isOwner);
+        if (isOwner) {
+            var timeTransactionHistory = memberService.getTimeTransactionHistory(memberId, historySize);
+            long timeTransactionHistoryCount = memberService.getTimeTransactionHistoryCount(memberId);
+            model.addAttribute("timeTransactionHistory", timeTransactionHistory);
+            model.addAttribute("hasMoreTimeTransactionHistory",
+                    historySize < MAX_HISTORY_SIZE && timeTransactionHistoryCount > timeTransactionHistory.size());
+            model.addAttribute("nextHistorySize", historySize + HISTORY_PAGE_SIZE);
+            model.addAttribute("isTimeTransactionHistoryExpanded", historySize > HISTORY_PAGE_SIZE);
+        } else {
+            model.addAttribute("timeTransactionHistory", java.util.List.of());
+            model.addAttribute("hasMoreTimeTransactionHistory", false);
+            model.addAttribute("isTimeTransactionHistoryExpanded", false);
+        }
         model.addAttribute("registeredTasks", taskService.findRegisteredTasks(memberId));
         model.addAttribute("workingTasks", taskService.findWorkingTasks(memberId));
         model.addAttribute("assignedTasks", taskService.findWorkingTasks(memberId));
@@ -105,5 +123,9 @@ public class ProfileController {
         form.setSkillTags(String.join(", ", profile.skillTags()));
         form.setNotificationEnabled(profile.notificationEnabled());
         return form;
+    }
+
+    private int normalizeHistorySize(int historySize) {
+        return Math.max(HISTORY_PAGE_SIZE, Math.min(historySize, MAX_HISTORY_SIZE));
     }
 }
