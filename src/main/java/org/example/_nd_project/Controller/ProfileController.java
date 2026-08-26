@@ -4,12 +4,14 @@ import jakarta.validation.Valid;
 import org.example._nd_project.member.DuplicateMemberException;
 import org.example._nd_project.member.MemberProfileView;
 import org.example._nd_project.member.MemberService;
+import org.example._nd_project.member.MemberWithdrawalService;
 import org.example._nd_project.member.ProfileUpdateForm;
 import org.example._nd_project.security.MemberPrincipal;
 import org.example._nd_project.task.TaskService;
 import org.example._nd_project.task.TaskStorageException;
 import org.example._nd_project.volunteer.VolunteerService;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -21,6 +23,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.view.RedirectView;
 
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.security.core.context.SecurityContextHolder;
+
 @Controller
 public class ProfileController {
 
@@ -28,11 +33,16 @@ public class ProfileController {
     private static final int MAX_HISTORY_SIZE = 1_000;
 
     private final MemberService memberService;
+    private final ObjectProvider<MemberWithdrawalService> memberWithdrawalService;
     private final TaskService taskService;
     private final VolunteerService volunteerService;
 
-    public ProfileController(MemberService memberService, TaskService taskService, VolunteerService volunteerService) {
+    public ProfileController(MemberService memberService,
+                             ObjectProvider<MemberWithdrawalService> memberWithdrawalService,
+                             TaskService taskService,
+                             VolunteerService volunteerService) {
         this.memberService = memberService;
+        this.memberWithdrawalService = memberWithdrawalService;
         this.taskService = taskService;
         this.volunteerService = volunteerService;
     }
@@ -85,6 +95,34 @@ public class ProfileController {
             return "profile-edit";
         }
         return "redirect:/profile?updated";
+    }
+
+    @PostMapping("/profile/withdraw")
+    public String withdraw(@AuthenticationPrincipal MemberPrincipal principal,
+                           @RequestParam String password,
+                           @RequestParam(name = "confirmed", defaultValue = "false") boolean confirmed,
+                           HttpServletRequest request) {
+        if (!confirmed) {
+            return "redirect:/profile?withdrawalError=confirmation";
+        }
+        try {
+            MemberWithdrawalService withdrawalService = memberWithdrawalService.getIfAvailable();
+            if (withdrawalService == null) {
+                return "redirect:/profile?withdrawalError=unavailable";
+            }
+            withdrawalService.withdraw(principal.memberId(), password);
+        } catch (IllegalArgumentException exception) {
+            return "redirect:/profile?withdrawalError=password";
+        } catch (IllegalStateException exception) {
+            return "redirect:/profile?withdrawalError=unavailable";
+        }
+
+        SecurityContextHolder.clearContext();
+        var session = request.getSession(false);
+        if (session != null) {
+            session.invalidate();
+        }
+        return "redirect:/login?withdrawn";
     }
 
     @GetMapping("/members/{memberId}/image")
