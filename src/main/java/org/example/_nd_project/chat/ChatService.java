@@ -72,6 +72,7 @@ public class ChatService {
         return chatRoomRepository
                 .findByRequesterMemberIdOrWorkerMemberIdOrderByLastMessageAtDescUpdatedAtDesc(memberId, memberId)
                 .stream()
+                .filter(room -> !room.hasLeft(memberId))
                 .map(room -> toRoomView(room, memberId, List.of()))
                 .toList();
     }
@@ -79,6 +80,7 @@ public class ChatService {
     @Transactional
     public ChatRoomView openRoom(Long roomId, Long memberId) {
         ChatRoom room = requireRoomMember(roomId, memberId);
+        room.reenter(memberId);
         chatMessageRepository.markRead(roomId, memberId, Instant.now());
         List<ChatMessage> recentMessages = new ArrayList<>(chatMessageRepository
                 .findTop100ByRoomIdOrderBySentAtDescIdDesc(roomId));
@@ -89,6 +91,12 @@ public class ChatService {
                 .map(message -> toMessageView(message, memberId, room, requesterName, workerName))
                 .toList();
         return toRoomView(room, memberId, messages);
+    }
+
+    @Transactional
+    public void leaveRoom(Long roomId, Long memberId) {
+        ChatRoom room = requireRoomMember(roomId, memberId);
+        room.leave(memberId);
     }
 
     @Transactional

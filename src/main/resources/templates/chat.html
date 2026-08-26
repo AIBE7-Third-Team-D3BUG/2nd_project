@@ -59,6 +59,7 @@
                         <a th:href="@{/tasks/{id}/progress(id=${selectedRoom.taskId()})}"
                            th:text="${selectedRoom.taskTitle()}">업무 제목</a>
                     </div>
+                    <button class="leave-room-button" type="button" id="leaveRoomButton">나가기</button>
                 </header>
 
                 <div class="messages" id="messages">
@@ -112,6 +113,20 @@
             </article>
         </section>
 
+        <div class="modal-backdrop" id="leaveRoomModal" role="dialog" aria-modal="true" hidden>
+            <div class="confirm-modal">
+                <h2>채팅방을 나갈까요?</h2>
+                <p>나가면 내 채팅 목록에서 사라집니다. 다시 열면 대화 내용은 그대로 확인할 수 있어요.</p>
+                <div class="modal-actions">
+                    <button type="button" class="modal-cancel" id="cancelLeave">취소</button>
+                    <form th:action="@{/chat/{id}/leave(id=${selectedRoom.id()})}" method="post">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                        <button type="submit" class="modal-confirm">나가기</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
         <section class="no-rooms" th:if="${#lists.isEmpty(chatRooms)}">
             <span>💬</span>
             <h2>아직 시작된 대화가 없어요</h2>
@@ -146,6 +161,13 @@
             content.style.height = "auto";
             content.style.height = Math.min(content.scrollHeight, 120) + "px";
         });
+    }
+    const leaveButton = document.getElementById("leaveRoomButton");
+    const leaveModal = document.getElementById("leaveRoomModal");
+    if (leaveButton && leaveModal) {
+        leaveButton.addEventListener("click", () => leaveModal.hidden = false);
+        document.getElementById("cancelLeave").addEventListener("click", () => leaveModal.hidden = true);
+        leaveModal.addEventListener("click", (event) => { if (event.target === leaveModal) leaveModal.hidden = true; });
     }
 </script>
 </body>
