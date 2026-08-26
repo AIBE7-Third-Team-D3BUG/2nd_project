@@ -9,6 +9,7 @@ import org.example._nd_project.admin.AdminService;
 import org.example._nd_project.admin.AdminMonitoringService;
 import org.example._nd_project.member.MemberService;
 import org.example._nd_project.security.LoginAttemptService;
+import org.example._nd_project.security.LoginFailureHandler;
 import org.example._nd_project.security.MemberPrincipal;
 import org.example._nd_project.security.MemberUserDetailsService;
 import org.example._nd_project.security.SecurityConfig;
@@ -38,6 +39,7 @@ class AdminControllerTest {
     @MockitoBean AdminMonitoringService adminMonitoringService;
     @MockitoBean MemberUserDetailsService memberUserDetailsService;
     @MockitoBean LoginAttemptService loginAttemptService;
+    @MockitoBean LoginFailureHandler loginFailureHandler;
     @MockitoBean MemberService memberService;
 
     @Test
@@ -98,4 +100,3 @@ class AdminControllerTest {
                 List.of(), List.of(), List.of(), List.of(), List.of());
     }
 }
-

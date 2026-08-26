@@ -44,6 +44,7 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http,
                                                    AuthenticationManager authenticationManager,
                                                    LoginAttemptService attempts,
+                                                   LoginFailureHandler loginFailureHandler,
                                                    MemberService memberService,
                                                    SessionRegistry sessionRegistry) throws Exception {
         http
@@ -59,10 +60,7 @@ public class SecurityConfig {
                         .loginProcessingUrl("/login")
                         .usernameParameter("email")
                         .passwordParameter("password")
-                        .failureHandler((request, response, exception) -> {
-                            attempts.recordFailure(request.getParameter("email"), request.getRemoteAddr());
-                            response.sendRedirect(request.getContextPath() + "/login?error");
-                        })
+                        .failureHandler(loginFailureHandler)
                         .successHandler((request, response, authentication) -> {
                             attempts.clear(authentication.getName(), request.getRemoteAddr());
                             memberService.recordSuccessfulLogin(authentication.getName());
