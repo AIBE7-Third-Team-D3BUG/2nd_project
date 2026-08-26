@@ -27,6 +27,7 @@ public class ChatService {
     private static final ZoneId KOREA = ZoneId.of("Asia/Seoul");
     private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("M월 d일 HH:mm");
     private static final int MAX_CONTENT_LENGTH = 2_000;
+    private static final long MAX_ATTACHMENT_SIZE = 6L * 1024 * 1024;
 
     private final ChatRoomRepository chatRoomRepository;
     private final ChatMessageRepository chatMessageRepository;
@@ -72,6 +73,7 @@ public class ChatService {
         return chatRoomRepository
                 .findByRequesterMemberIdOrWorkerMemberIdOrderByLastMessageAtDescUpdatedAtDesc(memberId, memberId)
                 .stream()
+                .filter(room -> !room.hasLeft(memberId))
                 .map(room -> toRoomView(room, memberId, List.of()))
                 .toList();
     }
@@ -79,6 +81,7 @@ public class ChatService {
     @Transactional
     public ChatRoomView openRoom(Long roomId, Long memberId) {
         ChatRoom room = requireRoomMember(roomId, memberId);
+        room.reenter(memberId);
         chatMessageRepository.markRead(roomId, memberId, Instant.now());
         List<ChatMessage> recentMessages = new ArrayList<>(chatMessageRepository
                 .findTop100ByRoomIdOrderBySentAtDescIdDesc(roomId));
@@ -89,6 +92,21 @@ public class ChatService {
                 .map(message -> toMessageView(message, memberId, room, requesterName, workerName))
                 .toList();
         return toRoomView(room, memberId, messages);
+    }
+
+    @Transactional
+    public void leaveRoom(Long roomId, Long memberId) {
+        ChatRoom room = requireRoomMember(roomId, memberId);
+        if (room.hasLeft(memberId)) {
+            return;
+        }
+        String memberNickname = nicknameOf(memberId);
+        ChatMessage leaveNotice = ChatMessage.create(
+                roomId, memberId, memberNickname + "님이 채팅방을 나갔습니다.",
+                null, null, null, null);
+        chatMessageRepository.save(leaveNotice);
+        room.refreshLastMessage("채팅방을 나갔습니다.", leaveNotice.getSentAt());
+        room.leave(memberId);
     }
 
     @Transactional
@@ -115,6 +133,9 @@ public class ChatService {
         ChatRoom room = requireRoomMember(roomId, senderId);
         String normalizedContent = content == null ? "" : content.trim();
         boolean hasAttachment = attachment != null && !attachment.isEmpty();
+        if (hasAttachment && attachment.getSize() > MAX_ATTACHMENT_SIZE) {
+            throw new IllegalArgumentException("첨부 파일은 6MB 이하만 업로드할 수 있습니다.");
+        }
         if (!StringUtils.hasText(normalizedContent) && !hasAttachment) {
             throw new IllegalArgumentException("메시지 또는 첨부 파일을 입력해주세요.");
         }
