@@ -8,6 +8,7 @@ import org.example._nd_project.submission.TaskCompletionService;
 import org.example._nd_project.submission.TaskProgressService;
 import org.example._nd_project.submission.TaskProgressView;
 import org.example._nd_project.submission.TaskWorkflowService;
+import org.example._nd_project.task.TaskService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -38,6 +39,7 @@ class TaskProgressControllerTest {
     @MockitoBean SubmissionService submissionService;
     @MockitoBean TaskCompletionService taskCompletionService;
     @MockitoBean TaskWorkflowService taskWorkflowService;
+    @MockitoBean TaskService taskService;
 
     @Test
     void requesterReviewScreenRendersSubmittedResult() throws Exception {
@@ -63,6 +65,7 @@ class TaskProgressControllerTest {
                 false,
                 false,
                 true,
+                false,
                 false,
                 false,
                 4,
@@ -112,6 +115,19 @@ class TaskProgressControllerTest {
     }
 
     @Test
+    void requesterCanCancelInProgressTask() throws Exception {
+        MemberPrincipal requester = new MemberPrincipal(
+                3L, "requester@example.com", "password", "의뢰자", "USER", true
+        );
+
+        mockMvc.perform(post("/tasks/10/cancel").with(user(requester)).with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/profile?cancelledTask"));
+
+        verify(taskService).cancelInProgressTask(10L, 3L);
+    }
+
+    @Test
     void matchedWorkerScreenRendersStartAction() throws Exception {
         MemberPrincipal worker = new MemberPrincipal(
                 8L,
@@ -132,6 +148,7 @@ class TaskProgressControllerTest {
                 false,
                 true,
                 true,
+                false,
                 false,
                 false,
                 false,

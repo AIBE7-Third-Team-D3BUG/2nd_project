@@ -368,9 +368,12 @@ main { padding: 34px 42px 60px; }
 .state-icon { width: 48px; height: 48px; display: grid; place-items: center; margin: 0 auto 16px; border-radius: 50%; font-size: 20px; font-weight: 900; }
 .success-icon { color: var(--success); background: var(--success-soft); }
 .warning-icon { color: var(--warning); background: var(--warning-soft); }
+.cancelled-icon { color: var(--danger); background: var(--danger-soft); }
 .waiting-icon { color: var(--brand); background: var(--brand-soft); }
 .state-panel p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.6; }
 .state-panel .start-form { margin: 20px 0 0; }
+.cancellation-panel { border-color: #f1c0bc; background: #fffafa; }
+.cancellation-panel .panel-description { margin-bottom: 18px; }
 .completed-review { margin-top: 18px; padding: 14px; border-radius: 8px; background: #f7f8fa; text-align: left; }
 .completed-review > strong { display: block; color: #9a6700; font-size: 14px; }
 .completed-review > span { display: inline-block; margin-top: 7px; color: var(--success); font-size: 11px; font-weight: 800; }
