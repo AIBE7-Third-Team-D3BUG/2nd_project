@@ -1,3 +1,5 @@
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css");
+
 :root {
     color-scheme: light;
     --brand: #315cf4;
@@ -22,60 +24,75 @@ html { background: var(--surface); }
 body {
     min-height: 100vh;
     margin: 0;
-    padding: 32px 16px;
+    padding: 16px;
     color: var(--ink);
     background: var(--surface);
-    font-family: Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    font-size: 14px;
+    font-family: Pretendard, "Noto Sans KR", Arial, sans-serif;
+    font-size: 15px;
     letter-spacing: -.02em;
     -webkit-font-smoothing: antialiased;
 }
 button, input, textarea { font: inherit; }
 [th\:if] { display: none; }
 .progress-shell {
-    width: min(100%, 1180px);
-    min-height: calc(100vh - 64px);
+    width: min(100%, 1440px);
+    min-height: calc(100vh - 32px);
     margin: 0 auto;
     overflow: hidden;
     border: 1px solid var(--line);
-    border-radius: 12px;
+    border-radius: 14px;
     background: var(--panel);
 }
 .progress-header {
-    height: 58px;
-    padding: 0 36px;
+    height: 72px;
+    padding: 0 42px;
     display: grid;
     grid-template-columns: 1fr auto 1fr;
     align-items: center;
-    gap: 28px;
+    gap: 38px;
     border-bottom: 1px solid #e9ebef;
 }
 .brand {
     color: #242933;
     text-decoration: none;
+    font-family: Pretendard, "Noto Sans KR", Arial, sans-serif;
     font-size: 17px;
     font-weight: 900;
     letter-spacing: -.04em;
 }
-.progress-header nav { display: flex; gap: 28px; }
-.progress-header nav a,
-.profile-link {
-    padding: 20px 0;
-    color: #717a89;
+.progress-header nav { display: flex; gap: 38px; }
+.progress-header nav a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 0 21px;
+    border: 0;
+    border-bottom: 3px solid transparent;
+    color: #566176;
     text-decoration: none;
-    font-size: 14px;
-    font-weight: 800;
+    font-size: 15px;
+    font-weight: 700;
 }
-.progress-header nav a:hover,
-.progress-header nav a.active,
+.progress-header nav a:hover { color: var(--brand); }
+.progress-header nav a.active {
+    color: var(--brand);
+    border-bottom-color: var(--brand);
+}
+.profile-link {
+    justify-self: end;
+    padding: 8px 10px;
+    color: #566176;
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 700;
+}
 .profile-link:hover { color: var(--brand); }
-.profile-link { justify-self: end; padding: 8px 0; }
-main { padding: 34px 36px 60px; }
+main { padding: 34px 42px 60px; }
 .breadcrumb {
-    margin: 0 0 22px;
-    color: #818a98;
-    font-size: 11px;
-    font-weight: 900;
+    margin: 0 0 10px;
+    color: #69758b;
+    font-size: 13px;
+    font-weight: 800;
     letter-spacing: .04em;
     text-transform: uppercase;
 }
@@ -87,12 +104,12 @@ main { padding: 34px 36px 60px; }
     margin-bottom: 24px;
 }
 .hero h1 {
-    margin: 8px 0 6px;
-    font-size: 29px;
-    line-height: 1.28;
-    letter-spacing: -.045em;
+    margin: 0 0 6px;
+    font-size: 30px;
+    line-height: 1.25;
+    letter-spacing: -1px;
 }
-.hero p { margin: 0; color: var(--muted); line-height: 1.6; }
+.hero p { margin: 0; color: var(--muted); font-size: 15px; line-height: 1.6; }
 .status-pill {
     display: inline-flex;
     padding: 5px 9px;
@@ -317,6 +334,29 @@ main { padding: 34px 36px 60px; }
 .settlement-row span { color: #697282; font-size: 12px; }
 .settlement-row strong { color: var(--brand); font-size: 20px; }
 .approve-form { margin: 0; }
+.review-rating { margin: 0 0 18px; padding: 0; border: 0; }
+.review-rating legend { margin-bottom: 9px; color: #353b46; font-size: 12px; font-weight: 800; }
+.review-rating legend span { color: var(--danger); }
+.rating-options { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.rating-options label { cursor: pointer; }
+.rating-options input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.rating-options span {
+    min-height: 38px;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--line-strong);
+    border-radius: 7px;
+    color: #697282;
+    background: #fff;
+    font-size: 12px;
+    font-weight: 800;
+}
+.rating-options input:checked + span { color: #9a6700; border-color: #e7b94f; background: #fff8df; }
+.review-rating small { display: block; margin-top: 6px; color: var(--danger); font-size: 11px; }
+.review-content textarea { min-height: 90px; }
+.review-content label em { color: #8992a0; font-style: normal; font-weight: 500; }
+.deadline-check { display: flex; align-items: center; gap: 8px; margin: -3px 0 18px; color: #596273; cursor: pointer; font-size: 12px; }
+.deadline-check input { width: 16px; height: 16px; accent-color: var(--brand); }
 .action-details { margin-top: 10px; border: 1px solid var(--line); border-radius: 7px; }
 .action-details summary { padding: 12px; color: #626b79; cursor: pointer; font-size: 12px; font-weight: 800; text-align: center; list-style: none; }
 .action-details summary::-webkit-details-marker { display: none; }
@@ -328,9 +368,16 @@ main { padding: 34px 36px 60px; }
 .state-icon { width: 48px; height: 48px; display: grid; place-items: center; margin: 0 auto 16px; border-radius: 50%; font-size: 20px; font-weight: 900; }
 .success-icon { color: var(--success); background: var(--success-soft); }
 .warning-icon { color: var(--warning); background: var(--warning-soft); }
+.cancelled-icon { color: var(--danger); background: var(--danger-soft); }
 .waiting-icon { color: var(--brand); background: var(--brand-soft); }
 .state-panel p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.6; }
 .state-panel .start-form { margin: 20px 0 0; }
+.cancellation-panel { border-color: #f1c0bc; background: #fffafa; }
+.cancellation-panel .panel-description { margin-bottom: 18px; }
+.completed-review { margin-top: 18px; padding: 14px; border-radius: 8px; background: #f7f8fa; text-align: left; }
+.completed-review > strong { display: block; color: #9a6700; font-size: 14px; }
+.completed-review > span { display: inline-block; margin-top: 7px; color: var(--success); font-size: 11px; font-weight: 800; }
+.completed-review p { margin-top: 10px; color: #596273; white-space: pre-wrap; }
 
 @media (max-width: 900px) {
     .content-grid { grid-template-columns: 1fr; }

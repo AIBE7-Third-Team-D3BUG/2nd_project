@@ -17,12 +17,18 @@ public record TaskProgressView(
         boolean canSubmit,
         boolean canReview,
         boolean completed,
+        boolean cancelled,
         boolean disputed,
         int currentStep,
         List<String> completionCriteria,
         List<ActivityView> activities,
-        SubmissionView submission
+        SubmissionView submission,
+        ReviewView review
 ) {
+    public boolean canCancel() {
+        return requester && currentStep == 3 && !cancelled;
+    }
+
     public int requestedPum() {
         return requestedMinutes / 30;
     }
@@ -30,6 +36,9 @@ public record TaskProgressView(
     public String phaseLabel() {
         if (completed) {
             return "COMMON-05 · 업무 완료 / 정산";
+        }
+        if (cancelled) {
+            return "COMMON-05 · 업무 취소";
         }
         if (disputed) {
             return "COMMON-04 · 문제 신고 / 검토";
@@ -66,6 +75,16 @@ public record TaskProgressView(
     ) {
         public boolean hasRequesterNote() {
             return requesterNote != null && !requesterNote.isBlank();
+        }
+    }
+
+    public record ReviewView(int rating, String content, Boolean deadlineMet) {
+        public boolean hasContent() {
+            return content != null && !content.isBlank();
+        }
+
+        public String ratingLabel() {
+            return "★".repeat(rating) + "☆".repeat(5 - rating) + " " + rating + ".0";
         }
     }
 }

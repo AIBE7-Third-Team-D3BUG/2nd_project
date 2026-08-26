@@ -96,6 +96,63 @@ public class TaskStorageService {
         }
     }
 
+    public String uploadProfileImage(Long memberId, MultipartFile file) {
+        validateConfiguration();
+        validateProfileImage(file);
+
+        String extension = extensionOf(file.getOriginalFilename());
+        String contentType = resolveContentType(file.getContentType(), extension);
+        String objectPath = "profiles/" + memberId + "/" + UUID.randomUUID() + "." + extension;
+
+        try {
+            HttpRequest request = authorizedRequest(
+                    URI.create(supabaseUrl + "/storage/v1/object/" + bucket + "/" + objectPath)
+            )
+                    .header("Content-Type", contentType)
+                    .header("x-upsert", "false")
+                    .POST(HttpRequest.BodyPublishers.ofByteArray(file.getBytes()))
+                    .build();
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() < 200 || response.statusCode() >= 300) {
+                throw new TaskStorageException("프로필 사진 업로드에 실패했습니다. 잠시 후 다시 시도해주세요.");
+            }
+            return objectPath;
+        } catch (IOException exception) {
+            throw new TaskStorageException("프로필 사진을 읽거나 업로드하지 못했습니다.", exception);
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            throw new TaskStorageException("프로필 사진 업로드가 중단되었습니다.", exception);
+        }
+    }
+
+    public StoredObject uploadChatAttachment(Long roomId, MultipartFile file) {
+        validateConfiguration();
+        validateFile(file);
+        String extension = extensionOf(file.getOriginalFilename());
+        String contentType = resolveContentType(file.getContentType(), extension);
+        String suffix = extension.isEmpty() ? "" : "." + extension;
+        String objectPath = "chats/" + roomId + "/" + UUID.randomUUID() + suffix;
+        try {
+            HttpRequest request = authorizedRequest(
+                    URI.create(supabaseUrl + "/storage/v1/object/" + bucket + "/" + objectPath)
+            )
+                    .header("Content-Type", contentType)
+                    .header("x-upsert", "false")
+                    .POST(HttpRequest.BodyPublishers.ofByteArray(file.getBytes()))
+                    .build();
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() < 200 || response.statusCode() >= 300) {
+                throw new TaskStorageException("채팅 첨부 파일 업로드에 실패했습니다. 잠시 후 다시 시도해주세요.");
+            }
+            return new StoredObject(objectPath, contentType);
+        } catch (IOException exception) {
+            throw new TaskStorageException("채팅 첨부 파일을 읽거나 업로드하지 못했습니다.", exception);
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            throw new TaskStorageException("채팅 첨부 파일 업로드가 중단되었습니다.", exception);
+        }
+    }
+
     public URI createSignedDownloadUrl(String objectPath) {
         validateConfiguration();
         try {
@@ -172,6 +229,22 @@ public class TaskStorageService {
         }
     }
 
+    private void validateProfileImage(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new TaskStorageException("업로드할 프로필 사진이 비어 있습니다.");
+        }
+        if (file.getSize() > 3L * 1024 * 1024) {
+            throw new TaskStorageException("프로필 사진은 3MB 이하만 업로드할 수 있습니다.");
+        }
+        String extension = extensionOf(file.getOriginalFilename());
+        if (!Set.of("jpg", "jpeg", "png", "webp").contains(extension)) {
+            throw new TaskStorageException("프로필 사진은 JPG, PNG, WEBP 형식만 사용할 수 있습니다.");
+        }
+        if (!resolveContentType(file.getContentType(), extension).startsWith("image/")) {
+            throw new TaskStorageException("올바른 이미지 파일을 선택해주세요.");
+        }
+    }
+
     private String resolveContentType(String suppliedContentType, String extension) {
         String inferred = EXTENSION_CONTENT_TYPES.get(extension);
         if (inferred != null) {
@@ -194,4 +267,6 @@ public class TaskStorageService {
         String extension = filename.substring(dot + 1).toLowerCase(Locale.ROOT);
         return extension.matches("[a-z0-9]{1,10}") ? extension : "";
     }
+
+    public record StoredObject(String objectPath, String contentType) {}
 }

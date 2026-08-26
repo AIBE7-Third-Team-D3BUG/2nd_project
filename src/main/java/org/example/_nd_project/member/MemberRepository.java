@@ -16,4 +16,14 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("update Member member set member.completedTaskCount = member.completedTaskCount + 1 where member.id = :memberId")
     int incrementCompletedTaskCount(@Param("memberId") Long memberId);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+            update Member member
+            set member.completedTaskCount = member.completedTaskCount + 1,
+                member.reviewCount = member.reviewCount + 1,
+                member.ratingSum = member.ratingSum + :rating
+            where member.id = :memberId
+            """)
+    int recordCompletedTaskReview(@Param("memberId") Long memberId, @Param("rating") int rating);
 }

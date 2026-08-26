@@ -136,5 +136,9 @@ public class TimeTransaction {
     public String getTransactionType() { return transactionType; }
     public int getAvailableDeltaMinutes() { return availableDeltaMinutes; }
     public int getReservedDeltaMinutes() { return reservedDeltaMinutes; }
+    public int getAvailableBalanceAfter() { return availableBalanceAfter; }
+    public int getReservedBalanceAfter() { return reservedBalanceAfter; }
+    public String getReason() { return reason; }
+    public Instant getCreatedAt() { return createdAt; }
     public String getIdempotencyKey() { return idempotencyKey; }
 }

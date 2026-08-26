@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>채팅 | D3BUG</title>
+    <link rel="stylesheet" href="../static/css/chat.css" th:href="@{/css/chat.css}">
+</head>
+<body>
+<div class="chat-shell">
+    <header class="chat-header">
+        <a class="brand" th:href="@{/}">D3BUG</a>
+        <nav aria-label="주요 메뉴">
+            <a th:href="@{/}">업무 찾기</a>
+            <a th:href="@{/(view='dashboard')}">내 업무</a>
+            <a class="active" th:href="@{/chat}">채팅</a>
+        </nav>
+        <a class="profile-link" th:href="@{/profile}">내 프로필</a>
+    </header>
+
+    <main>
+        <div class="page-heading">
+            <div>
+                <p>COMMON-06 · 업무 채팅</p>
+                <h1>채팅</h1>
+                <span>매칭된 의뢰인과 작업자가 업무 내용을 안전하게 주고받을 수 있어요.</span>
+            </div>
+        </div>
+
+        <section class="chat-layout" th:if="${!#lists.isEmpty(chatRooms)}">
+            <aside class="room-list" aria-label="채팅방 목록">
+                <div class="room-list-title">
+                    <h2>대화 목록</h2>
+                    <span th:text="${#lists.size(chatRooms)}">0</span>
+                </div>
+                <a class="room-item"
+                   th:each="room : ${chatRooms}"
+                   th:href="@{/chat(room=${room.id()})}"
+                   th:classappend="${selectedRoom != null and selectedRoom.id() == room.id() ? 'selected' : ''}">
+                    <span class="avatar" th:text="${#strings.substring(room.otherMemberNickname(), 0, 1)}">상</span>
+                    <span class="room-copy">
+                        <span class="room-topline">
+                            <strong th:text="${room.otherMemberNickname()}">상대방</strong>
+                            <time th:text="${room.lastMessageAtLabel()}">8월 25일 13:00</time>
+                        </span>
+                        <em th:text="${room.taskTitle()}">업무 제목</em>
+                        <span class="room-preview" th:text="${room.lastMessagePreview()}">최근 메시지</span>
+                    </span>
+                    <span class="unread" th:if="${room.unreadCount() > 0}"
+                          th:text="${room.unreadCount() > 99 ? '99+' : room.unreadCount()}">1</span>
+                </a>
+            </aside>
+
+            <article class="conversation" th:if="${selectedRoom != null}">
+                <header class="conversation-header">
+                    <span class="avatar large" th:text="${#strings.substring(selectedRoom.otherMemberNickname(), 0, 1)}">상</span>
+                    <div>
+                        <h2 th:text="${selectedRoom.otherMemberNickname()}">상대방</h2>
+                        <a th:href="@{/tasks/{id}/progress(id=${selectedRoom.taskId()})}"
+                           th:text="${selectedRoom.taskTitle()}">업무 제목</a>
+                    </div>
+                </header>
+
+                <div class="messages" id="messages">
+                    <div class="empty-messages" th:if="${#lists.isEmpty(selectedRoom.messages())}">
+                        <span>💬</span>
+                        <strong>첫 메시지를 보내보세요</strong>
+                        <p>업무 관련 대화와 파일은 이 채팅방에서만 확인할 수 있습니다.</p>
+                    </div>
+
+                    <div class="message-row" th:each="message : ${selectedRoom.messages()}"
+                         th:classappend="${message.mine() ? 'mine' : 'other'}">
+                        <span class="message-avatar" th:unless="${message.mine()}"
+                              th:text="${#strings.substring(message.senderNickname(), 0, 1)}">상</span>
+                        <div class="message-block">
+                            <strong class="sender" th:unless="${message.mine()}"
+                                    th:text="${message.senderNickname()}">상대방</strong>
+                            <div class="bubble">
+                                <p th:if="${!#strings.isEmpty(message.content())}" th:text="${message.content()}">메시지</p>
+                                <a class="image-attachment" th:if="${message.hasAttachment() and message.previewableImage()}"
+                                   th:href="@{/chat/messages/{id}/attachment(id=${message.id()})}" target="_blank" rel="noopener">
+                                    <img th:src="@{/chat/messages/{id}/attachment(id=${message.id()})}" th:alt="${message.attachmentName()}">
+                                </a>
+                                <a class="file-attachment" th:if="${message.hasAttachment()}"
+                                   th:href="@{/chat/messages/{id}/attachment(id=${message.id()})}" target="_blank" rel="noopener">
+                                    <span>↗</span>
+                                    <strong th:text="${message.attachmentName()}">첨부 파일</strong>
+                                </a>
+                            </div>
+                            <div class="message-meta">
+                                <span th:if="${message.mine()}" th:text="${message.read() ? '읽음' : '전송됨'}">읽음</span>
+                                <time th:text="${message.sentAtLabel()}">8월 25일 13:00</time>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chat-error" th:if="${chatError}" th:text="${chatError}">오류 메시지</div>
+                <form class="composer" th:action="@{/chat/{id}/messages(id=${selectedRoom.id()})}"
+                      method="post" enctype="multipart/form-data">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                    <label class="attach-button" for="attachment" title="파일 첨부">＋</label>
+                    <input id="attachment" name="attachment" type="file"
+                           accept="image/*,text/*,.pdf,.zip,.docx,.pptx,.xlsx,.hwp">
+                    <div class="composer-main">
+                        <textarea id="content" name="content" maxlength="2000" rows="1"
+                                  placeholder="메시지를 입력하세요"></textarea>
+                        <span id="selectedFile"></span>
+                    </div>
+                    <button type="submit">보내기</button>
+                </form>
+            </article>
+        </section>
+
+        <section class="no-rooms" th:if="${#lists.isEmpty(chatRooms)}">
+            <span>💬</span>
+            <h2>아직 시작된 대화가 없어요</h2>
+            <p>업무에 지원하고 작업자로 선택되면 의뢰인과 대화할 채팅방이 자동으로 생성됩니다.</p>
+            <a th:href="@{/}">업무 둘러보기</a>
+        </section>
+    </main>
+</div>
+<script>
+    const messages = document.getElementById("messages");
+    const scrollMessagesToBottom = () => {
+        if (messages) messages.scrollTop = messages.scrollHeight;
+    };
+    if (messages) {
+        requestAnimationFrame(scrollMessagesToBottom);
+        messages.querySelectorAll(".image-attachment img").forEach((image) => {
+            if (!image.complete) image.addEventListener("load", scrollMessagesToBottom, { once: true });
+        });
+    }
+
+    const fileInput = document.getElementById("attachment");
+    const selectedFile = document.getElementById("selectedFile");
+    if (fileInput && selectedFile) {
+        fileInput.addEventListener("change", () => {
+            selectedFile.textContent = fileInput.files.length ? "첨부: " + fileInput.files[0].name : "";
+        });
+    }
+
+    const content = document.getElementById("content");
+    if (content) {
+        content.addEventListener("input", () => {
+            content.style.height = "auto";
+            content.style.height = Math.min(content.scrollHeight, 120) + "px";
+        });
+    }
+</script>
+</body>
+</html>

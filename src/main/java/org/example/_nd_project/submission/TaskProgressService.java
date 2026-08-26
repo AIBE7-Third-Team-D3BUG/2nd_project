@@ -25,13 +25,16 @@ public class TaskProgressService {
 
     private final TaskRepository taskRepository;
     private final SubmissionRepository submissionRepository;
+    private final ReviewRepository reviewRepository;
     private final MemberRepository memberRepository;
 
     public TaskProgressService(TaskRepository taskRepository,
                                SubmissionRepository submissionRepository,
+                               ReviewRepository reviewRepository,
                                MemberRepository memberRepository) {
         this.taskRepository = taskRepository;
         this.submissionRepository = submissionRepository;
+        this.reviewRepository = reviewRepository;
         this.memberRepository = memberRepository;
     }
 
@@ -68,11 +71,13 @@ public class TaskProgressService {
                 task.isWorker(memberId) && task.getStatus() == TaskStatus.IN_PROGRESS,
                 task.isRequester(memberId) && task.getStatus() == TaskStatus.SUBMITTED,
                 task.getStatus() == TaskStatus.COMPLETED,
+                task.getStatus() == TaskStatus.CANCELLED,
                 task.getStatus() == TaskStatus.DISPUTED,
                 currentStep(task.getStatus()),
                 completionCriteria(task),
                 activities(task, requesterName, workerName),
-                toSubmissionView(submission, task)
+                toSubmissionView(submission, task),
+                reviewRepository.findByTaskId(taskId).map(this::toReviewView).orElse(null)
         );
     }
 
@@ -93,6 +98,8 @@ public class TaskProgressService {
                 task.getStatus() == TaskStatus.SUBMITTED);
         addActivity(activities, "완료 승인 및 정산이 완료되었습니다.", requesterName, task.getCompletedAt(),
                 task.getStatus() == TaskStatus.COMPLETED);
+        addActivity(activities, "의뢰자가 업무를 중도 취소했습니다.", requesterName, task.getCancelledAt(),
+                task.getStatus() == TaskStatus.CANCELLED);
         return activities;
     }
 
@@ -123,9 +130,20 @@ public class TaskProgressService {
         );
     }
 
+    private TaskProgressView.ReviewView toReviewView(Review review) {
+        return new TaskProgressView.ReviewView(
+                review.getRating(),
+                review.getContent(),
+                review.getDeadlineMet()
+        );
+    }
+
     private String formatDeadline(Task task) {
         if (task.getStatus() == TaskStatus.COMPLETED) {
             return "완료";
+        }
+        if (task.getStatus() == TaskStatus.CANCELLED) {
+            return "취소됨";
         }
         Duration remaining = Duration.between(Instant.now(), task.getDeadlineAt());
         if (remaining.isNegative()) {

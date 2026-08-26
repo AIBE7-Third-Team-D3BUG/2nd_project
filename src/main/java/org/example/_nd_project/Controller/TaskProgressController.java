@@ -4,12 +4,14 @@ import jakarta.validation.Valid;
 import org.example._nd_project.security.MemberPrincipal;
 import org.example._nd_project.submission.DisputeForm;
 import org.example._nd_project.submission.RevisionRequestForm;
+import org.example._nd_project.submission.ReviewForm;
 import org.example._nd_project.submission.SubmissionForm;
 import org.example._nd_project.submission.SubmissionService;
 import org.example._nd_project.submission.TaskCompletionService;
 import org.example._nd_project.submission.TaskProgressService;
 import org.example._nd_project.submission.TaskProgressView;
 import org.example._nd_project.submission.TaskWorkflowService;
+import org.example._nd_project.task.TaskService;
 import org.example._nd_project.task.TaskStorageException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
@@ -31,15 +33,18 @@ public class TaskProgressController {
     private final SubmissionService submissionService;
     private final TaskCompletionService taskCompletionService;
     private final TaskWorkflowService taskWorkflowService;
+    private final TaskService taskService;
 
     public TaskProgressController(TaskProgressService taskProgressService,
                                   SubmissionService submissionService,
                                   TaskCompletionService taskCompletionService,
-                                  TaskWorkflowService taskWorkflowService) {
+                                  TaskWorkflowService taskWorkflowService,
+                                  TaskService taskService) {
         this.taskProgressService = taskProgressService;
         this.submissionService = submissionService;
         this.taskCompletionService = taskCompletionService;
         this.taskWorkflowService = taskWorkflowService;
+        this.taskService = taskService;
     }
 
     @GetMapping("/tasks/{taskId}/progress")
@@ -61,6 +66,9 @@ public class TaskProgressController {
         if (!model.containsAttribute("disputeForm")) {
             model.addAttribute("disputeForm", new DisputeForm());
         }
+        if (!model.containsAttribute("reviewForm")) {
+            model.addAttribute("reviewForm", new ReviewForm());
+        }
         return "task-progress";
     }
 
@@ -69,6 +77,13 @@ public class TaskProgressController {
                         @PathVariable Long taskId) {
         taskWorkflowService.start(taskId, principal.memberId());
         return redirectToProgress(taskId) + "?started";
+    }
+
+    @PostMapping("/tasks/{taskId}/cancel")
+    public String cancelInProgressTask(@AuthenticationPrincipal MemberPrincipal principal,
+                                       @PathVariable Long taskId) {
+        taskService.cancelInProgressTask(taskId, principal.memberId());
+        return "redirect:/profile?cancelledTask";
     }
 
     @PostMapping("/tasks/{taskId}/submissions")
@@ -94,8 +109,15 @@ public class TaskProgressController {
 
     @PostMapping("/tasks/{taskId}/approve")
     public String approve(@AuthenticationPrincipal MemberPrincipal principal,
-                          @PathVariable Long taskId) {
-        taskCompletionService.approve(taskId, principal.memberId());
+                          @PathVariable Long taskId,
+                          @Valid @ModelAttribute("reviewForm") ReviewForm form,
+                          BindingResult bindingResult,
+                          RedirectAttributes redirectAttributes) {
+        if (bindingResult.hasErrors()) {
+            preserveErrors("reviewForm", form, bindingResult, redirectAttributes);
+            return redirectToProgress(taskId);
+        }
+        taskCompletionService.approve(taskId, principal.memberId(), form);
         return redirectToProgress(taskId) + "?approved";
     }
 
