@@ -9,6 +9,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.PostMapping;
 
 import java.util.List;
 
@@ -44,5 +45,11 @@ public class ChatController {
                            @PathVariable Long taskId) {
         Long roomId = chatService.findRoomIdForTask(taskId, principal.memberId());
         return "redirect:/chat?room=" + roomId;
+    }
+
+    @PostMapping("/chat/{roomId}/leave")
+    public String leave(@AuthenticationPrincipal MemberPrincipal principal, @PathVariable Long roomId) {
+        chatService.leaveRoom(roomId, principal.memberId());
+        return "redirect:/chat";
     }
 }

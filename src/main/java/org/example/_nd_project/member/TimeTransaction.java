@@ -133,8 +133,36 @@ public class TimeTransaction {
         return transaction;
     }
 
+    public static TimeTransaction adminAdjustment(
+            Long memberId,
+            int availableDeltaMinutes,
+            int availableBalanceAfter,
+            int reservedBalanceAfter,
+            Long adminId,
+            String transactionId,
+            String reason
+    ) {
+        TimeTransaction transaction = new TimeTransaction();
+        transaction.accountMemberId = memberId;
+        transaction.transactionGroupId = transactionId;
+        transaction.transactionType = availableDeltaMinutes > 0 ? "ADMIN_CREDIT" : "ADMIN_DEBIT";
+        transaction.availableDeltaMinutes = availableDeltaMinutes;
+        transaction.availableBalanceAfter = availableBalanceAfter;
+        transaction.reservedBalanceAfter = reservedBalanceAfter;
+        transaction.idempotencyKey = "admin:" + adminId + ":" + transactionId;
+        transaction.reason = reason;
+        return transaction;
+    }
+
+    public Long getId() { return id; }
+    public Long getAccountMemberId() { return accountMemberId; }
+    public Long getTaskId() { return taskId; }
     public String getTransactionType() { return transactionType; }
     public int getAvailableDeltaMinutes() { return availableDeltaMinutes; }
     public int getReservedDeltaMinutes() { return reservedDeltaMinutes; }
+    public int getAvailableBalanceAfter() { return availableBalanceAfter; }
+    public int getReservedBalanceAfter() { return reservedBalanceAfter; }
+    public String getReason() { return reason; }
+    public Instant getCreatedAt() { return createdAt; }
     public String getIdempotencyKey() { return idempotencyKey; }
 }

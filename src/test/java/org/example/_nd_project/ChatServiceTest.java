@@ -38,12 +38,13 @@ class ChatServiceTest {
     @Mock ChatMessageRepository chatMessageRepository;
     @Mock org.example._nd_project.member.MemberRepository memberRepository;
     @Mock TaskStorageService taskStorageService;
+    @Mock org.example._nd_project.task.TaskRepository taskRepository;
 
     private ChatService chatService;
 
     @BeforeEach
     void setUp() {
-        chatService = new ChatService(chatRoomRepository, chatMessageRepository, memberRepository, taskStorageService);
+        chatService = new ChatService(chatRoomRepository, chatMessageRepository, memberRepository, taskStorageService, taskRepository);
     }
 
     @Test
@@ -106,6 +107,45 @@ class ChatServiceTest {
         ReflectionTestUtils.setField(message, "readAt", Instant.now());
         var afterRead = chatService.openRoom(1L, 1L);
         assertTrue(afterRead.messages().get(0).read());
+    }
+
+    @Test
+    void moderatedMessageAndAttachmentAreHiddenFromParticipants() {
+        ChatRoom room = roomWithId(1L, 10L, 1L, 2L);
+        ChatMessage message = ChatMessage.create(1L, 1L, "원문", "private.png",
+                "chats/1/private.png", "image/png", 100L);
+        ReflectionTestUtils.setField(message, "id", 100L);
+        message.blind(9L, "개인정보 노출", Instant.now());
+        when(chatRoomRepository.findById(1L)).thenReturn(Optional.of(room));
+        when(chatMessageRepository.findTop100ByRoomIdOrderBySentAtDescIdDesc(1L)).thenReturn(List.of(message));
+        when(chatMessageRepository.findById(100L)).thenReturn(Optional.of(message));
+
+        var view = chatService.openRoom(1L, 2L);
+
+        assertEquals("관리자에 의해 블라인드된 메시지입니다.", view.messages().get(0).content());
+        assertFalse(view.messages().get(0).hasAttachment());
+        assertThrows(ResponseStatusException.class,
+                () -> chatService.createAttachmentDownloadUrl(100L, 2L));
+    }
+
+    @Test
+    void findRoomIdForTaskCreatesRoomWhenRoomNotExistsForMatchedTask() {
+        Task task = Task.create(1L, "긴급 업무", "설명", TaskCategory.DEVELOPMENT, new String[0], 60,
+                Instant.now().plusSeconds(3600), "완료 기준", null);
+        ReflectionTestUtils.setField(task, "id", 10L);
+        task.assignWorker(2L, Instant.now());
+
+        when(chatRoomRepository.findByTaskId(10L)).thenReturn(Optional.empty());
+        when(taskRepository.findById(10L)).thenReturn(Optional.of(task));
+        when(chatRoomRepository.saveAndFlush(any(ChatRoom.class))).thenAnswer(invocation -> {
+            ChatRoom r = invocation.getArgument(0);
+            ReflectionTestUtils.setField(r, "id", 99L);
+            return r;
+        });
+
+        Long roomId = chatService.findRoomIdForTask(10L, 1L);
+
+        assertEquals(99L, roomId);
     }
 
     private ChatRoom roomWithId(Long roomId, Long taskId, Long requesterId, Long workerId) {

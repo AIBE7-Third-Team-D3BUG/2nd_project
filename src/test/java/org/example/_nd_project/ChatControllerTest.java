@@ -49,6 +49,16 @@ class ChatControllerTest {
     }
 
     @Test
+    void newMemberWithoutChatRoomsSeesEmptyState() throws Exception {
+        when(chatService.getRooms(1L)).thenReturn(List.of());
+
+        mockMvc.perform(get("/chat").with(user(principal)))
+                .andExpect(status().isOk())
+                .andExpect(view().name("chat"))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("아직 시작된 대화가 없어요")));
+    }
+
+    @Test
     void messagePostRedirectsBackToRoom() throws Exception {
         mockMvc.perform(multipart("/chat/3/messages")
                         .param("content", "진행 상황을 공유합니다.")
