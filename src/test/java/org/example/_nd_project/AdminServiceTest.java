@@ -160,10 +160,9 @@ class AdminServiceTest {
     }
 
     @Test
-    void dashboardDateFilterUsesSpecificationsForEveryDatedSection() {
-        when(memberRepository.findAll(org.mockito.ArgumentMatchers.<Specification<Member>>any(),
-                org.mockito.ArgumentMatchers.any(Pageable.class)))
-                .thenAnswer(invocation -> new PageImpl<>(List.of(), invocation.getArgument(1), 0));
+    void dashboardDateFilterExcludesMemberManagementAndFiltersDatedSections() {
+        when(memberRepository.findAll(org.mockito.ArgumentMatchers.any(Pageable.class)))
+                .thenAnswer(invocation -> new PageImpl<>(List.of(), invocation.getArgument(0), 0));
         when(taskRepository.findAll(org.mockito.ArgumentMatchers.<Specification<Task>>any(),
                 org.mockito.ArgumentMatchers.any(Pageable.class)))
                 .thenAnswer(invocation -> new PageImpl<>(List.of(), invocation.getArgument(1), 0));
@@ -179,7 +178,9 @@ class AdminServiceTest {
 
         adminService.getDashboard("", LocalDate.of(2026, 8, 26), 0, 0, 0, 0);
 
-        verify(memberRepository).findAll(org.mockito.ArgumentMatchers.<Specification<Member>>any(),
+        verify(memberRepository).findAll(org.mockito.ArgumentMatchers.any(Pageable.class));
+        verify(memberRepository, org.mockito.Mockito.never()).findAll(
+                org.mockito.ArgumentMatchers.<Specification<Member>>any(),
                 org.mockito.ArgumentMatchers.any(Pageable.class));
         verify(taskRepository).findAll(org.mockito.ArgumentMatchers.<Specification<Task>>any(),
                 org.mockito.ArgumentMatchers.any(Pageable.class));
@@ -249,4 +250,3 @@ class AdminServiceTest {
         return member;
     }
 }
-

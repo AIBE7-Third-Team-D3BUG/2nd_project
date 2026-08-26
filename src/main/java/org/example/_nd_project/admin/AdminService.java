@@ -38,7 +38,6 @@ import java.util.function.Function;
 import org.springframework.data.jpa.domain.Specification;
 import jakarta.persistence.criteria.Predicate;
 import java.util.ArrayList;
-import java.util.Locale;
 
 @Service
 public class AdminService {
@@ -112,9 +111,8 @@ public class AdminService {
                 ? taskRepository.findIdsByParticipantIds(queryMemberIds) : List.of();
         Set<Long> queryTaskIds = relatedTaskIds.isEmpty() ? Set.of(-1L) : Set.copyOf(relatedTaskIds);
 
-        Page<Member> memberResult = normalizedResult(requestedMemberPage, page -> dateFiltering
-                ? memberRepository.findAll(memberSpecification(normalizedQuery, dateStart, dateEnd), pageRequest(page, 20))
-                : searching ? memberRepository.findByNicknameContainingIgnoreCaseOrEmailContainingIgnoreCase(
+        Page<Member> memberResult = normalizedResult(requestedMemberPage, page -> searching
+                ? memberRepository.findByNicknameContainingIgnoreCaseOrEmailContainingIgnoreCase(
                         normalizedQuery, normalizedQuery, pageRequest(page, 20))
                 : memberRepository.findAll(pageRequest(page, 20)));
         List<Member> members = memberResult.getContent();
@@ -172,20 +170,6 @@ public class AdminService {
                 transactions.stream().map(transaction -> transactionRow(transaction, memberMap)).toList(),
                 auditLogs.stream().map(log -> auditRow(log, memberMap)).toList()
         );
-    }
-
-    private Specification<Member> memberSpecification(String query, Instant start, Instant end) {
-        return (root, criteria, builder) -> {
-            List<Predicate> predicates = new ArrayList<>();
-            predicates.add(builder.greaterThanOrEqualTo(root.get("createdAt"), start));
-            predicates.add(builder.lessThan(root.get("createdAt"), end));
-            if (!query.isBlank()) {
-                String pattern = "%" + query.toLowerCase(Locale.ROOT) + "%";
-                predicates.add(builder.or(builder.like(builder.lower(root.get("nickname")), pattern),
-                        builder.like(builder.lower(root.get("email")), pattern)));
-            }
-            return builder.and(predicates.toArray(Predicate[]::new));
-        };
     }
 
     private Specification<Task> taskSpecification(boolean userFilter, Set<Long> memberIds,
@@ -433,4 +417,3 @@ public class AdminService {
                         .forEach(session -> session.expireNow()));
     }
 }
-
