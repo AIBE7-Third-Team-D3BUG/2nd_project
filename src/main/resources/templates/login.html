@@ -26,6 +26,7 @@
         <div class="alert alert-success" th:if="${param.registered}">가입이 완료되었습니다. 로그인해주세요.</div>
         <div class="alert alert-success" th:if="${param.logout}">안전하게 로그아웃되었습니다.</div>
         <div class="alert alert-error" th:if="${param.error}">이메일 또는 비밀번호가 올바르지 않습니다.</div>
+        <div class="alert alert-error" th:if="${param.suspended}">정지된 계정입니다.</div>
         <div class="alert alert-error" th:if="${param.blocked}">로그인 시도가 너무 많습니다. 15분 후 다시 시도해주세요.</div>
         <form th:action="@{/login}" method="post">
             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
