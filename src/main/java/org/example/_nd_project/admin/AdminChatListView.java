@@ -7,3 +7,4 @@ public record AdminChatListView(List<RoomRow> rooms) {
                           String workerName, long messageCount, String lastMessagePreview,
                           String lastMessageAtLabel, boolean requesterLeft, boolean workerLeft) {}
 }
+

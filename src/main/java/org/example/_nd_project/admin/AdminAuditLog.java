@@ -48,3 +48,4 @@ public class AdminAuditLog {
     public String getDetails() { return details; }
     public Instant getCreatedAt() { return createdAt; }
 }
+

@@ -9,7 +9,6 @@ import java.util.Optional;
 import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Pageable;
 
 public interface MemberRepository extends JpaRepository<Member, Long>, org.springframework.data.jpa.repository.JpaSpecificationExecutor<Member> {
     List<Member> findTop100ByOrderByCreatedAtDescIdDesc();

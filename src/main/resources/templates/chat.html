@@ -101,8 +101,9 @@
                       method="post" enctype="multipart/form-data">
                     <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                     <label class="attach-button" for="attachment" title="파일 첨부">＋</label>
+                    <span class="attachment-limit">최대 6MB</span>
                     <input id="attachment" name="attachment" type="file"
-                           accept="image/*,text/*,.pdf,.zip,.docx,.pptx,.xlsx,.hwp">
+                           accept="image/*,text/*,.pdf,.zip,.docx,.pptx,.xlsx,.hwp" data-max-size="6291456">
                     <div class="composer-main">
                         <textarea id="content" name="content" maxlength="2000" rows="1"
                                   placeholder="메시지를 입력하세요"></textarea>
@@ -113,8 +114,7 @@
             </article>
         </section>
 
-        <div class="modal-backdrop" id="leaveRoomModal" role="dialog" aria-modal="true" hidden
-             th:if="${selectedRoom != null}">
+        <div class="modal-backdrop" id="leaveRoomModal" role="dialog" aria-modal="true" hidden>
             <div class="confirm-modal">
                 <h2>채팅방을 나갈까요?</h2>
                 <p>나가면 내 채팅 목록에서 사라집니다. 다시 열면 대화 내용은 그대로 확인할 수 있어요.</p>
@@ -152,7 +152,17 @@
     const selectedFile = document.getElementById("selectedFile");
     if (fileInput && selectedFile) {
         fileInput.addEventListener("change", () => {
-            selectedFile.textContent = fileInput.files.length ? "첨부: " + fileInput.files[0].name : "";
+            const file = fileInput.files[0];
+            if (!file) {
+                selectedFile.textContent = "";
+                return;
+            }
+            if (file.size > Number(fileInput.dataset.maxSize)) {
+                selectedFile.textContent = "첨부 파일은 6MB 이하만 선택할 수 있습니다.";
+                fileInput.value = "";
+                return;
+            }
+            selectedFile.textContent = "첨부: " + file.name;
         });
     }
 

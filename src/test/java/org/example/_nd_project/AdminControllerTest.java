@@ -98,3 +98,4 @@ class AdminControllerTest {
                 List.of(), List.of(), List.of(), List.of(), List.of());
     }
 }
+

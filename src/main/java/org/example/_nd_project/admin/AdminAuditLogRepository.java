@@ -12,3 +12,4 @@ public interface AdminAuditLogRepository extends JpaRepository<AdminAuditLog, Lo
             @org.springframework.data.repository.query.Param("disputeIds") java.util.Collection<Long> disputeIds,
             org.springframework.data.domain.Pageable pageable);
 }
+

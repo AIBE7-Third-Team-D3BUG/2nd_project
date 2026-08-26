@@ -22,3 +22,4 @@ public record AdminDashboardView(
     public record AuditRow(Long id, String adminName, String action, String target,
                            String details, String createdAtLabel) {}
 }
+

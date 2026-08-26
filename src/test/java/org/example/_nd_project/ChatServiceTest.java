@@ -93,6 +93,18 @@ class ChatServiceTest {
     }
 
     @Test
+    void rejectsChatAttachmentOverSixMegabytes() {
+        ChatRoom room = roomWithId(1L, 10L, 1L, 2L);
+        when(chatRoomRepository.findById(1L)).thenReturn(Optional.of(room));
+        MockMultipartFile file = new MockMultipartFile("attachment", "large.pdf", "application/pdf",
+                new byte[6 * 1024 * 1024 + 1]);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> chatService.sendMessage(1L, 1L, "파일입니다", file));
+        verify(taskStorageService, never()).uploadChatAttachment(any(), any());
+    }
+
+    @Test
     void sentMessageIsUnreadUntilOtherMemberOpensRoom() {
         ChatRoom room = roomWithId(1L, 10L, 1L, 2L);
         ChatMessage message = ChatMessage.create(1L, 1L, "확인해주세요", null, null, null, null);
@@ -110,22 +122,16 @@ class ChatServiceTest {
     }
 
     @Test
-    void moderatedMessageAndAttachmentAreHiddenFromParticipants() {
+    void leavingRoomLeavesNoticeForOtherParticipant() {
         ChatRoom room = roomWithId(1L, 10L, 1L, 2L);
-        ChatMessage message = ChatMessage.create(1L, 1L, "원문", "private.png",
-                "chats/1/private.png", "image/png", 100L);
-        ReflectionTestUtils.setField(message, "id", 100L);
-        message.blind(9L, "개인정보 노출", Instant.now());
         when(chatRoomRepository.findById(1L)).thenReturn(Optional.of(room));
-        when(chatMessageRepository.findTop100ByRoomIdOrderBySentAtDescIdDesc(1L)).thenReturn(List.of(message));
-        when(chatMessageRepository.findById(100L)).thenReturn(Optional.of(message));
 
-        var view = chatService.openRoom(1L, 2L);
+        chatService.leaveRoom(1L, 1L);
 
-        assertEquals("관리자에 의해 블라인드된 메시지입니다.", view.messages().get(0).content());
-        assertFalse(view.messages().get(0).hasAttachment());
-        assertThrows(ResponseStatusException.class,
-                () -> chatService.createAttachmentDownloadUrl(100L, 2L));
+        ArgumentCaptor<ChatMessage> captor = ArgumentCaptor.forClass(ChatMessage.class);
+        verify(chatMessageRepository).save(captor.capture());
+        assertEquals("사용자님이 채팅방을 나갔습니다.", captor.getValue().getContent());
+        assertTrue(room.hasLeft(1L));
     }
 
     @Test

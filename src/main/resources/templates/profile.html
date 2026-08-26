@@ -53,6 +53,7 @@
         </section>
 
         <div class="alert alert-success" th:if="${isOwner and param.updated != null}">프로필이 저장되었습니다.</div>
+        <div class="alert alert-success" th:if="${isOwner and param.cancelledTask != null}">업무가 취소되어 관련 데이터가 삭제되고 예약된 품이 반환되었습니다.</div>
 
         <section class="profile-metrics" th:classappend="${!isOwner} ? ' public-metrics'" aria-label="프로필 활동 통계">
             <div class="metric-card"><span>완료한 업무</span><strong><span th:text="${profile.completedTaskCount()}">0</span>건</strong></div>
@@ -64,7 +65,66 @@
             </div>
             <div class="metric-card" th:if="${isOwner}"><span>업무 예약 중</span><strong><span th:text="${profile.reservedPum()}">0</span>품</strong></div>
         </section>
+
+        <section class="card time-history-card" th:if="${isOwner}" aria-labelledby="time-history-title">
+            <div class="time-history-heading">
+                <div>
+                    <p class="eyebrow">TIME CREDIT</p>
+                    <h2 id="time-history-title">품 이용 내역</h2>
+                    <p class="subtitle">최근 품 적립, 예약, 반환 및 정산 내역입니다.</p>
+                </div>
+                <span class="time-history-unit">1품 · 30분</span>
+            </div>
+
+            <div class="time-history-list" th:if="${!#lists.isEmpty(timeTransactionHistory)}">
+                <article class="time-history-item" th:each="transaction : ${timeTransactionHistory}">
+                    <div class="time-history-icon" th:classappend="${transaction.credit()} ? ' credit' : ' debit'"
+                         th:text="${transaction.credit()} ? '+' : '−'">+</div>
+                    <div class="time-history-copy">
+                        <div class="time-history-title-row">
+                            <h3 th:text="${transaction.label()}">가입 축하 품 지급</h3>
+                            <strong th:classappend="${transaction.credit()} ? ' credit' : ' debit'"
+                                    th:text="${(transaction.credit() ? '+' : '') + transaction.changePum() + '품'}">+4품</strong>
+                        </div>
+                        <p th:text="${transaction.reason()}">신규 회원 체험 시간 지급</p>
+                        <div class="time-history-meta">
+                            <time th:datetime="${transaction.createdAt()}"
+                                  th:text="${#temporals.format(transaction.createdAt(), 'yyyy.MM.dd HH:mm')}">2026.08.26 14:00</time>
+                            <span>사용 가능 <b th:text="${transaction.availablePum()}">4</b>품</span>
+                            <span>예약 중 <b th:text="${transaction.reservedPum()}">0</b>품</span>
+                        </div>
+                    </div>
+                </article>
+            </div>
+
+            <div class="time-history-empty" th:if="${#lists.isEmpty(timeTransactionHistory)}">
+                아직 품 이용 내역이 없습니다. 업무를 등록하거나 완료하면 내역이 표시됩니다.
+            </div>
+
+            <div class="time-history-actions"
+                 th:if="${hasMoreTimeTransactionHistory or isTimeTransactionHistoryExpanded}">
+                <a class="time-history-more" data-time-history-more th:if="${hasMoreTimeTransactionHistory}"
+                   th:href="@{/profile(historySize=${nextHistorySize})}">이용 내역 더보기</a>
+                <a class="time-history-collapse" th:if="${isTimeTransactionHistoryExpanded}"
+                   th:href="@{/profile}">이용 내역 접기</a>
+            </div>
+        </section>
     </div>
 </main>
+<script>
+    (() => {
+        const scrollPositionKey = 'profile-time-history-scroll-position';
+        const savedScrollPosition = sessionStorage.getItem(scrollPositionKey);
+
+        if (savedScrollPosition !== null) {
+            sessionStorage.removeItem(scrollPositionKey);
+            requestAnimationFrame(() => window.scrollTo(0, Number(savedScrollPosition)));
+        }
+
+        document.querySelector('[data-time-history-more]')?.addEventListener('click', () => {
+            sessionStorage.setItem(scrollPositionKey, String(window.scrollY));
+        });
+    })();
+</script>
 </body>
 </html>

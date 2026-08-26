@@ -134,13 +134,8 @@ public class TimeTransaction {
     }
 
     public static TimeTransaction adminAdjustment(
-            Long memberId,
-            int availableDeltaMinutes,
-            int availableBalanceAfter,
-            int reservedBalanceAfter,
-            Long adminId,
-            String transactionId,
-            String reason
+            Long memberId, int availableDeltaMinutes, int availableBalanceAfter,
+            int reservedBalanceAfter, Long adminId, String transactionId, String reason
     ) {
         TimeTransaction transaction = new TimeTransaction();
         transaction.accountMemberId = memberId;

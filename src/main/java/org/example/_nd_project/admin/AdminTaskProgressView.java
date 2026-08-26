@@ -15,3 +15,4 @@ public record AdminTaskProgressView(
     public record DisputeRow(String status, String openedBy, String description,
                              String resolutionNote, String createdAtLabel, String resolvedAtLabel) {}
 }
+

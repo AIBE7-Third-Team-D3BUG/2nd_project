@@ -35,3 +35,4 @@
 <script>document.querySelectorAll('.destructive-form').forEach((form)=>form.addEventListener('submit',(event)=>{if(!window.confirm('업무를 취소하고 예약 재화를 반환할까요?'))event.preventDefault();}));document.querySelectorAll('.balance-form').forEach((form)=>form.addEventListener('submit',(event)=>{if(!window.confirm('재화 변경은 원장과 감사 기록에 영구 저장됩니다. 계속할까요?'))event.preventDefault();}));</script>
 <script th:inline="javascript">(()=>{const selectedDate=/*[[${adminDate}]]*/'';if(!selectedDate)return;document.querySelectorAll('.pagination a').forEach((link)=>{const url=new URL(link.href,window.location.origin);url.searchParams.set('date',selectedDate);link.href=url.pathname+url.search+url.hash;});document.querySelectorAll('form[action^="/admin/"]').forEach((form)=>{if(form.querySelector('[name="returnDate"]'))return;const input=document.createElement('input');input.type='hidden';input.name='returnDate';input.value=selectedDate;form.appendChild(input);});})();</script>
 </body></html>
+
