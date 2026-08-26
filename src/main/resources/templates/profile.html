@@ -18,6 +18,7 @@
         <a sec:authorize="isAnonymous()" class="header-link" th:href="@{/login}">로그인</a>
         <a sec:authorize="isAnonymous()" class="header-link" th:href="@{/signup}">회원가입</a>
         <a sec:authorize="isAuthenticated()" class="header-link" th:classappend="${isOwner} ? 'active'" th:href="@{/profile}">내 프로필</a>
+        <a sec:authorize="hasRole('ADMIN')" class="header-link" th:href="@{/admin}">관리자</a>
     </div>
 </header>
 <main class="profile-main public-profile-main">

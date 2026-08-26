@@ -48,6 +48,7 @@
             <a sec:authorize="isAnonymous()" class="header-link" th:href="@{/login}">로그인</a>
             <a sec:authorize="isAnonymous()" class="header-link" th:href="@{/signup}">회원가입</a>
             <a sec:authorize="isAuthenticated()" class="header-link" th:href="@{/profile}">내 프로필</a>
+            <a sec:authorize="hasRole('ADMIN')" class="header-link" th:href="@{/admin}">관리자</a>
             <button class="button" type="button" data-page="confirm">업무 등록</button>
         </div>
     </header>

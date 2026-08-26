@@ -65,4 +65,7 @@ public class ChatRoom {
     public String getLastMessagePreview() { return lastMessagePreview; }
     public Instant getLastMessageAt() { return lastMessageAt; }
     public Instant getUpdatedAt() { return updatedAt; }
+    public Instant getCreatedAt() { return createdAt; }
+    public boolean isRequesterLeft() { return requesterLeft; }
+    public boolean isWorkerLeft() { return workerLeft; }
 }

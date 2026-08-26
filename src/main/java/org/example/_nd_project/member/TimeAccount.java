@@ -79,6 +79,16 @@ public class TimeAccount {
         availableMinutes += minutes;
     }
 
+    public void debit(int minutes) {
+        if (minutes <= 0) {
+            throw new IllegalArgumentException("차감 시간은 0보다 커야 합니다.");
+        }
+        if (availableMinutes < minutes) {
+            throw new InsufficientBalanceException(availableMinutes, minutes);
+        }
+        availableMinutes -= minutes;
+    }
+
     public Long getMemberId() { return memberId; }
     public int getAvailableMinutes() { return availableMinutes; }
     public int getReservedMinutes() { return reservedMinutes; }

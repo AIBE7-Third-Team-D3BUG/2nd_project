@@ -173,6 +173,9 @@ public class ChatService {
         ChatMessage message = chatMessageRepository.findById(messageId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "첨부 파일을 찾을 수 없습니다."));
         requireRoomMember(message.getRoomId(), memberId);
+        if (message.isModerated()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "관리자에 의해 블라인드된 첨부 파일입니다.");
+        }
         if (!StringUtils.hasText(message.getAttachmentObjectPath())) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "첨부 파일을 찾을 수 없습니다.");
         }
@@ -211,11 +214,13 @@ public class ChatService {
         boolean mine = message.getSenderId().equals(memberId);
         String senderNickname = message.getSenderId().equals(room.getRequesterMemberId())
                 ? requesterName : workerName;
-        boolean previewableImage = StringUtils.hasText(message.getAttachmentContentType())
+        boolean moderated = message.isModerated();
+        boolean previewableImage = !moderated && StringUtils.hasText(message.getAttachmentContentType())
                 && message.getAttachmentContentType().startsWith("image/");
         return new ChatMessageView(
-                message.getId(), message.getSenderId(), senderNickname, message.getContent(),
-                message.getAttachmentName(), message.getAttachmentSize(), previewableImage,
+                message.getId(), message.getSenderId(), senderNickname,
+                moderated ? "관리자에 의해 블라인드된 메시지입니다." : message.getContent(),
+                moderated ? null : message.getAttachmentName(), moderated ? null : message.getAttachmentSize(), previewableImage,
                 formatTime(message.getSentAt()), mine, message.getReadAt() != null
         );
     }
