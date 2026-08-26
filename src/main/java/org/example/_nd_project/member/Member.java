@@ -110,6 +110,13 @@ public class Member {
         this.lastLoginAt = loginAt;
     }
 
+    public void changeStatus(MemberStatus status) {
+        if (status == null || status == MemberStatus.WITHDRAWN) {
+            throw new IllegalArgumentException("관리자 화면에서는 활성 또는 정지 상태만 설정할 수 있습니다.");
+        }
+        this.status = status;
+    }
+
     public Long getId() { return id; }
     public String getEmail() { return email; }
     public String getPasswordHash() { return passwordHash; }

@@ -11,8 +11,16 @@ import jakarta.persistence.LockModeType;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.Collection;
+import org.springframework.data.domain.Page;
 
-public interface TaskRepository extends JpaRepository<Task, Long> {
+public interface TaskRepository extends JpaRepository<Task, Long>, org.springframework.data.jpa.repository.JpaSpecificationExecutor<Task> {
+    List<Task> findTop100ByOrderByCreatedAtDescIdDesc();
+    Page<Task> findByRequesterIdInOrWorkerIdIn(Collection<Long> requesterIds,
+                                               Collection<Long> workerIds, Pageable pageable);
+    @Query("select task.id from Task task where task.requesterId in :memberIds or task.workerId in :memberIds")
+    List<Long> findIdsByParticipantIds(@Param("memberIds") Collection<Long> memberIds);
+    long countByStatus(TaskStatus status);
     List<Task> findByStatusAndDeadlineAtAfter(TaskStatus status, Instant now, Pageable pageable);
     List<Task> findByStatusAndCategoryAndDeadlineAtAfter(
             TaskStatus status, TaskCategory category, Instant now, Pageable pageable

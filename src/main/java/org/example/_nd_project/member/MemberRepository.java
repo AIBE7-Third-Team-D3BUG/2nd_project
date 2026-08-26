@@ -6,8 +6,19 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.Optional;
+import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
-public interface MemberRepository extends JpaRepository<Member, Long> {
+public interface MemberRepository extends JpaRepository<Member, Long>, org.springframework.data.jpa.repository.JpaSpecificationExecutor<Member> {
+    List<Member> findTop100ByOrderByCreatedAtDescIdDesc();
+    Page<Member> findByNicknameContainingIgnoreCaseOrEmailContainingIgnoreCase(
+            String nickname, String email, Pageable pageable);
+    @Query("select member.id from Member member where lower(member.nickname) like lower(concat('%', :query, '%')) or lower(member.email) like lower(concat('%', :query, '%'))")
+    List<Long> findIdsByNicknameOrEmail(@Param("query") String query);
+    @Query("select member from Member member where lower(member.nickname) like lower(concat('%', :query, '%')) or lower(member.email) like lower(concat('%', :query, '%')) order by member.createdAt desc, member.id desc")
+    List<Member> searchByNicknameOrEmail(@Param("query") String query, Pageable pageable);
+    long countByStatus(MemberStatus status);
     Optional<Member> findByEmail(String email);
     boolean existsByEmail(String email);
     boolean existsByNickname(String nickname);
