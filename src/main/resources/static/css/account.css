@@ -245,6 +245,7 @@ h1 {
     line-height: 1.5;
 }
 .alert-success { color: var(--success); background: var(--success-soft); border: 1px solid #c9ecd9; }
+.alert-warning { color: #8a5a00; background: #fff7e7; border: 1px solid #f0d7a9; }
 .alert-error { color: var(--danger); background: var(--danger-soft); border: 1px solid #ffd8d3; }
 .profile-main { padding-top: 46px; }
 .profile-grid {

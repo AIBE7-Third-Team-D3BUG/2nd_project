@@ -164,14 +164,14 @@ public class TaskService {
     }
 
     @Transactional
-    public void cancelInProgressTask(Long taskId, Long requesterId) {
+    public void cancelActiveTask(Long taskId, Long requesterId) {
         Task task = taskRepository.findByIdForUpdate(taskId)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND));
         if (!Objects.equals(task.getRequesterId(), requesterId)) {
             throw new ResponseStatusException(NOT_FOUND);
         }
-        if (task.getStatus() != TaskStatus.IN_PROGRESS) {
-            throw new ResponseStatusException(CONFLICT, "진행 중인 업무만 중도 취소할 수 있습니다.");
+        if (task.getStatus() != TaskStatus.MATCHED && task.getStatus() != TaskStatus.IN_PROGRESS) {
+            throw new ResponseStatusException(CONFLICT, "매칭 또는 진행 중인 업무만 중도 취소할 수 있습니다.");
         }
 
         String taskReference = task.getReferenceFileUrl();
@@ -187,7 +187,7 @@ public class TaskService {
                 "의뢰자의 업무 중도 취소에 따른 예약 재화 반환"
         );
         submissionRepository.flush();
-        chatService.deleteRoomForTask(taskId);
+        chatService.markRoomAsTaskDeleted(taskId);
         taskRepository.delete(task);
         taskRepository.flush();
         if (isStoredObject(taskReference)) {
