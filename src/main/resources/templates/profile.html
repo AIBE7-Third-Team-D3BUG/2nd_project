@@ -54,6 +54,7 @@
 
         <div class="alert alert-success" th:if="${isOwner and param.updated != null}">프로필이 저장되었습니다.</div>
         <div class="alert alert-success" th:if="${isOwner and param.cancelledTask != null}">업무가 취소되어 관련 데이터가 삭제되고 예약된 품이 반환되었습니다.</div>
+        <div class="alert alert-warning" th:if="${isOwner and taskDeletedMessage != null}" th:text="${taskDeletedMessage}">의뢰자가 글을 삭제했습니다. 내 업무 목록으로 이동했습니다.</div>
         <div class="alert alert-error" th:if="${isOwner and param.withdrawalError != null}">
             <span th:if="${param.withdrawalError[0] == 'password'}">비밀번호가 일치하지 않습니다.</span>
             <span th:if="${param.withdrawalError[0] == 'confirmation'}">탈퇴 확인에 동의해야 합니다.</span>

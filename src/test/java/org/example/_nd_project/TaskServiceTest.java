@@ -107,7 +107,7 @@ class TaskServiceTest {
         taskService.cancelActiveTask(10L, 3L);
 
         verify(timeLedgerService).refundTaskReservation(eq(3L), eq(10L), anyString());
-        verify(chatService).deleteRoomForTask(10L);
+        verify(chatService).markRoomAsTaskDeleted(10L);
         verify(taskRepository).delete(task);
         verify(taskRepository).flush();
     }
@@ -123,7 +123,7 @@ class TaskServiceTest {
         taskService.cancelActiveTask(10L, 3L);
 
         verify(timeLedgerService).refundTaskReservation(eq(3L), eq(10L), anyString());
-        verify(chatService).deleteRoomForTask(10L);
+        verify(chatService).markRoomAsTaskDeleted(10L);
         verify(taskRepository).delete(task);
         verify(taskRepository).flush();
     }

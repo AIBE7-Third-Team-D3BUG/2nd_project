@@ -187,7 +187,7 @@ public class TaskService {
                 "의뢰자의 업무 중도 취소에 따른 예약 재화 반환"
         );
         submissionRepository.flush();
-        chatService.deleteRoomForTask(taskId);
+        chatService.markRoomAsTaskDeleted(taskId);
         taskRepository.delete(task);
         taskRepository.flush();
         if (isStoredObject(taskReference)) {
