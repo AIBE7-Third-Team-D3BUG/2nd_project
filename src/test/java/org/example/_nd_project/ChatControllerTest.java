@@ -37,7 +37,7 @@ class ChatControllerTest {
     void chatRoomRendersForParticipant() throws Exception {
         ChatRoomView room = new ChatRoomView(
                 3L, 10L, "AWS 배포 오류 해결", 2L, "작업자",
-                "대화를 시작해보세요.", "", 0, List.of());
+                "대화를 시작해보세요.", "", 0, List.of(), false);
         when(chatService.getRooms(1L)).thenReturn(List.of(room));
         when(chatService.openRoom(3L, 1L)).thenReturn(room);
 
@@ -46,6 +46,16 @@ class ChatControllerTest {
                 .andExpect(view().name("chat"))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("AWS 배포 오류 해결")))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("첫 메시지를 보내보세요")));
+    }
+
+    @Test
+    void emptyChatListRendersForNewMember() throws Exception {
+        when(chatService.getRooms(1L)).thenReturn(List.of());
+
+        mockMvc.perform(get("/chat").with(user(principal)))
+                .andExpect(status().isOk())
+                .andExpect(view().name("chat"))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("아직 시작된 대화가 없어요")));
     }
 
     @Test

@@ -48,6 +48,7 @@
             <a sec:authorize="isAnonymous()" class="header-link" th:href="@{/login}">로그인</a>
             <a sec:authorize="isAnonymous()" class="header-link" th:href="@{/signup}">회원가입</a>
             <a sec:authorize="isAuthenticated()" class="header-link" th:href="@{/profile}">내 프로필</a>
+            <a sec:authorize="hasRole('ADMIN')" class="header-link" th:href="@{/admin}">관리자</a>
             <button class="button" type="button" data-page="confirm">업무 등록</button>
         </div>
     </header>
@@ -188,6 +189,8 @@
                                 </div>
                                 <a class="task-action progress" th:if="${task.progressAvailable()}"
                                    th:href="@{/tasks/{id}/progress(id=${task.id()})}">진행 화면</a>
+                                <a class="task-action progress" th:if="${task.progressAvailable()}"
+                                   th:href="@{/tasks/{id}/chat(id=${task.id()})}">대화방</a>
                             </div>
                         </article>
                         <div class="registered-empty" th:if="${#lists.isEmpty(registeredTasks)}">아직 등록한 업무가 없습니다.</div>
@@ -220,6 +223,7 @@
                                 <strong><span th:text="${task.requestedPum()}">4</span>품</strong>
                                 <div class="task-actions">
                                     <a class="task-action progress" th:href="@{/tasks/{id}/progress(id=${task.id()})}">진행 화면</a>
+                                    <a class="task-action progress" th:href="@{/tasks/{id}/chat(id=${task.id()})}">대화방</a>
                                 </div>
                             </div>
                         </article>

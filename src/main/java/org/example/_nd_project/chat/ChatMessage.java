@@ -31,6 +31,12 @@ public class ChatMessage {
     private Instant sentAt;
     @Column(name = "read_at")
     private Instant readAt;
+    @Column(name = "moderated_by_admin_id")
+    private Long moderatedByAdminId;
+    @Column(name = "moderation_reason", length = 500)
+    private String moderationReason;
+    @Column(name = "moderated_at")
+    private Instant moderatedAt;
 
     protected ChatMessage() {}
 
@@ -45,6 +51,20 @@ public class ChatMessage {
         return new ChatMessage(roomId, senderId, content, attachmentName, attachmentObjectPath,
                 attachmentContentType, attachmentSize, Instant.now());
     }
+    public void blind(Long adminId, String reason, Instant moderatedAt) {
+        if (adminId == null || reason == null || reason.isBlank()) {
+            throw new IllegalArgumentException("블라인드 처리 사유를 입력해주세요.");
+        }
+        this.moderatedByAdminId = adminId;
+        this.moderationReason = reason.trim();
+        this.moderatedAt = moderatedAt;
+    }
+    public void restore() {
+        this.moderatedByAdminId = null;
+        this.moderationReason = null;
+        this.moderatedAt = null;
+    }
+    public boolean isModerated() { return moderatedAt != null; }
     public Long getId() { return id; }
     public Long getRoomId() { return roomId; }
     public Long getSenderId() { return senderId; }
@@ -55,4 +75,7 @@ public class ChatMessage {
     public Long getAttachmentSize() { return attachmentSize; }
     public Instant getSentAt() { return sentAt; }
     public Instant getReadAt() { return readAt; }
+    public Long getModeratedByAdminId() { return moderatedByAdminId; }
+    public String getModerationReason() { return moderationReason; }
+    public Instant getModeratedAt() { return moderatedAt; }
 }

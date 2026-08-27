@@ -1,0 +1,2 @@
+ALTER TABLE chat_messages
+    ADD COLUMN IF NOT EXISTS system_notification BOOLEAN NOT NULL DEFAULT FALSE;

@@ -245,6 +245,7 @@ h1 {
     line-height: 1.5;
 }
 .alert-success { color: var(--success); background: var(--success-soft); border: 1px solid #c9ecd9; }
+.alert-warning { color: #8a5a00; background: #fff7e7; border: 1px solid #f0d7a9; }
 .alert-error { color: var(--danger); background: var(--danger-soft); border: 1px solid #ffd8d3; }
 .profile-main { padding-top: 46px; }
 .profile-grid {
@@ -446,6 +447,16 @@ h1 {
 .time-history-more:hover { border-color: var(--brand); background: var(--brand-soft); }
 .time-history-collapse { color: #657084; }
 .time-history-collapse:hover { border-color: #8992a0; background: #f5f6f8; }
+.withdrawal-card { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 380px); gap: 32px; align-items: start; padding: 30px 34px; border-color: #f1caca; }
+.withdrawal-card h2 { margin: 0 0 9px; color: var(--danger); font-size: 24px; }
+.withdrawal-card p:not(.eyebrow) { margin: 0; color: #687181; line-height: 1.65; }
+.withdrawal-form { display: grid; gap: 10px; }
+.withdrawal-form label { color: #505968; font-size: 13px; font-weight: 800; }
+.withdrawal-form input[type="password"] { width: 100%; min-height: 42px; padding: 0 12px; border: 1px solid var(--line-strong); border-radius: 7px; color: var(--ink); background: #fff; }
+.withdrawal-confirmation { display: flex; align-items: flex-start; gap: 8px; margin-top: 2px; line-height: 1.5; }
+.withdrawal-confirmation input { margin-top: 3px; }
+.withdrawal-button { min-height: 42px; border: 1px solid var(--danger); border-radius: 7px; color: #fff; background: var(--danger); cursor: pointer; font-weight: 800; }
+.withdrawal-button:hover { background: #bf3030; }
 .secondary-button { color: #606978; background: #fff; border: 1px solid var(--line-strong); }
 .edit-profile-main { padding-top: 46px; }
 .profile-edit-card { width: min(100%, 610px); margin: 0 auto; }
@@ -476,6 +487,7 @@ h1 {
     .profile-metrics, .profile-metrics.public-metrics { grid-template-columns: 1fr 1fr; }
     .time-history-card { padding: 25px 20px; }
     .time-history-heading { flex-direction: column; }
+    .withdrawal-card { grid-template-columns: 1fr; padding: 25px 20px; }
     .registered-task { align-items: flex-start; }
     .edit-profile-actions { grid-template-columns: 1fr; }
 }

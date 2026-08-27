@@ -14,8 +14,10 @@ import java.time.Instant;
 public class ChatRoom {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @Column(name = "task_id", nullable = false, unique = true)
+    @Column(name = "task_id", unique = true)
     private Long taskId;
+    @Column(name = "task_deleted", nullable = false)
+    private boolean taskDeleted;
     @Column(name = "requester_member_id", nullable = false)
     private Long requesterMemberId;
     @Column(name = "worker_member_id", nullable = false)
@@ -30,6 +32,8 @@ public class ChatRoom {
     private Instant createdAt;
     @Column(name = "updated_at", nullable = false, insertable = false, updatable = false)
     private Instant updatedAt;
+    private boolean requesterLeft;
+    private boolean workerLeft;
 
     protected ChatRoom() {}
 
@@ -52,12 +56,20 @@ public class ChatRoom {
         throw new IllegalArgumentException("채팅방 참여자가 아닙니다.");
     }
     public void refreshLastMessage(String preview, Instant sentAt) { this.lastMessagePreview = preview; this.lastMessageAt = sentAt; }
+    public void markTaskDeleted() { this.taskDeleted = true; }
+    public boolean hasLeft(Long memberId) { return requesterMemberId.equals(memberId) ? requesterLeft : workerLeft; }
+    public void leave(Long memberId) { if (requesterMemberId.equals(memberId)) requesterLeft = true; else workerLeft = true; }
+    public void reenter(Long memberId) { if (requesterMemberId.equals(memberId)) requesterLeft = false; else workerLeft = false; }
     public Long getId() { return id; }
     public Long getTaskId() { return taskId; }
+    public boolean isTaskDeleted() { return taskDeleted; }
     public Long getRequesterMemberId() { return requesterMemberId; }
     public Long getWorkerMemberId() { return workerMemberId; }
     public String getTaskTitle() { return taskTitle; }
     public String getLastMessagePreview() { return lastMessagePreview; }
     public Instant getLastMessageAt() { return lastMessageAt; }
     public Instant getUpdatedAt() { return updatedAt; }
+    public Instant getCreatedAt() { return createdAt; }
+    public boolean isRequesterLeft() { return requesterLeft; }
+    public boolean isWorkerLeft() { return workerLeft; }
 }

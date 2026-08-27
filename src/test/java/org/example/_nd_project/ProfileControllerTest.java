@@ -3,6 +3,7 @@ package org.example._nd_project;
 import org.example._nd_project.Controller.ProfileController;
 import org.example._nd_project.member.MemberProfileView;
 import org.example._nd_project.member.MemberService;
+import org.example._nd_project.member.MemberWithdrawalService;
 import org.example._nd_project.member.TimeTransactionHistoryView;
 import org.example._nd_project.security.MemberPrincipal;
 import org.example._nd_project.task.TaskService;
@@ -16,7 +17,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.time.Instant;
 import java.util.List;
 
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -29,6 +32,7 @@ class ProfileControllerTest {
     @Autowired MockMvc mockMvc;
 
     @MockitoBean MemberService memberService;
+    @MockitoBean MemberWithdrawalService memberWithdrawalService;
     @MockitoBean TaskService taskService;
     @MockitoBean VolunteerService volunteerService;
 
@@ -67,5 +71,22 @@ class ProfileControllerTest {
         mockMvc.perform(get("/profile").param("historySize", "20").with(user(principal)))
                 .andExpect(status().isOk())
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("이용 내역 접기")));
+    }
+
+    @Test
+    void withdrawsAuthenticatedMemberAfterPasswordConfirmation() throws Exception {
+        MemberPrincipal principal = new MemberPrincipal(
+                3L, "member@example.com", "password", "member", "USER", true
+        );
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/profile/withdraw")
+                        .param("password", "password")
+                        .param("confirmed", "true")
+                        .with(csrf())
+                        .with(user(principal)))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl("/login?withdrawn"));
+
+        verify(memberWithdrawalService).withdraw(3L, "password");
     }
 }

@@ -27,6 +27,7 @@ public class ChatService {
     private static final ZoneId KOREA = ZoneId.of("Asia/Seoul");
     private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("M월 d일 HH:mm");
     private static final int MAX_CONTENT_LENGTH = 2_000;
+    private static final long MAX_ATTACHMENT_SIZE = 6L * 1024 * 1024;
 
     private final ChatRoomRepository chatRoomRepository;
     private final ChatMessageRepository chatMessageRepository;
@@ -67,11 +68,17 @@ public class ChatService {
         });
     }
 
+    @Transactional
+    public void markRoomAsTaskDeleted(Long taskId) {
+        chatRoomRepository.findByTaskId(taskId).ifPresent(ChatRoom::markTaskDeleted);
+    }
+
     @Transactional(readOnly = true)
     public List<ChatRoomView> getRooms(Long memberId) {
         return chatRoomRepository
                 .findByRequesterMemberIdOrWorkerMemberIdOrderByLastMessageAtDescUpdatedAtDesc(memberId, memberId)
                 .stream()
+                .filter(room -> !room.hasLeft(memberId))
                 .map(room -> toRoomView(room, memberId, List.of()))
                 .toList();
     }
@@ -79,6 +86,7 @@ public class ChatService {
     @Transactional
     public ChatRoomView openRoom(Long roomId, Long memberId) {
         ChatRoom room = requireRoomMember(roomId, memberId);
+        room.reenter(memberId);
         chatMessageRepository.markRead(roomId, memberId, Instant.now());
         List<ChatMessage> recentMessages = new ArrayList<>(chatMessageRepository
                 .findTop100ByRoomIdOrderBySentAtDescIdDesc(roomId));
@@ -89,6 +97,21 @@ public class ChatService {
                 .map(message -> toMessageView(message, memberId, room, requesterName, workerName))
                 .toList();
         return toRoomView(room, memberId, messages);
+    }
+
+    @Transactional
+    public void leaveRoom(Long roomId, Long memberId) {
+        ChatRoom room = requireRoomMember(roomId, memberId);
+        if (room.hasLeft(memberId)) {
+            return;
+        }
+        String memberNickname = nicknameOf(memberId);
+        ChatMessage leaveNotice = ChatMessage.create(
+                roomId, memberId, memberNickname + "님이 채팅방을 나갔습니다.",
+                null, null, null, null);
+        chatMessageRepository.save(leaveNotice);
+        room.refreshLastMessage("채팅방을 나갔습니다.", leaveNotice.getSentAt());
+        room.leave(memberId);
     }
 
     @Transactional
@@ -113,8 +136,14 @@ public class ChatService {
     @Transactional
     public void sendMessage(Long roomId, Long senderId, String content, MultipartFile attachment) {
         ChatRoom room = requireRoomMember(roomId, senderId);
+        if (room.isTaskDeleted()) {
+            throw new IllegalArgumentException("의뢰자가 글을 삭제했습니다.");
+        }
         String normalizedContent = content == null ? "" : content.trim();
         boolean hasAttachment = attachment != null && !attachment.isEmpty();
+        if (hasAttachment && attachment.getSize() > MAX_ATTACHMENT_SIZE) {
+            throw new IllegalArgumentException("첨부 파일은 6MB 이하만 업로드할 수 있습니다.");
+        }
         if (!StringUtils.hasText(normalizedContent) && !hasAttachment) {
             throw new IllegalArgumentException("메시지 또는 첨부 파일을 입력해주세요.");
         }
@@ -152,6 +181,9 @@ public class ChatService {
         ChatMessage message = chatMessageRepository.findById(messageId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "첨부 파일을 찾을 수 없습니다."));
         requireRoomMember(message.getRoomId(), memberId);
+        if (message.isModerated()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "관리자에 의해 블라인드된 첨부 파일입니다.");
+        }
         if (!StringUtils.hasText(message.getAttachmentObjectPath())) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "첨부 파일을 찾을 수 없습니다.");
         }
@@ -181,7 +213,7 @@ public class ChatService {
         return new ChatRoomView(
                 room.getId(), room.getTaskId(), room.getTaskTitle(), otherMemberId, otherNickname,
                 StringUtils.hasText(room.getLastMessagePreview()) ? room.getLastMessagePreview() : "대화를 시작해보세요.",
-                formatTime(room.getLastMessageAt()), unreadCount, messages
+                formatTime(room.getLastMessageAt()), unreadCount, messages, room.isTaskDeleted()
         );
     }
 
@@ -190,11 +222,13 @@ public class ChatService {
         boolean mine = message.getSenderId().equals(memberId);
         String senderNickname = message.getSenderId().equals(room.getRequesterMemberId())
                 ? requesterName : workerName;
-        boolean previewableImage = StringUtils.hasText(message.getAttachmentContentType())
+        boolean moderated = message.isModerated();
+        boolean previewableImage = !moderated && StringUtils.hasText(message.getAttachmentContentType())
                 && message.getAttachmentContentType().startsWith("image/");
         return new ChatMessageView(
-                message.getId(), message.getSenderId(), senderNickname, message.getContent(),
-                message.getAttachmentName(), message.getAttachmentSize(), previewableImage,
+                message.getId(), message.getSenderId(), senderNickname,
+                moderated ? "관리자에 의해 블라인드된 메시지입니다." : message.getContent(),
+                moderated ? null : message.getAttachmentName(), moderated ? null : message.getAttachmentSize(), previewableImage,
                 formatTime(message.getSentAt()), mine, message.getReadAt() != null
         );
     }

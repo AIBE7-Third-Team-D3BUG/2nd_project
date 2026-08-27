@@ -76,6 +76,19 @@ class ChatServiceTest {
     }
 
     @Test
+    void cannotSendMessageAfterRequesterDeletesTask() {
+        ChatRoom room = roomWithId(1L, 10L, 1L, 2L);
+        room.markTaskDeleted();
+        when(chatRoomRepository.findById(1L)).thenReturn(Optional.of(room));
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> chatService.sendMessage(1L, 2L, "확인했습니다.", null));
+
+        assertEquals("의뢰자가 글을 삭제했습니다.", exception.getMessage());
+        verify(chatMessageRepository, never()).save(any());
+    }
+
+    @Test
     void participantCanSendMessageWithPrivateAttachment() {
         ChatRoom room = roomWithId(1L, 10L, 1L, 2L);
         when(chatRoomRepository.findById(1L)).thenReturn(Optional.of(room));
@@ -93,6 +106,18 @@ class ChatServiceTest {
     }
 
     @Test
+    void rejectsChatAttachmentOverSixMegabytes() {
+        ChatRoom room = roomWithId(1L, 10L, 1L, 2L);
+        when(chatRoomRepository.findById(1L)).thenReturn(Optional.of(room));
+        MockMultipartFile file = new MockMultipartFile("attachment", "large.pdf", "application/pdf",
+                new byte[6 * 1024 * 1024 + 1]);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> chatService.sendMessage(1L, 1L, "파일입니다", file));
+        verify(taskStorageService, never()).uploadChatAttachment(any(), any());
+    }
+
+    @Test
     void sentMessageIsUnreadUntilOtherMemberOpensRoom() {
         ChatRoom room = roomWithId(1L, 10L, 1L, 2L);
         ChatMessage message = ChatMessage.create(1L, 1L, "확인해주세요", null, null, null, null);
@@ -107,6 +132,19 @@ class ChatServiceTest {
         ReflectionTestUtils.setField(message, "readAt", Instant.now());
         var afterRead = chatService.openRoom(1L, 1L);
         assertTrue(afterRead.messages().get(0).read());
+    }
+
+    @Test
+    void leavingRoomLeavesNoticeForOtherParticipant() {
+        ChatRoom room = roomWithId(1L, 10L, 1L, 2L);
+        when(chatRoomRepository.findById(1L)).thenReturn(Optional.of(room));
+
+        chatService.leaveRoom(1L, 1L);
+
+        ArgumentCaptor<ChatMessage> captor = ArgumentCaptor.forClass(ChatMessage.class);
+        verify(chatMessageRepository).save(captor.capture());
+        assertEquals("사용자님이 채팅방을 나갔습니다.", captor.getValue().getContent());
+        assertTrue(room.hasLeft(1L));
     }
 
     @Test
