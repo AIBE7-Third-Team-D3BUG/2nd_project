@@ -606,3 +606,73 @@ select.control { cursor: pointer; }
     text-align: center;
     font-size: 14px;
 }
+
+.ai-recommendation-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 12px;
+    padding: 18px 20px;
+    border: 1px solid #c7d2fe;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #eef2ff 0%, #f8fbff 100%);
+}
+.ai-recommendation-toolbar strong { display: block; color: #1e3a8a; font-size: 16px; }
+.ai-recommendation-toolbar p { margin: 5px 0 0; color: #64748b; font-size: 12px; line-height: 1.6; }
+.ai-recommendation-button {
+    min-width: 170px;
+    padding: 11px 15px;
+    border: 0;
+    border-radius: 10px;
+    color: #fff;
+    background: #315bf5;
+    font-size: 13px;
+    font-weight: 800;
+    cursor: pointer;
+}
+.ai-recommendation-button:hover { background: #2448d8; }
+.ai-recommendation-error,
+.ai-recommendation-notice {
+    margin-bottom: 16px;
+    padding: 11px 14px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 700;
+}
+.ai-recommendation-error { color: #b42318; background: #fff1f0; }
+.ai-recommendation-notice { color: #334155; background: #f1f5f9; }
+.ai-top-candidate { border-color: #315bf5 !important; box-shadow: 0 10px 28px rgba(49, 91, 245, .14) !important; }
+.ai-recommendation-rank {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: -4px 0 16px;
+    padding: 8px 10px;
+    border-radius: 9px;
+    color: #2448d8;
+    background: #eef2ff;
+    font-size: 12px;
+    font-weight: 800;
+}
+.ai-recommendation-rank strong { font-size: 15px; }
+.ai-candidate-analysis {
+    margin-top: 18px;
+    padding: 14px;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    background: #f8fafc;
+}
+.ai-candidate-summary { margin: 0 0 12px; color: #1e293b; font-size: 12px; font-weight: 800; line-height: 1.55; }
+.ai-metric-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0; }
+.ai-metric-grid div { padding: 8px; border-radius: 8px; background: #fff; }
+.ai-metric-grid dt { color: #94a3b8; font-size: 10px; font-weight: 700; }
+.ai-metric-grid dd { margin: 3px 0 0; color: #0f172a; font-size: 12px; font-weight: 900; }
+.ai-strength-list { margin: 12px 0 0; padding-left: 17px; color: #047857; font-size: 11px; line-height: 1.7; }
+.ai-caution { margin: 10px 0 0; color: #b45309; font-size: 11px; line-height: 1.5; }
+.ai-candidate-analysis small { display: block; margin-top: 10px; color: #94a3b8; font-size: 10px; }
+
+@media (max-width: 720px) {
+    .ai-recommendation-toolbar { align-items: stretch; flex-direction: column; }
+    .ai-recommendation-button { width: 100%; }
+}

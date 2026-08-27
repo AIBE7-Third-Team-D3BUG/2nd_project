@@ -13,6 +13,7 @@ public interface VolunteerRepository extends JpaRepository<Volunteer, Long> {
     long countByTaskId(Long taskId);
     List<Volunteer> findByTaskIdOrderByCreatedAtAsc(Long taskId);
     List<Volunteer> findByTaskIdAndStatusNotOrderByCreatedAtAsc(Long taskId, VolunteerStatus status);
+    List<Volunteer> findByTaskIdAndStatusOrderByCreatedAtAsc(Long taskId, VolunteerStatus status);
     List<Volunteer> findByMemberIdOrderByCreatedAtDesc(Long memberId);
     List<Volunteer> findByMemberIdAndStatusOrderByCreatedAtDesc(Long memberId, VolunteerStatus status);
     List<Volunteer> findByMemberIdAndStatusNotOrderByCreatedAtDesc(Long memberId, VolunteerStatus status);
