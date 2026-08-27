@@ -356,6 +356,63 @@ select.control { cursor: pointer; }
 }
 .notice strong { display: block; margin-bottom: 4px; color: var(--brand); font-size: 14px; }
 .notice span { display: block; }
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+.ai-draft-panel {
+    grid-column: 1 / -1;
+    padding: 22px;
+    border: 1px solid #cdd8ff;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #f5f7ff 0%, #eef3ff 100%);
+}
+.ai-draft-copy { margin-bottom: 15px; }
+.ai-draft-copy h2 { margin: 8px 0 6px; color: var(--ink); font-size: 19px; }
+.ai-draft-copy p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.6; }
+.ai-badge {
+    display: inline-flex;
+    padding: 5px 9px;
+    border-radius: 999px;
+    color: var(--brand);
+    background: #fff;
+    font-size: 12px;
+    font-weight: 800;
+}
+.ai-draft-panel textarea {
+    width: 100%;
+    min-height: 110px;
+    padding: 14px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    color: var(--ink);
+    background: #fff;
+    resize: vertical;
+    line-height: 1.6;
+}
+.ai-draft-panel textarea:focus {
+    border-color: var(--brand);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(49, 92, 244, .09);
+}
+.ai-draft-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-top: 12px;
+}
+.ai-draft-status { color: var(--muted); font-size: 13px; line-height: 1.5; }
+.ai-draft-status.success { color: var(--success); }
+.ai-draft-status.error { color: #dc2626; }
+.ai-draft-actions .button { flex: 0 0 auto; min-width: 190px; }
 .success-notice {
     color: var(--success);
     background: var(--success-soft);
@@ -453,6 +510,8 @@ select.control { cursor: pointer; }
     .task-list { grid-template-columns: 1fr; }
     .task-card { min-height: 0; gap: 15px; }
     .section-grid, .confirm-grid { grid-template-columns: 1fr; }
+    .ai-draft-actions { align-items: stretch; flex-direction: column; }
+    .ai-draft-actions .button { width: 100%; }
     .side-panel { position: static; }
     .form-grid, .metric-grid { grid-template-columns: 1fr; }
     .profile-hero { align-items: flex-start; flex-direction: column; }

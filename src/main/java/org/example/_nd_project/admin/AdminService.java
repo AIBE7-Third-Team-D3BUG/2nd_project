@@ -303,7 +303,7 @@ public class AdminService {
     @Transactional
     public void startDisputeReview(Long adminId, Long disputeId) {
         requireAdmin(adminId);
-        Dispute dispute = requireDispute(disputeId);
+        Dispute dispute = requireDisputeForUpdate(disputeId);
         dispute.startReview();
         audit(adminId, "DISPUTE_REVIEW_STARTED", "DISPUTE", disputeId,
                 "업무 #" + dispute.getTaskId() + " 분쟁 검토 시작");
@@ -312,9 +312,56 @@ public class AdminService {
     @Transactional
     public void resolveDispute(Long adminId, Long disputeId, boolean accepted, String note) {
         requireAdmin(adminId);
-        Dispute dispute = requireDispute(disputeId);
-        dispute.resolve(accepted, requireReason(note), Instant.now());
-        audit(adminId, accepted ? "DISPUTE_RESOLVED" : "DISPUTE_REJECTED", "DISPUTE", disputeId, note.trim());
+        String normalizedNote = requireReason(note);
+        Dispute dispute = requireDisputeForUpdate(disputeId);
+        Task task = taskRepository.findByIdForUpdate(dispute.getTaskId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "분쟁 대상 업무를 찾을 수 없습니다."));
+        if (task.getStatus() != TaskStatus.DISPUTED) {
+            throw new IllegalStateException("분쟁 대상 업무가 이미 처리되었거나 분쟁 상태가 아닙니다.");
+        }
+
+        if ("RESOLVED".equals(dispute.getStatus()) || "REJECTED".equals(dispute.getStatus())) {
+            reconcileLegacyDisputeResolution(adminId, dispute, task, normalizedNote);
+            return;
+        }
+
+        Instant resolvedAt = Instant.now();
+        if (accepted) {
+            timeLedgerService.refundTaskReservation(
+                    task.getRequesterId(), task.getId(), "관리자 분쟁 승인에 따른 예약 재화 반환: " + normalizedNote
+            );
+        }
+        task.resolveDispute(accepted, resolvedAt);
+        dispute.resolve(accepted, normalizedNote, resolvedAt);
+        audit(
+                adminId,
+                accepted ? "DISPUTE_RESOLVED" : "DISPUTE_REJECTED",
+                "DISPUTE",
+                disputeId,
+                accepted
+                        ? "업무 #" + task.getId() + " 취소 및 예약 재화 반환 · " + normalizedNote
+                        : "업무 #" + task.getId() + " 결과 확인 상태 복귀 · " + normalizedNote
+        );
+    }
+
+    private void reconcileLegacyDisputeResolution(Long adminId, Dispute dispute, Task task, String note) {
+        boolean accepted = "RESOLVED".equals(dispute.getStatus());
+        Instant resolvedAt = dispute.getResolvedAt() == null ? Instant.now() : dispute.getResolvedAt();
+        if (accepted) {
+            timeLedgerService.refundTaskReservation(
+                    task.getRequesterId(), task.getId(), "기존 분쟁 처리 불일치 복구에 따른 예약 재화 반환: " + note
+            );
+        }
+        task.resolveDispute(accepted, resolvedAt);
+        audit(
+                adminId,
+                "DISPUTE_RECONCILED",
+                "DISPUTE",
+                dispute.getId(),
+                accepted
+                        ? "업무 #" + task.getId() + " 취소 및 예약 재화 반환 복구 · " + note
+                        : "업무 #" + task.getId() + " 결과 확인 상태 복구 · " + note
+        );
     }
 
     private AdminDashboardView.MemberRow memberRow(Member member, TimeAccount account) {
@@ -370,6 +417,11 @@ public class AdminService {
 
     private Dispute requireDispute(Long disputeId) {
         return disputeRepository.findById(disputeId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "분쟁을 찾을 수 없습니다."));
+    }
+
+    private Dispute requireDisputeForUpdate(Long disputeId) {
+        return disputeRepository.findByIdForUpdate(disputeId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "분쟁을 찾을 수 없습니다."));
     }
 

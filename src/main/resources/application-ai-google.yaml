@@ -1,0 +1,15 @@
+spring:
+  config:
+    activate:
+      on-profile: ai-google
+
+  ai:
+    model:
+      chat: google-genai
+
+    google:
+      genai:
+        api-key: ${GEMINI_API_KEY}
+        chat:
+          model: ${GEMINI_AI_MODEL:gemini-2.5-flash}
+          temperature: 0.2
