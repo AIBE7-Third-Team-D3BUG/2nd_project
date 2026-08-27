@@ -8,11 +8,15 @@ import org.example._nd_project.submission.TaskCompletionService;
 import org.example._nd_project.submission.TaskProgressService;
 import org.example._nd_project.submission.TaskProgressView;
 import org.example._nd_project.submission.TaskWorkflowService;
+import org.example._nd_project.task.TaskService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.multipart.MultipartException;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 
 import java.util.List;
 
@@ -28,6 +32,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.doThrow;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash;
 
 @WebMvcTest(TaskProgressController.class)
 class TaskProgressControllerTest {
@@ -38,6 +44,7 @@ class TaskProgressControllerTest {
     @MockitoBean SubmissionService submissionService;
     @MockitoBean TaskCompletionService taskCompletionService;
     @MockitoBean TaskWorkflowService taskWorkflowService;
+    @MockitoBean TaskService taskService;
 
     @Test
     void requesterReviewScreenRendersSubmittedResult() throws Exception {
@@ -63,6 +70,7 @@ class TaskProgressControllerTest {
                 false,
                 false,
                 true,
+                false,
                 false,
                 false,
                 4,
@@ -112,6 +120,53 @@ class TaskProgressControllerTest {
     }
 
     @Test
+    void requesterCanCancelInProgressTask() throws Exception {
+        MemberPrincipal requester = new MemberPrincipal(
+                3L, "requester@example.com", "password", "의뢰자", "USER", true
+        );
+
+        mockMvc.perform(post("/tasks/10/cancel").with(user(requester)).with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/profile?cancelledTask"));
+
+        verify(taskService).cancelActiveTask(10L, 3L);
+    }
+
+    @Test
+    void oversizedResultFileReturnsToSubmissionScreenWithMessage() throws Exception {
+        MemberPrincipal worker = new MemberPrincipal(
+                8L, "worker@example.com", "password", "작업자", "USER", true
+        );
+        doThrow(new MultipartException("request too large"))
+                .when(submissionService)
+                .submit(org.mockito.ArgumentMatchers.eq(10L), org.mockito.ArgumentMatchers.eq(8L), any(), any());
+
+        mockMvc.perform(post("/tasks/10/submissions")
+                        .with(user(worker))
+                        .with(csrf())
+                        .param("resultDescription", "결과를 제출합니다."))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/tasks/10/progress"))
+                .andExpect(flash().attribute("uploadError",
+                        "첨부 파일 용량이 너무 커서 전송할 수 없습니다. 6MB 이하 파일을 선택해주세요."));
+    }
+
+    @Test
+    void deletedTaskProgressPageRedirectsToProfileWithMessage() throws Exception {
+        MemberPrincipal worker = new MemberPrincipal(
+                8L, "worker@example.com", "password", "작업자", "USER", true
+        );
+        when(taskProgressService.getProgress(10L, 8L))
+                .thenThrow(new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+        mockMvc.perform(get("/tasks/10/progress").with(user(worker)))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/profile"))
+                .andExpect(flash().attribute("taskDeletedMessage",
+                        "의뢰자가 글을 삭제했습니다. 내 업무 목록으로 이동했습니다."));
+    }
+
+    @Test
     void matchedWorkerScreenRendersStartAction() throws Exception {
         MemberPrincipal worker = new MemberPrincipal(
                 8L,
@@ -132,6 +187,7 @@ class TaskProgressControllerTest {
                 false,
                 true,
                 true,
+                false,
                 false,
                 false,
                 false,

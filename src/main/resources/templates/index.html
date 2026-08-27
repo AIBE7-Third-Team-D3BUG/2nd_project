@@ -48,6 +48,7 @@
             <a sec:authorize="isAnonymous()" class="header-link" th:href="@{/login}">로그인</a>
             <a sec:authorize="isAnonymous()" class="header-link" th:href="@{/signup}">회원가입</a>
             <a sec:authorize="isAuthenticated()" class="header-link" th:href="@{/profile}">내 프로필</a>
+            <a sec:authorize="hasRole('ADMIN')" class="header-link" th:href="@{/admin}">관리자</a>
             <button class="button" type="button" data-page="confirm">업무 등록</button>
         </div>
     </header>
@@ -285,6 +286,20 @@
                   method="post" enctype="multipart/form-data">
                 <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                 <input th:if="${editingTaskId != null}" type="hidden" name="returnTo" th:value="${editReturnTo}">
+                <section class="ai-draft-panel" th:if="${editingTaskId == null}" aria-labelledby="ai-draft-title">
+                    <div class="ai-draft-copy">
+                        <span class="ai-badge">AI 초안</span>
+                        <h2 id="ai-draft-title">상황을 적으면 업무 초안을 정리해드려요</h2>
+                        <p>AI는 제목·카테고리·기술·완료 기준·상세 설명만 제안합니다. 마감과 요청 품은 직접 선택하고, 결과를 확인한 뒤 게시해주세요.</p>
+                    </div>
+                    <label class="sr-only" for="ai-task-situation">AI에게 전달할 상황 설명</label>
+                    <textarea id="ai-task-situation" maxlength="3000"
+                              placeholder="예: 오늘 AWS에 배포했는데 502 오류가 발생합니다. 오후 6시까지 원인을 확인하고 정상 접속되게 해주세요."></textarea>
+                    <div class="ai-draft-actions">
+                        <span id="ai-draft-status" class="ai-draft-status" role="status" aria-live="polite"></span>
+                        <button id="ai-draft-button" class="button" type="button">AI로 업무 정리하기</button>
+                    </div>
+                </section>
                 <div class="panel confirm-fields">
                     <div class="errors" th:if="${#fields.hasGlobalErrors()}">
                         <div th:each="error : ${#fields.globalErrors()}" th:text="${error}"></div>
@@ -494,6 +509,25 @@
                 <h1 class="text-3xl font-extrabold text-[#191F28] tracking-tight" th:text="|지원자 ${#lists.size(volunteers)}명|">지원자 0명</h1>
                 <p class="text-xs text-[#8B95A1] font-semibold mt-1">같은 기준으로 비교하고 작업자를 선택하세요.</p>
             </div>
+
+            <div class="ai-recommendation-toolbar"
+                 th:if="${selectedTask != null and currentMemberId != null and selectedTask.requesterId() == currentMemberId}">
+                <div>
+                    <strong>AI 작업자 추천</strong>
+                    <p>기술 35 · 동일 카테고리 경험 20 · 평점 15 · 기한 준수 10 · 응답 속도 10 · 작업 여유 5 · 완료 경험 5</p>
+                </div>
+                <form th:if="${not #lists.isEmpty(volunteers)}"
+                      th:action="@{/tasks/{id}/worker-recommendations(id=${selectedTask.id()})}" method="post">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                    <button type="submit" class="ai-recommendation-button">AI로 추천 분석하기</button>
+                </form>
+            </div>
+            <div class="ai-recommendation-error" th:if="${recommendationError}" th:text="${recommendationError}">
+                추천 분석을 완료하지 못했습니다.
+            </div>
+            <div class="ai-recommendation-notice" th:if="${workerRecommendations != null and not #lists.isEmpty(workerRecommendations)}">
+                서버가 검증한 활동 지표로 순위를 계산하고 AI가 근거를 요약했습니다. 추천은 참고 자료이며 최종 선택은 의뢰인이 결정합니다.
+            </div>
             
             <!-- Task Summary Bar -->
             <div class="bg-[#F8F9FA] rounded-xl border border-[#E5E8EB] p-4 flex items-center justify-between mb-8 shadow-sm">
@@ -511,8 +545,15 @@
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6" th:if="${not #lists.isEmpty(volunteers)}">
                 
                 <!-- Dynamic Volunteer Cards -->
-                <div th:each="v : ${volunteers}" class="bg-white rounded-2xl border border-[#E5E8EB] p-6 shadow-sm flex flex-col justify-between relative hover:shadow-md transition">
+                <div th:each="v : ${volunteers}"
+                     th:with="recommendation=${recommendationByVolunteerId[v.id()]}"
+                     class="bg-white rounded-2xl border border-[#E5E8EB] p-6 shadow-sm flex flex-col justify-between relative hover:shadow-md transition"
+                     th:classappend="${recommendation != null and recommendation.rank() == 1 ? ' ai-top-candidate' : ''}">
                     <div>
+                        <div class="ai-recommendation-rank" th:if="${recommendation != null}">
+                            <span th:text="|추천 ${recommendation.rank()}순위|">추천 1순위</span>
+                            <strong th:text="|${recommendation.suitabilityScore()}점|">88점</strong>
+                        </div>
                         <!-- Header: Avatar & Name -->
                         <div class="flex items-center gap-3">
                             <div class="w-12 h-12 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold" th:text="${v.avatarText()}">
@@ -541,6 +582,24 @@
                                 <span class="text-gray-400 font-medium">보유 기술</span>
                                 <span class="text-[#191F28] font-bold" th:text="${v.skillTags() == null or #lists.isEmpty(v.skillTags()) ? '등록된 기술 없음' : T(java.lang.String).join(' · ', v.skillTags())}">AWS · Nginx</span>
                             </div>
+                        </div>
+
+                        <div class="ai-candidate-analysis" th:if="${recommendation != null}">
+                            <p class="ai-candidate-summary" th:text="${recommendation.summary()}">추천 근거 요약</p>
+                            <dl class="ai-metric-grid">
+                                <div><dt>기술 일치</dt><dd th:text="|${recommendation.skillMatchPercent()}%|">80%</dd></div>
+                                <div><dt>관련 완료</dt><dd th:text="|${recommendation.categoryCompletedCount()}건|">3건</dd></div>
+                                <div><dt>평점</dt><dd th:text="${recommendation.reviewCount() == 0 ? '표본 없음' : #numbers.formatDecimal(recommendation.rating(), 1, 1) + ' / 5'}">4.8 / 5</dd></div>
+                                <div><dt>평균 응답</dt><dd th:text="${recommendation.averageResponseLabel()}">12분</dd></div>
+                                <div><dt>기한 준수</dt><dd th:text="${recommendation.deadlineSampleCount() == 0 ? '표본 없음' : recommendation.deadlineMetPercent() + '%'}">90%</dd></div>
+                                <div><dt>현재 작업</dt><dd th:text="|${recommendation.activeTaskCount()}건|">0건</dd></div>
+                            </dl>
+                            <ul class="ai-strength-list" th:if="${not #lists.isEmpty(recommendation.strengths())}">
+                                <li th:each="strength : ${recommendation.strengths()}" th:text="${strength}">강점</li>
+                            </ul>
+                            <p class="ai-caution" th:if="${not #lists.isEmpty(recommendation.cautions())}"
+                               th:text="${'확인 필요: ' + T(java.lang.String).join(' · ', recommendation.cautions())}">확인 필요</p>
+                            <small th:text="${recommendation.aiEnhanced() ? 'AI 설명 포함' : '데이터 기반 분석'}">AI 설명 포함</small>
                         </div>
                         
                         <!-- Quote -->
@@ -600,7 +659,7 @@
         </section>
 
         <!-- ================= PAGE 5: APPLICANT COMPARISON (img.png Mockup) ================= -->
-        <section id="page-compare" class="page-section hidden max-w-7xl mx-auto px-6 py-10">
+        <section id="page-compare" class="page-section hidden max-w-7xl mx-auto px-6 py-10" th:remove="all">
             <!-- Breadcrumbs -->
             <div class="text-[11px] font-bold text-gray-400 tracking-wider">
                 CLIENT-03 · 지원자 비교 / 선택
@@ -723,6 +782,62 @@
     const deadlineInput = document.getElementById("task-deadline");
     const taskSortSelect = document.getElementById("task-sort");
     const taskCategoryFilter = document.getElementById("task-category-filter");
+    const aiSituationInput = document.getElementById("ai-task-situation");
+    const aiDraftButton = document.getElementById("ai-draft-button");
+    const aiDraftStatus = document.getElementById("ai-draft-status");
+
+    async function createAiTaskDraft() {
+        const situation = aiSituationInput ? aiSituationInput.value.trim() : "";
+        if (!situation) {
+            aiDraftStatus.textContent = "정리할 상황을 먼저 입력해주세요.";
+            aiDraftStatus.classList.add("error");
+            aiSituationInput.focus();
+            return;
+        }
+
+        const taskForm = document.getElementById("task-create-form");
+        const csrfInput = taskForm.querySelector('input[type="hidden"][name]');
+        aiDraftButton.disabled = true;
+        aiDraftButton.textContent = "AI가 정리 중입니다...";
+        aiDraftStatus.textContent = "초안을 만들고 있습니다.";
+        aiDraftStatus.classList.remove("error", "success");
+
+        try {
+            const headers = { "Content-Type": "application/json" };
+            if (csrfInput) {
+                headers["X-CSRF-TOKEN"] = csrfInput.value;
+            }
+            const response = await fetch("/tasks/ai/draft", {
+                method: "POST",
+                headers: headers,
+                body: JSON.stringify({ situation: situation })
+            });
+            const result = await response.json().catch(function () { return {}; });
+            if (!response.ok) {
+                throw new Error(result.message || "AI 정리에 실패했습니다.");
+            }
+
+            document.getElementById("task-title").value = result.title || "";
+            document.getElementById("task-category").value = result.category || "";
+            document.getElementById("task-skills").value = Array.isArray(result.requiredSkills)
+                ? result.requiredSkills.join(", ")
+                : "";
+            document.getElementById("task-deliverable").value = result.deliverableDescription || "";
+            document.getElementById("task-description").value = result.detailDescription || "";
+            aiDraftStatus.textContent = "초안을 채웠습니다. 내용을 확인하고 수정한 뒤 게시해주세요.";
+            aiDraftStatus.classList.add("success");
+        } catch (error) {
+            aiDraftStatus.textContent = error.message || "AI 정리에 실패했습니다. 직접 입력해주세요.";
+            aiDraftStatus.classList.add("error");
+        } finally {
+            aiDraftButton.disabled = false;
+            aiDraftButton.textContent = "AI로 업무 정리하기";
+        }
+    }
+
+    if (aiDraftButton) {
+        aiDraftButton.addEventListener("click", createAiTaskDraft);
+    }
 
     function koreaDateTimeValue(date) {
         const parts = new Intl.DateTimeFormat("en-CA", {

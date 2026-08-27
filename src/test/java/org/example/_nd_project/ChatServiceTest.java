@@ -76,6 +76,19 @@ class ChatServiceTest {
     }
 
     @Test
+    void cannotSendMessageAfterRequesterDeletesTask() {
+        ChatRoom room = roomWithId(1L, 10L, 1L, 2L);
+        room.markTaskDeleted();
+        when(chatRoomRepository.findById(1L)).thenReturn(Optional.of(room));
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> chatService.sendMessage(1L, 2L, "확인했습니다.", null));
+
+        assertEquals("의뢰자가 글을 삭제했습니다.", exception.getMessage());
+        verify(chatMessageRepository, never()).save(any());
+    }
+
+    @Test
     void participantCanSendMessageWithPrivateAttachment() {
         ChatRoom room = roomWithId(1L, 10L, 1L, 2L);
         when(chatRoomRepository.findById(1L)).thenReturn(Optional.of(room));

@@ -54,8 +54,10 @@
         <div class="notice success" th:if="${param.submitted}">결과를 제출했습니다. 의뢰인의 확인을 기다려주세요.</div>
         <div class="notice success" th:if="${param.started}">업무를 시작했습니다. 완료 후 결과를 제출해주세요.</div>
         <div class="notice success" th:if="${param.approved}">완료 승인과 시간 정산이 완료되었습니다.</div>
+        <div class="notice success" th:if="${param.cancelled}">업무가 중도 취소되었고 예약된 품이 반환되었습니다.</div>
         <div class="notice success" th:if="${param.revisionRequested}">작업자에게 수정 요청을 전달했습니다.</div>
         <div class="notice warning" th:if="${param.reported}">문제 신고가 접수되었습니다. 정산은 검토가 끝날 때까지 보류됩니다.</div>
+        <div class="notice warning" th:if="${uploadError}" th:text="${uploadError}">첨부 파일 용량이 너무 커서 전송할 수 없습니다.</div>
 
         <div class="content-grid">
             <section class="left-column">
@@ -119,6 +121,12 @@
                                 <em id="fileName">6MB 이하 파일을 올려주세요.</em>
                             </label>
                             <input class="file-input" id="resultFile" name="resultFile" type="file">
+                            <div class="file-name-expand" id="fileNameExpand" hidden>
+                                <button class="file-name-toggle" id="fileNameToggle" type="button"
+                                        aria-expanded="false">파일명 전체보기</button>
+                                <p id="fileNameFull" hidden></p>
+                            </div>
+                            <p class="file-size-error" id="fileSizeError" role="alert" hidden></p>
                         </div>
                         <div class="or"><span>또는</span></div>
                         <div class="field">
@@ -143,7 +151,8 @@
                     </p>
                     <div class="result-copy">
                         <span>작업 내용</span>
-                        <p th:text="${progress.submission().resultDescription()}">작업 결과 설명</p>
+                        <p class="expandable-content" th:text="${progress.submission().resultDescription()}">작업 결과 설명</p>
+                        <button class="content-toggle" type="button" hidden aria-expanded="false">더보기</button>
                     </div>
                     <a class="result-asset" th:if="${progress.submission().hasResultAsset()}"
                        th:href="@{/tasks/{id}/result(id=${progress.taskId()})}" target="_blank" rel="noopener">
@@ -223,8 +232,17 @@
                     <div class="completed-review" th:if="${progress.review() != null}">
                         <strong th:text="${progress.review().ratingLabel()}">★★★★★ 5.0</strong>
                         <span th:text="${progress.review().deadlineMet() == true ? '마감 준수' : '마감 준수 미선택'}">마감 준수</span>
-                        <p th:if="${progress.review().hasContent()}" th:text="${progress.review().content()}">작성한 후기</p>
+                        <p class="expandable-content" th:if="${progress.review().hasContent()}"
+                           th:text="${progress.review().content()}">작성한 후기</p>
+                        <button class="content-toggle" th:if="${progress.review().hasContent()}"
+                                type="button" hidden aria-expanded="false">더보기</button>
                     </div>
+                </article>
+
+                <article class="panel state-panel" th:if="${progress.cancelled()}">
+                    <span class="state-icon cancelled-icon">−</span>
+                    <h2>업무가 중도 취소되었습니다</h2>
+                    <p>예약된 <strong th:text="${progress.requestedPum()}">4</strong>품은 의뢰자에게 반환되었습니다.</p>
                 </article>
 
                 <article class="panel state-panel" th:if="${progress.disputed()}">
@@ -249,8 +267,18 @@
                     <p>작업자가 시작하면 진행 상태와 결과 제출 여부를 여기서 확인할 수 있습니다.</p>
                 </article>
 
+                <article class="panel cancellation-panel" th:if="${progress.canCancel()}">
+                    <p class="panel-kicker">REQUESTER ACTION</p>
+                    <h2>업무 중도 취소</h2>
+                    <p class="panel-description">작업 시작 전 또는 진행 중 취소하면 작업이 종료되고 예약된 <strong th:text="${progress.requestedPum()}">4</strong>품이 반환됩니다.</p>
+                    <form class="cancel-task-form" th:action="@{/tasks/{id}/cancel(id=${progress.taskId()})}" method="post">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                        <button class="danger-action" type="submit">업무 중도 취소하기</button>
+                    </form>
+                </article>
+
                 <article class="panel state-panel"
-                         th:if="${!progress.canStart() and !progress.waitingForWorkerStart() and !progress.canSubmit() and !progress.canReview() and !progress.completed() and !progress.disputed() and progress.submission() == null}">
+                         th:if="${!progress.canStart() and !progress.waitingForWorkerStart() and !progress.canSubmit() and !progress.canReview() and !progress.completed() and !progress.cancelled() and !progress.disputed() and progress.submission() == null}">
                     <span class="state-icon waiting-icon">…</span>
                     <h2 th:text="${progress.requester() ? '작업 결과를 기다리고 있어요' : '업무가 시작되면 제출할 수 있어요'}">
                         작업 결과를 기다리고 있어요
@@ -264,11 +292,78 @@
 <script>
     const fileInput = document.getElementById("resultFile");
     const fileName = document.getElementById("fileName");
+    const fileNameExpand = document.getElementById("fileNameExpand");
+    const fileNameToggle = document.getElementById("fileNameToggle");
+    const fileNameFull = document.getElementById("fileNameFull");
+    const fileSizeError = document.getElementById("fileSizeError");
+    const maxResultFileSize = 6 * 1024 * 1024;
+    let hasOversizedResultFile = false;
     if (fileInput && fileName) {
         fileInput.addEventListener("change", function () {
-            fileName.textContent = fileInput.files.length ? fileInput.files[0].name : "6MB 이하 파일을 올려주세요.";
+            const selectedFile = fileInput.files[0];
+            if (selectedFile && selectedFile.size > maxResultFileSize) {
+                hasOversizedResultFile = true;
+                fileInput.value = "";
+                fileName.textContent = "6MB 이하 파일을 올려주세요.";
+                fileName.title = "";
+                if (fileNameExpand) fileNameExpand.hidden = true;
+                if (fileSizeError) {
+                    fileSizeError.textContent = "첨부 파일 용량이 너무 커서 전송할 수 없습니다. 6MB 이하 파일을 선택해주세요.";
+                    fileSizeError.hidden = false;
+                }
+                return;
+            }
+            hasOversizedResultFile = false;
+            if (fileSizeError) fileSizeError.hidden = true;
+            const selectedName = selectedFile ? selectedFile.name : "6MB 이하 파일을 올려주세요.";
+            fileName.textContent = selectedName;
+            fileName.title = fileInput.files.length ? selectedName : "";
+            if (fileNameExpand && fileNameToggle && fileNameFull) {
+                fileNameFull.textContent = fileInput.files.length ? selectedName : "";
+                fileNameFull.hidden = true;
+                fileNameToggle.textContent = "파일명 전체보기";
+                fileNameToggle.setAttribute("aria-expanded", "false");
+                fileNameExpand.hidden = true;
+                requestAnimationFrame(function () {
+                    fileNameExpand.hidden = !fileInput.files.length || fileName.scrollWidth <= fileName.clientWidth;
+                });
+            }
         });
     }
+    if (fileNameToggle && fileNameFull) {
+        fileNameToggle.addEventListener("click", function () {
+            const willShowFullName = fileNameFull.hidden;
+            fileNameFull.hidden = !willShowFullName;
+            fileNameToggle.textContent = willShowFullName ? "파일명 접기" : "파일명 전체보기";
+            fileNameToggle.setAttribute("aria-expanded", String(willShowFullName));
+        });
+    }
+    const submissionForm = fileInput ? fileInput.closest("form") : null;
+    if (submissionForm) {
+        submissionForm.addEventListener("submit", function (event) {
+            if (hasOversizedResultFile) {
+                event.preventDefault();
+                if (fileSizeError) fileSizeError.hidden = false;
+            }
+        });
+    }
+    document.querySelectorAll(".expandable-content").forEach(function (content) {
+        const toggle = content.nextElementSibling;
+        if (!toggle || !toggle.classList.contains("content-toggle")) return;
+
+        content.classList.add("is-collapsed");
+        if (content.scrollHeight <= content.clientHeight + 1) {
+            content.classList.remove("is-collapsed");
+            return;
+        }
+
+        toggle.hidden = false;
+        toggle.addEventListener("click", function () {
+            const expanded = content.classList.toggle("is-collapsed") === false;
+            toggle.textContent = expanded ? "접기" : "더보기";
+            toggle.setAttribute("aria-expanded", String(expanded));
+        });
+    });
     const approveForm = document.querySelector(".approve-form");
     if (approveForm) {
         approveForm.addEventListener("submit", function (event) {
@@ -281,6 +376,14 @@
     if (startForm) {
         startForm.addEventListener("submit", function (event) {
             if (!window.confirm("이 업무를 시작하시겠습니까?")) {
+                event.preventDefault();
+            }
+        });
+    }
+    const cancelTaskForm = document.querySelector(".cancel-task-form");
+    if (cancelTaskForm) {
+        cancelTaskForm.addEventListener("submit", function (event) {
+            if (!window.confirm("업무를 중도 취소하시겠습니까? 예약된 품은 반환되며 취소 후 되돌릴 수 없습니다.")) {
                 event.preventDefault();
             }
         });

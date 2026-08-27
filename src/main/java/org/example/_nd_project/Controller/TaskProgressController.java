@@ -1,6 +1,7 @@
 package org.example._nd_project.Controller;
 
 import jakarta.validation.Valid;
+import jakarta.servlet.http.HttpServletRequest;
 import org.example._nd_project.security.MemberPrincipal;
 import org.example._nd_project.submission.DisputeForm;
 import org.example._nd_project.submission.RevisionRequestForm;
@@ -11,36 +12,52 @@ import org.example._nd_project.submission.TaskCompletionService;
 import org.example._nd_project.submission.TaskProgressService;
 import org.example._nd_project.submission.TaskProgressView;
 import org.example._nd_project.submission.TaskWorkflowService;
+import org.example._nd_project.task.TaskService;
 import org.example._nd_project.task.TaskStorageException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.multipart.MultipartException;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import org.springframework.web.servlet.view.RedirectView;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 @Controller
 public class TaskProgressController {
+
+    private static final Pattern SUBMISSION_PATH = Pattern.compile("^/tasks/(\\d+)/submissions$");
+    private static final Pattern PROGRESS_PATH = Pattern.compile("^/tasks/(\\d+)/progress$");
+    private static final String UPLOAD_SIZE_ERROR = "첨부 파일 용량이 너무 커서 전송할 수 없습니다. 6MB 이하 파일을 선택해주세요.";
+    private static final String DELETED_TASK_MESSAGE = "의뢰자가 글을 삭제했습니다. 내 업무 목록으로 이동했습니다.";
 
     private final TaskProgressService taskProgressService;
     private final SubmissionService submissionService;
     private final TaskCompletionService taskCompletionService;
     private final TaskWorkflowService taskWorkflowService;
+    private final TaskService taskService;
 
     public TaskProgressController(TaskProgressService taskProgressService,
                                   SubmissionService submissionService,
                                   TaskCompletionService taskCompletionService,
-                                  TaskWorkflowService taskWorkflowService) {
+                                  TaskWorkflowService taskWorkflowService,
+                                  TaskService taskService) {
         this.taskProgressService = taskProgressService;
         this.submissionService = submissionService;
         this.taskCompletionService = taskCompletionService;
         this.taskWorkflowService = taskWorkflowService;
+        this.taskService = taskService;
     }
 
     @GetMapping("/tasks/{taskId}/progress")
@@ -75,6 +92,13 @@ public class TaskProgressController {
         return redirectToProgress(taskId) + "?started";
     }
 
+    @PostMapping("/tasks/{taskId}/cancel")
+    public String cancelActiveTask(@AuthenticationPrincipal MemberPrincipal principal,
+                                   @PathVariable Long taskId) {
+        taskService.cancelActiveTask(taskId, principal.memberId());
+        return "redirect:/profile?cancelledTask";
+    }
+
     @PostMapping("/tasks/{taskId}/submissions")
     public String submit(@AuthenticationPrincipal MemberPrincipal principal,
                          @PathVariable Long taskId,
@@ -94,6 +118,31 @@ public class TaskProgressController {
             return redirectToProgress(taskId);
         }
         return redirectToProgress(taskId) + "?submitted";
+    }
+
+    @ExceptionHandler(MultipartException.class)
+    public String handleOversizedUpload(MultipartException exception,
+                                        HttpServletRequest request,
+                                        RedirectAttributes redirectAttributes) {
+        String path = request.getRequestURI().substring(request.getContextPath().length());
+        Matcher matcher = SUBMISSION_PATH.matcher(path);
+        if (!matcher.matches()) {
+            throw exception;
+        }
+        redirectAttributes.addFlashAttribute("uploadError", UPLOAD_SIZE_ERROR);
+        return redirectToProgress(Long.valueOf(matcher.group(1)));
+    }
+
+    @ExceptionHandler(ResponseStatusException.class)
+    public String handleMissingProgress(ResponseStatusException exception,
+                                        HttpServletRequest request,
+                                        RedirectAttributes redirectAttributes) {
+        String path = request.getRequestURI().substring(request.getContextPath().length());
+        if (exception.getStatusCode() != HttpStatus.NOT_FOUND || !PROGRESS_PATH.matcher(path).matches()) {
+            throw exception;
+        }
+        redirectAttributes.addFlashAttribute("taskDeletedMessage", DELETED_TASK_MESSAGE);
+        return "redirect:/profile";
     }
 
     @PostMapping("/tasks/{taskId}/approve")

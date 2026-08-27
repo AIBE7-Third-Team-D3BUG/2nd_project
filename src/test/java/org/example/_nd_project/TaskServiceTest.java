@@ -1,5 +1,6 @@
 package org.example._nd_project;
 
+import org.example._nd_project.chat.ChatService;
 import org.example._nd_project.task.Task;
 import org.example._nd_project.task.TaskCategory;
 import org.example._nd_project.task.TaskRepository;
@@ -8,6 +9,7 @@ import org.example._nd_project.task.TaskStatus;
 import org.example._nd_project.task.TaskStorageService;
 import org.example._nd_project.task.TaskSort;
 import org.example._nd_project.member.TimeLedgerService;
+import org.example._nd_project.submission.SubmissionRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -32,6 +34,7 @@ import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.times;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 
 @ExtendWith(MockitoExtension.class)
@@ -40,12 +43,16 @@ class TaskServiceTest {
     @Mock TaskRepository taskRepository;
     @Mock TaskStorageService taskStorageService;
     @Mock TimeLedgerService timeLedgerService;
+    @Mock SubmissionRepository submissionRepository;
+    @Mock ChatService chatService;
 
     private TaskService taskService;
 
     @BeforeEach
     void setUp() {
-        taskService = new TaskService(taskRepository, taskStorageService, timeLedgerService);
+        taskService = new TaskService(
+                taskRepository, taskStorageService, timeLedgerService, submissionRepository, chatService
+        );
     }
 
     @Test
@@ -87,6 +94,53 @@ class TaskServiceTest {
 
         assertEquals(409, exception.getStatusCode().value());
         verify(timeLedgerService, never()).refundTaskReservation(anyLong(), anyLong());
+    }
+
+    @Test
+    void requesterCanCancelInProgressTaskAndReceiveReservationRefund() {
+        Task task = mock(Task.class);
+        when(task.getRequesterId()).thenReturn(3L);
+        when(task.getStatus()).thenReturn(TaskStatus.IN_PROGRESS);
+        when(taskRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(task));
+        when(submissionRepository.findByTaskId(10L)).thenReturn(Optional.empty());
+
+        taskService.cancelActiveTask(10L, 3L);
+
+        verify(timeLedgerService).refundTaskReservation(eq(3L), eq(10L), anyString());
+        verify(chatService).markRoomAsTaskDeleted(10L);
+        verify(taskRepository).delete(task);
+        verify(taskRepository).flush();
+    }
+
+    @Test
+    void requesterCanCancelMatchedTaskAndReceiveReservationRefund() {
+        Task task = mock(Task.class);
+        when(task.getRequesterId()).thenReturn(3L);
+        when(task.getStatus()).thenReturn(TaskStatus.MATCHED);
+        when(taskRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(task));
+        when(submissionRepository.findByTaskId(10L)).thenReturn(Optional.empty());
+
+        taskService.cancelActiveTask(10L, 3L);
+
+        verify(timeLedgerService).refundTaskReservation(eq(3L), eq(10L), anyString());
+        verify(chatService).markRoomAsTaskDeleted(10L);
+        verify(taskRepository).delete(task);
+        verify(taskRepository).flush();
+    }
+
+    @Test
+    void workerCannotCancelInProgressTask() {
+        Task task = mock(Task.class);
+        when(task.getRequesterId()).thenReturn(3L);
+        when(taskRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(task));
+
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> taskService.cancelActiveTask(10L, 8L)
+        );
+
+        assertEquals(404, exception.getStatusCode().value());
+        verify(timeLedgerService, never()).refundTaskReservation(anyLong(), anyLong(), anyString());
     }
 
     @Test

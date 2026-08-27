@@ -68,6 +68,11 @@ public class ChatService {
         });
     }
 
+    @Transactional
+    public void markRoomAsTaskDeleted(Long taskId) {
+        chatRoomRepository.findByTaskId(taskId).ifPresent(ChatRoom::markTaskDeleted);
+    }
+
     @Transactional(readOnly = true)
     public List<ChatRoomView> getRooms(Long memberId) {
         return chatRoomRepository
@@ -129,8 +134,11 @@ public class ChatService {
     }
 
     @Transactional
-    public void sendMessage(Long roomId, Long senderId, String content, MultipartFile attachment) {
+    public ChatMessageView sendMessage(Long roomId, Long senderId, String content, MultipartFile attachment) {
         ChatRoom room = requireRoomMember(roomId, senderId);
+        if (room.isTaskDeleted()) {
+            throw new IllegalArgumentException("의뢰자가 글을 삭제했습니다.");
+        }
         String normalizedContent = content == null ? "" : content.trim();
         boolean hasAttachment = attachment != null && !attachment.isEmpty();
         if (hasAttachment && attachment.getSize() > MAX_ATTACHMENT_SIZE) {
@@ -160,6 +168,9 @@ public class ChatService {
             );
             chatMessageRepository.save(message);
             room.refreshLastMessage(previewOf(normalizedContent, originalName), message.getSentAt());
+            String requesterName = nicknameOf(room.getRequesterMemberId());
+            String workerName = nicknameOf(room.getWorkerMemberId());
+            return toMessageView(message, senderId, room, requesterName, workerName);
         } catch (RuntimeException exception) {
             if (stored != null) {
                 taskStorageService.deleteQuietly(stored.objectPath());
@@ -168,11 +179,18 @@ public class ChatService {
         }
     }
 
+    public ChatMessageView sendTextMessage(Long roomId, Long senderId, String content) {
+        return sendMessage(roomId, senderId, content, null);
+    }
+
     @Transactional(readOnly = true)
     public URI createAttachmentDownloadUrl(Long messageId, Long memberId) {
         ChatMessage message = chatMessageRepository.findById(messageId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "첨부 파일을 찾을 수 없습니다."));
         requireRoomMember(message.getRoomId(), memberId);
+        if (message.isModerated()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "관리자에 의해 블라인드된 첨부 파일입니다.");
+        }
         if (!StringUtils.hasText(message.getAttachmentObjectPath())) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "첨부 파일을 찾을 수 없습니다.");
         }
@@ -202,7 +220,7 @@ public class ChatService {
         return new ChatRoomView(
                 room.getId(), room.getTaskId(), room.getTaskTitle(), otherMemberId, otherNickname,
                 StringUtils.hasText(room.getLastMessagePreview()) ? room.getLastMessagePreview() : "대화를 시작해보세요.",
-                formatTime(room.getLastMessageAt()), unreadCount, messages
+                formatTime(room.getLastMessageAt()), unreadCount, messages, room.isTaskDeleted()
         );
     }
 
@@ -211,11 +229,13 @@ public class ChatService {
         boolean mine = message.getSenderId().equals(memberId);
         String senderNickname = message.getSenderId().equals(room.getRequesterMemberId())
                 ? requesterName : workerName;
-        boolean previewableImage = StringUtils.hasText(message.getAttachmentContentType())
+        boolean moderated = message.isModerated();
+        boolean previewableImage = !moderated && StringUtils.hasText(message.getAttachmentContentType())
                 && message.getAttachmentContentType().startsWith("image/");
         return new ChatMessageView(
-                message.getId(), message.getSenderId(), senderNickname, message.getContent(),
-                message.getAttachmentName(), message.getAttachmentSize(), previewableImage,
+                message.getId(), message.getSenderId(), senderNickname,
+                moderated ? "관리자에 의해 블라인드된 메시지입니다." : message.getContent(),
+                moderated ? null : message.getAttachmentName(), moderated ? null : message.getAttachmentSize(), previewableImage,
                 formatTime(message.getSentAt()), mine, message.getReadAt() != null
         );
     }

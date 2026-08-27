@@ -31,16 +31,22 @@ spring:
     baseline-on-migrate: true
     baseline-version: 1
     community-db-support-enabled: true
-    validate-on-migrate: false
+    validate-on-migrate: true
     locations: classpath:db/migration
 
   devtools:
     restart:
       enabled: false
 
+  ai:
+    model:
+      # Google GenAI 자동 설정은 모델 값이 없으면 기본 활성화된다.
+      # 일반 실행에서는 명시적으로 비활성화하고 ai-google 프로필에서만 덮어쓴다.
+      chat: none
+
   autoconfigure:
     exclude:
-      # 현재는 Redis/AI만 비활성화하고 DB/JPA/Auth를 활성화한다.
+      # 기본 db 프로필은 AI 모델을 요구하지 않는다. AI는 ai-google 프로필에서만 활성화한다.
       - org.springframework.boot.data.redis.autoconfigure.DataRedisAutoConfiguration
       - org.springframework.boot.data.redis.autoconfigure.DataRedisRepositoriesAutoConfiguration
       - org.springframework.ai.model.chat.client.autoconfigure.ChatClientAutoConfiguration
@@ -50,6 +56,5 @@ spring:
       - org.springframework.ai.model.openai.autoconfigure.OpenAiAudioSpeechAutoConfiguration
       - org.springframework.ai.model.openai.autoconfigure.OpenAiAudioTranscriptionAutoConfiguration
       - org.springframework.ai.model.openai.autoconfigure.OpenAiModerationAutoConfiguration
-      - org.springframework.ai.model.google.genai.autoconfigure.chat.GoogleGenAiChatAutoConfiguration
       - org.springframework.ai.model.google.genai.autoconfigure.embedding.GoogleGenAiEmbeddingConnectionAutoConfiguration
       - org.springframework.ai.model.google.genai.autoconfigure.embedding.GoogleGenAiTextEmbeddingAutoConfiguration

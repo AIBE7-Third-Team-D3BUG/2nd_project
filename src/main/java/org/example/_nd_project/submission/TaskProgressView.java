@@ -17,6 +17,7 @@ public record TaskProgressView(
         boolean canSubmit,
         boolean canReview,
         boolean completed,
+        boolean cancelled,
         boolean disputed,
         int currentStep,
         List<String> completionCriteria,
@@ -24,6 +25,10 @@ public record TaskProgressView(
         SubmissionView submission,
         ReviewView review
 ) {
+    public boolean canCancel() {
+        return requester && (currentStep == 2 || currentStep == 3) && !cancelled;
+    }
+
     public int requestedPum() {
         return requestedMinutes / 30;
     }
@@ -31,6 +36,9 @@ public record TaskProgressView(
     public String phaseLabel() {
         if (completed) {
             return "COMMON-05 · 업무 완료 / 정산";
+        }
+        if (cancelled) {
+            return "COMMON-05 · 업무 취소";
         }
         if (disputed) {
             return "COMMON-04 · 문제 신고 / 검토";

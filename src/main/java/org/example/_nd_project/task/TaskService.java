@@ -1,6 +1,8 @@
 package org.example._nd_project.task;
 
+import org.example._nd_project.chat.ChatService;
 import org.example._nd_project.member.TimeLedgerService;
+import org.example._nd_project.submission.SubmissionRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -14,6 +16,7 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 import static org.springframework.http.HttpStatus.NOT_FOUND;
@@ -28,12 +31,18 @@ public class TaskService {
     private final TaskRepository taskRepository;
     private final TaskStorageService taskStorageService;
     private final TimeLedgerService timeLedgerService;
+    private final SubmissionRepository submissionRepository;
+    private final ChatService chatService;
 
     public TaskService(TaskRepository taskRepository, TaskStorageService taskStorageService,
-                       TimeLedgerService timeLedgerService) {
+                       TimeLedgerService timeLedgerService,
+                       SubmissionRepository submissionRepository,
+                       ChatService chatService) {
         this.taskRepository = taskRepository;
         this.taskStorageService = taskStorageService;
         this.timeLedgerService = timeLedgerService;
+        this.submissionRepository = submissionRepository;
+        this.chatService = chatService;
     }
 
     @Transactional
@@ -151,6 +160,41 @@ public class TaskService {
         taskRepository.flush();
         if (isStoredObject(reference)) {
             taskStorageService.deleteQuietly(reference);
+        }
+    }
+
+    @Transactional
+    public void cancelActiveTask(Long taskId, Long requesterId) {
+        Task task = taskRepository.findByIdForUpdate(taskId)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND));
+        if (!Objects.equals(task.getRequesterId(), requesterId)) {
+            throw new ResponseStatusException(NOT_FOUND);
+        }
+        if (task.getStatus() != TaskStatus.MATCHED && task.getStatus() != TaskStatus.IN_PROGRESS) {
+            throw new ResponseStatusException(CONFLICT, "매칭 또는 진행 중인 업무만 중도 취소할 수 있습니다.");
+        }
+
+        String taskReference = task.getReferenceFileUrl();
+        String resultAsset = submissionRepository.findByTaskId(taskId)
+                .map(submission -> {
+                    submissionRepository.delete(submission);
+                    return submission.getResultFileUrl();
+                })
+                .orElse(null);
+        timeLedgerService.refundTaskReservation(
+                requesterId,
+                taskId,
+                "의뢰자의 업무 중도 취소에 따른 예약 재화 반환"
+        );
+        submissionRepository.flush();
+        chatService.markRoomAsTaskDeleted(taskId);
+        taskRepository.delete(task);
+        taskRepository.flush();
+        if (isStoredObject(taskReference)) {
+            taskStorageService.deleteQuietly(taskReference);
+        }
+        if (isStoredObject(resultAsset)) {
+            taskStorageService.deleteQuietly(resultAsset);
         }
     }
 

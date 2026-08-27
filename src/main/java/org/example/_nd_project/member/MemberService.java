@@ -2,6 +2,7 @@ package org.example._nd_project.member;
 
 import org.example._nd_project.task.TaskStorageService;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -9,6 +10,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 
@@ -81,6 +83,20 @@ public class MemberService {
         );
     }
 
+    @Transactional(readOnly = true)
+    public List<TimeTransactionHistoryView> getTimeTransactionHistory(Long memberId, int limit) {
+        requireMember(memberId);
+        return timeTransactionRepository.findByAccountMemberIdOrderByCreatedAtDesc(memberId, PageRequest.of(0, limit)).stream()
+                .map(this::toTimeTransactionHistoryView)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public long getTimeTransactionHistoryCount(Long memberId) {
+        requireMember(memberId);
+        return timeTransactionRepository.countByAccountMemberId(memberId);
+    }
+
     @Transactional
     public void updateProfile(Long memberId, ProfileUpdateForm form, MultipartFile profileImage) {
         Member member = requireMember(memberId);
@@ -141,5 +157,34 @@ public class MemberService {
 
     private static String normalizeNullable(String value) {
         return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    private TimeTransactionHistoryView toTimeTransactionHistoryView(TimeTransaction transaction) {
+        int changeMinutes = transaction.getAvailableDeltaMinutes() != 0
+                ? transaction.getAvailableDeltaMinutes()
+                : transaction.getReservedDeltaMinutes();
+        return new TimeTransactionHistoryView(
+                transactionLabel(transaction.getTransactionType()),
+                transaction.getReason(),
+                changeMinutes / 30,
+                changeMinutes > 0,
+                transaction.getAvailableBalanceAfter() / 30,
+                transaction.getReservedBalanceAfter() / 30,
+                transaction.getCreatedAt()
+        );
+    }
+
+    private static String transactionLabel(String transactionType) {
+        return switch (transactionType) {
+            case "SIGNUP_REWARD" -> "가입 축하 품 지급";
+            case "TASK_RESERVE" -> "업무 등록 품 예약";
+            case "TASK_REFUND" -> "예약 품 반환";
+            case "TASK_SETTLEMENT_DEBIT" -> "업무 완료 품 정산";
+            case "TASK_SETTLEMENT_CREDIT" -> "업무 완료 품 지급";
+            case "ADMIN_CREDIT" -> "관리자 품 지급";
+            case "ADMIN_DEBIT" -> "관리자 품 차감";
+            case "REVERSAL" -> "거래 취소";
+            default -> "품 변동";
+        };
     }
 }
