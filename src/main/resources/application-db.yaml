@@ -40,14 +40,16 @@ spring:
 
   ai:
     model:
-      # ai-google 같은 AI 프로필을 함께 활성화할 때만 실제 모델을 연결한다.
-      chat: ${AI_CHAT_MODEL:none}
+      # Google GenAI 자동 설정은 모델 값이 없으면 기본 활성화된다.
+      # 일반 실행에서는 명시적으로 비활성화하고 ai-google 프로필에서만 덮어쓴다.
+      chat: none
 
   autoconfigure:
     exclude:
-      # Redis와 현재 사용하지 않는 AI 기능만 비활성화한다.
+      # 기본 db 프로필은 AI 모델을 요구하지 않는다. AI는 ai-google 프로필에서만 활성화한다.
       - org.springframework.boot.data.redis.autoconfigure.DataRedisAutoConfiguration
       - org.springframework.boot.data.redis.autoconfigure.DataRedisRepositoriesAutoConfiguration
+      - org.springframework.ai.model.chat.client.autoconfigure.ChatClientAutoConfiguration
       - org.springframework.ai.model.openai.autoconfigure.OpenAiChatAutoConfiguration
       - org.springframework.ai.model.openai.autoconfigure.OpenAiEmbeddingAutoConfiguration
       - org.springframework.ai.model.openai.autoconfigure.OpenAiImageAutoConfiguration
