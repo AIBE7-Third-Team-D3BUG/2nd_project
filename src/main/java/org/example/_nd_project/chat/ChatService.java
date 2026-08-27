@@ -134,7 +134,7 @@ public class ChatService {
     }
 
     @Transactional
-    public void sendMessage(Long roomId, Long senderId, String content, MultipartFile attachment) {
+    public ChatMessageView sendMessage(Long roomId, Long senderId, String content, MultipartFile attachment) {
         ChatRoom room = requireRoomMember(roomId, senderId);
         if (room.isTaskDeleted()) {
             throw new IllegalArgumentException("의뢰자가 글을 삭제했습니다.");
@@ -168,12 +168,19 @@ public class ChatService {
             );
             chatMessageRepository.save(message);
             room.refreshLastMessage(previewOf(normalizedContent, originalName), message.getSentAt());
+            String requesterName = nicknameOf(room.getRequesterMemberId());
+            String workerName = nicknameOf(room.getWorkerMemberId());
+            return toMessageView(message, senderId, room, requesterName, workerName);
         } catch (RuntimeException exception) {
             if (stored != null) {
                 taskStorageService.deleteQuietly(stored.objectPath());
             }
             throw exception;
         }
+    }
+
+    public ChatMessageView sendTextMessage(Long roomId, Long senderId, String content) {
+        return sendMessage(roomId, senderId, content, null);
     }
 
     @Transactional(readOnly = true)

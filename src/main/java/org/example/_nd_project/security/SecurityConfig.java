@@ -52,7 +52,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/", "/signup", "/login", "/error", "/css/**", "/images/**", "/favicon.ico").permitAll()
                         .requestMatchers("/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/profile/**", "/tasks/**", "/chat", "/chat/**").authenticated()
+                        .requestMatchers("/profile/**", "/tasks/**", "/chat", "/chat/**", "/ws/**").authenticated()
                         .anyRequest().permitAll()
                 )
                 .formLogin(form -> form

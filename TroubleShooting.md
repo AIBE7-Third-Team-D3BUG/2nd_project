@@ -322,9 +322,6 @@ Resolved locally    : 1217308031
 브랜치 병합 후 `ProfileController.java`에 다음과 같은 충돌 표식과 중복 코드가 포함될 위험이 있었다.
 
 ```text
-<<<<<<< min
-=======
->>>>>>> main
 ```
 
 프로필 조회, 회원 탈퇴, 프로필 이미지 매핑이 중복으로 존재해 그대로 저장하면 컴파일 또는 매핑 오류가 발생할 수 있었다.
@@ -506,3 +503,147 @@ DB 통합 테스트는 AI 기능을 호출하지 않는데도 Spring AI 자동 �
 - 실제 사용자 수를 기준으로 한 부하 테스트
 - 장애 발생 시 로그·알림·롤백 절차 문서화
 
+
+[2026-08-27] 채팅방 기능 트러블슈팅 추가 기록
+
+1. 채팅방 나가기 후 이전 대화 기록을 확인할 수 없는 문제
+--------------------------------------------------------------------------------
+  [문제]
+  * 채팅방을 나가면 목록에서는 숨김 처리되지만, 이전 대화 기록까지 볼 수 없게 될
+    가능성이 있어 중요한 안내나 파일을 다시 확인하기 어려움.
+
+  [원인]
+  * 채팅방 나가기와 대화 기록 삭제를 동일한 동작으로 해석할 경우,
+    사용자의 숨김 의도와 기록 삭제 의도가 구분되지 않음.
+
+  [처리 내용]
+  * 채팅방 나가기는 참여자의 퇴장 상태만 변경하고 채팅방과 메시지는 보존.
+  * 기존 메시지와 첨부파일은 삭제하지 않음.
+  * 퇴장 시 시스템 메시지를 남겨 상대방이 퇴장 사실을 확인할 수 있도록 처리.
+  * 향후 기록을 완전히 삭제하려면 별도의 대화 기록 삭제 기능으로 분리할 수 있도록
+    정책을 구분함.
+
+  [사용자 동작]
+  * 나간 사용자의 채팅방 목록에서는 방이 숨겨짐.
+  * 기존 기록은 보존되어 운영·분쟁·재입장 정책에 따라 다시 확인할 수 있음.
+  * 나가기와 기록 삭제의 차이를 안내할 수 있음.
+
+  [관련 파일]
+  * `src/main/java/org/example/_nd_project/chat/ChatRoom.java`
+  * `src/main/java/org/example/_nd_project/chat/ChatService.java`
+  * `src/main/resources/templates/chat.html`
+  * DB migration: `V10__chat_room_member_exit.sql`
+  * DB migration: `V11__chat_system_notification.sql`
+
+2. 업무 삭제 후 수행자의 채팅 화면에서 오류가 발생하는 문제
+--------------------------------------------------------------------------------
+  [문제]
+  * 의뢰자가 업무를 삭제하면 채팅방까지 삭제되어 수행자가 기존 대화를 확인할 수
+    없고, 이미 열어 둔 화면에서 메시지를 전송하거나 새로고침할 때 오류가 발생함.
+
+  [원인]
+  * 업무 삭제와 채팅방 삭제를 함께 처리하고 있었음.
+  * 삭제된 업무의 채팅방에 대한 화면 표시와 메시지 전송 차단 처리가 부족했음.
+
+  [처리 내용]
+  * 채팅방을 즉시 삭제하지 않고 `task_deleted` 상태로 보존.
+  * 기존 메시지는 조회할 수 있도록 유지.
+  * 채팅방에 삭제 안내 문구를 표시하고 메시지 입력창을 숨김.
+  * 서버에서도 삭제된 업무의 새 메시지 전송을 차단.
+  * 진행 페이지 접근 시 프로필로 이동시키고 플래시 안내를 표시.
+
+  [사용자 동작]
+  * 수행자는 삭제 사실과 기존 대화 기록을 확인할 수 있음.
+  * 삭제된 업무에 메시지를 보내도 Whitelabel Error Page 대신 안내 문구가 표시됨.
+
+  [관련 파일]
+  * `src/main/java/org/example/_nd_project/chat/ChatRoom.java`
+  * `src/main/java/org/example/_nd_project/chat/ChatService.java`
+  * `src/main/java/org/example/_nd_project/Controller/TaskProgressController.java`
+  * `src/main/resources/templates/chat.html`
+  * DB migration: `V15__retain_cancelled_task_chat_rooms.sql`
+
+3. 채팅 첨부파일 업로드 실패 및 용량 초과 오류
+--------------------------------------------------------------------------------
+  [문제]
+  * 6MB를 초과한 파일을 업로드하면 413 오류 또는 Whitelabel Error Page가 표시되고,
+    Storage 업로드 뒤 메시지 저장이 실패하면 파일만 남을 수 있음.
+
+  [원인]
+  * 브라우저의 파일 크기 사전 검사가 부족했음.
+  * multipart 예외를 채팅 화면의 안내 흐름으로 변환하지 않았음.
+  * 외부 Storage 저장과 DB 메시지 저장은 서로 다른 시스템에서 처리됨.
+
+  [처리 내용]
+  * 브라우저와 서버 양쪽에서 6MB 파일 크기를 검증.
+  * 초과 파일은 선택을 해제하고 안내 문구를 표시.
+  * 업로드 후 메시지 저장에 실패하면 이미 업로드된 파일을 정리.
+  * 첨부파일은 참여자 검증 후 5분 동안 유효한 서명 URL로 다운로드.
+
+  [사용자 동작]
+  * 용량 초과 시 현재 채팅 화면을 유지한 채 오류 원인을 확인할 수 있음.
+  * 채팅방 참여자가 아닌 사용자는 첨부파일을 다운로드할 수 없음.
+
+  [관련 파일]
+  * `src/main/java/org/example/_nd_project/chat/ChatService.java`
+  * `src/main/java/org/example/_nd_project/Controller/ChatMessageController.java`
+  * `src/main/resources/templates/chat.html`
+  * `src/main/resources/application.yaml`
+
+4. 비인가 사용자의 채팅방 접근 가능성
+--------------------------------------------------------------------------------
+  [문제]
+  * 채팅방 ID를 알고 있는 사용자가 다른 사용자의 메시지나 첨부파일에 접근할
+    가능성이 있었음.
+
+  [원인]
+  * 채팅방 조회, 메시지 전송, 첨부파일 다운로드에 참여자 검증이 일관되게 적용되어야
+    하지만 기능별로 검증이 누락되면 URL·요청 우회가 가능함.
+
+  [처리 내용]
+  * 채팅방 조회와 메시지 전송에서 의뢰인 또는 배정된 수행자인지 검증.
+  * 첨부파일 서명 URL 발급 전에도 채팅방 참여자 여부를 검증.
+  * `/chat/**`, `/ws/**` 경로에 인증 적용.
+
+  [검증 결과]
+  * 비참여자의 채팅 조회·메시지 전송·첨부파일 다운로드가 차단됨.
+  * 비인가 메시지 전송 예외를 `ChatServiceTest`에서 확인함.
+
+  [관련 파일]
+  * `src/main/java/org/example/_nd_project/chat/ChatService.java`
+  * `src/main/java/org/example/_nd_project/security/SecurityConfig.java`
+  * `src/test/java/org/example/_nd_project/ChatServiceTest.java`
+
+5. 실시간 채팅 도입 시 텍스트와 첨부파일 전송 방식 불일치
+--------------------------------------------------------------------------------
+  [문제]
+  * 기존 HTTP 방식의 텍스트 메시지는 새로고침해야 상대방 메시지를 확인할 수 있어
+    실시간 대화가 어려웠음.
+
+  [원인]
+  * 텍스트 메시지와 파일 업로드를 모두 multipart HTTP 방식으로 처리하고 있었음.
+
+  [처리 내용]
+  * Spring WebSocket과 STOMP 의존성 및 설정 추가.
+  * `/ws` 엔드포인트와 `/app/chat/{roomId}/send` 전송 경로 구성.
+  * `/topic/chat.{roomId}` 구독으로 같은 채팅방에 메시지 전달.
+  * 텍스트 메시지는 WebSocket으로 전송하고 첨부파일은 multipart HTTP 방식을 유지.
+  * WebSocket 연결이 끊기면 재연결하도록 설정.
+
+  [현재 상태 및 추가 확인 사항]
+  * `bash gradlew test` 기준 기본 테스트와 컴파일은 통과.
+  * 운영 전 WebSocket 세션 인증, CSRF, 프록시의 `wss` 설정,
+    재연결 시 중복 수신 여부를 브라우저 통합 테스트로 확인해야 함.
+
+  [관련 파일]
+  * `build.gradle`
+  * `src/main/java/org/example/_nd_project/config/WebSocketConfig.java`
+  * `src/main/java/org/example/_nd_project/Controller/ChatWebSocketController.java`
+  * `src/main/resources/templates/chat.html`
+
+6. 채팅방 작업 검증 결과
+--------------------------------------------------------------------------------
+  * `bash gradlew test` 실행 결과 `BUILD SUCCESSFUL` 확인.
+  * 비인가 접근, 첨부파일 업로드 실패, 파일 용량 제한, 채팅방 나가기 처리를
+    서비스·컨트롤러 테스트로 확인.
+  * 삭제된 업무의 채팅 기록 보존과 메시지 전송 차단 흐름을 확인.
