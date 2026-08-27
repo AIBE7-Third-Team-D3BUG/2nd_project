@@ -25,6 +25,9 @@ import org.springframework.web.servlet.view.RedirectView;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.security.core.context.SecurityContextHolder;
+
 @Controller
 public class ProfileController {
 
@@ -37,14 +40,22 @@ public class ProfileController {
     private final VolunteerService volunteerService;
 
     public ProfileController(MemberService memberService,
-                ObjectProvider<MemberWithdrawalService> memberWithdrawalService,
-                TaskService taskService,
-                VolunteerService volunteerService) {
-            this.memberService = memberService;
-            this.memberWithdrawalService = memberWithdrawalService;
-            this.taskService = taskService;
-            this.volunteerService = volunteerService;
-        }
+                             ObjectProvider<MemberWithdrawalService> memberWithdrawalService,
+                             TaskService taskService,
+                             VolunteerService volunteerService) {
+        this.memberService = memberService;
+        this.memberWithdrawalService = memberWithdrawalService;
+        this.taskService = taskService;
+        this.volunteerService = volunteerService;
+    }
+
+    @GetMapping("/profile")
+    public String myProfile(@AuthenticationPrincipal MemberPrincipal principal,
+                            @RequestParam(defaultValue = "10") int historySize,
+                            Model model) {
+        addProfileModel(model, principal.memberId(), true, normalizeHistorySize(historySize));
+        return "profile";
+    }
 
         @GetMapping("/profile")
         public String myProfile(@AuthenticationPrincipal MemberPrincipal principal,
@@ -128,6 +139,38 @@ public class ProfileController {
         public RedirectView profileImage(@PathVariable Long memberId) {
             return new RedirectView(memberService.createProfileImageUrl(memberId).toString());
         }
+    @PostMapping("/profile/withdraw")
+    public String withdraw(@AuthenticationPrincipal MemberPrincipal principal,
+                           @RequestParam String password,
+                           @RequestParam(name = "confirmed", defaultValue = "false") boolean confirmed,
+                           HttpServletRequest request) {
+        if (!confirmed) {
+            return "redirect:/profile?withdrawalError=confirmation";
+        }
+        try {
+            MemberWithdrawalService withdrawalService = memberWithdrawalService.getIfAvailable();
+            if (withdrawalService == null) {
+                return "redirect:/profile?withdrawalError=unavailable";
+            }
+            withdrawalService.withdraw(principal.memberId(), password);
+        } catch (IllegalArgumentException exception) {
+            return "redirect:/profile?withdrawalError=password";
+        } catch (IllegalStateException exception) {
+            return "redirect:/profile?withdrawalError=unavailable";
+        }
+
+        SecurityContextHolder.clearContext();
+        var session = request.getSession(false);
+        if (session != null) {
+            session.invalidate();
+        }
+        return "redirect:/login?withdrawn";
+    }
+
+    @GetMapping("/members/{memberId}/image")
+    public RedirectView profileImage(@PathVariable Long memberId) {
+        return new RedirectView(memberService.createProfileImageUrl(memberId).toString());
+    }
 
         private void addProfileModel(Model model, Long memberId, boolean isOwner, int historySize) {
             taskService.expireOverdueOpenTasks();
