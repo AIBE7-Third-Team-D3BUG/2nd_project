@@ -286,6 +286,20 @@
                   method="post" enctype="multipart/form-data">
                 <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                 <input th:if="${editingTaskId != null}" type="hidden" name="returnTo" th:value="${editReturnTo}">
+                <section class="ai-draft-panel" th:if="${editingTaskId == null}" aria-labelledby="ai-draft-title">
+                    <div class="ai-draft-copy">
+                        <span class="ai-badge">AI 초안</span>
+                        <h2 id="ai-draft-title">상황을 적으면 업무 초안을 정리해드려요</h2>
+                        <p>AI는 제목·카테고리·기술·완료 기준·상세 설명만 제안합니다. 마감과 요청 품은 직접 선택하고, 결과를 확인한 뒤 게시해주세요.</p>
+                    </div>
+                    <label class="sr-only" for="ai-task-situation">AI에게 전달할 상황 설명</label>
+                    <textarea id="ai-task-situation" maxlength="3000"
+                              placeholder="예: 오늘 AWS에 배포했는데 502 오류가 발생합니다. 오후 6시까지 원인을 확인하고 정상 접속되게 해주세요."></textarea>
+                    <div class="ai-draft-actions">
+                        <span id="ai-draft-status" class="ai-draft-status" role="status" aria-live="polite"></span>
+                        <button id="ai-draft-button" class="button" type="button">AI로 업무 정리하기</button>
+                    </div>
+                </section>
                 <div class="panel confirm-fields">
                     <div class="errors" th:if="${#fields.hasGlobalErrors()}">
                         <div th:each="error : ${#fields.globalErrors()}" th:text="${error}"></div>
@@ -724,6 +738,62 @@
     const deadlineInput = document.getElementById("task-deadline");
     const taskSortSelect = document.getElementById("task-sort");
     const taskCategoryFilter = document.getElementById("task-category-filter");
+    const aiSituationInput = document.getElementById("ai-task-situation");
+    const aiDraftButton = document.getElementById("ai-draft-button");
+    const aiDraftStatus = document.getElementById("ai-draft-status");
+
+    async function createAiTaskDraft() {
+        const situation = aiSituationInput ? aiSituationInput.value.trim() : "";
+        if (!situation) {
+            aiDraftStatus.textContent = "정리할 상황을 먼저 입력해주세요.";
+            aiDraftStatus.classList.add("error");
+            aiSituationInput.focus();
+            return;
+        }
+
+        const taskForm = document.getElementById("task-create-form");
+        const csrfInput = taskForm.querySelector('input[type="hidden"][name]');
+        aiDraftButton.disabled = true;
+        aiDraftButton.textContent = "AI가 정리 중입니다...";
+        aiDraftStatus.textContent = "초안을 만들고 있습니다.";
+        aiDraftStatus.classList.remove("error", "success");
+
+        try {
+            const headers = { "Content-Type": "application/json" };
+            if (csrfInput) {
+                headers["X-CSRF-TOKEN"] = csrfInput.value;
+            }
+            const response = await fetch("/tasks/ai/draft", {
+                method: "POST",
+                headers: headers,
+                body: JSON.stringify({ situation: situation })
+            });
+            const result = await response.json().catch(function () { return {}; });
+            if (!response.ok) {
+                throw new Error(result.message || "AI 정리에 실패했습니다.");
+            }
+
+            document.getElementById("task-title").value = result.title || "";
+            document.getElementById("task-category").value = result.category || "";
+            document.getElementById("task-skills").value = Array.isArray(result.requiredSkills)
+                ? result.requiredSkills.join(", ")
+                : "";
+            document.getElementById("task-deliverable").value = result.deliverableDescription || "";
+            document.getElementById("task-description").value = result.detailDescription || "";
+            aiDraftStatus.textContent = "초안을 채웠습니다. 내용을 확인하고 수정한 뒤 게시해주세요.";
+            aiDraftStatus.classList.add("success");
+        } catch (error) {
+            aiDraftStatus.textContent = error.message || "AI 정리에 실패했습니다. 직접 입력해주세요.";
+            aiDraftStatus.classList.add("error");
+        } finally {
+            aiDraftButton.disabled = false;
+            aiDraftButton.textContent = "AI로 업무 정리하기";
+        }
+    }
+
+    if (aiDraftButton) {
+        aiDraftButton.addEventListener("click", createAiTaskDraft);
+    }
 
     function koreaDateTimeValue(date) {
         const parts = new Intl.DateTimeFormat("en-CA", {

@@ -180,6 +180,16 @@ public class Task {
         this.status = TaskStatus.DISPUTED;
     }
 
+    public void resolveDispute(boolean accepted, Instant resolvedAt) {
+        requireStatus(TaskStatus.DISPUTED, "분쟁 중인 업무만 관리자 처리할 수 있습니다.");
+        if (accepted) {
+            this.status = TaskStatus.CANCELLED;
+            this.cancelledAt = resolvedAt;
+            return;
+        }
+        this.status = TaskStatus.SUBMITTED;
+    }
+
     public boolean isRequester(Long memberId) {
         return Objects.equals(requesterId, memberId);
     }

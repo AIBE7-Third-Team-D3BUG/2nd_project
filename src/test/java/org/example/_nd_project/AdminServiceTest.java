@@ -13,6 +13,7 @@ import org.example._nd_project.member.TimeLedgerService;
 import org.example._nd_project.member.TimeTransaction;
 import org.example._nd_project.member.TimeTransactionRepository;
 import org.example._nd_project.submission.DisputeRepository;
+import org.example._nd_project.submission.Dispute;
 import org.example._nd_project.task.Task;
 import org.example._nd_project.task.TaskCategory;
 import org.example._nd_project.task.TaskRepository;
@@ -233,6 +234,69 @@ class AdminServiceTest {
     }
 
     @Test
+    void acceptedDisputeCancelsTaskAndRefundsRequesterReservation() {
+        Member admin = member(1L, "admin@example.com", MemberRole.ADMIN);
+        Task task = disputedTask();
+        Dispute dispute = Dispute.open(10L, 2L, "결과물이 완료 기준과 다릅니다.");
+        ReflectionTestUtils.setField(dispute, "id", 30L);
+        when(memberRepository.findById(1L)).thenReturn(Optional.of(admin));
+        when(disputeRepository.findByIdForUpdate(30L)).thenReturn(Optional.of(dispute));
+        when(taskRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(task));
+
+        adminService.resolveDispute(1L, 30L, true, "요청자에게 예약 품을 반환합니다.");
+
+        assertEquals("RESOLVED", dispute.getStatus());
+        assertEquals(TaskStatus.CANCELLED, task.getStatus());
+        verify(timeLedgerService).refundTaskReservation(
+                2L, 10L, "관리자 분쟁 승인에 따른 예약 재화 반환: 요청자에게 예약 품을 반환합니다."
+        );
+        verify(auditLogRepository).save(org.mockito.ArgumentMatchers.any(AdminAuditLog.class));
+    }
+
+    @Test
+    void rejectedDisputeReturnsTaskToSubmittedWithoutRefund() {
+        Member admin = member(1L, "admin@example.com", MemberRole.ADMIN);
+        Task task = disputedTask();
+        Dispute dispute = Dispute.open(10L, 2L, "결과물이 완료 기준과 다릅니다.");
+        ReflectionTestUtils.setField(dispute, "id", 30L);
+        dispute.startReview();
+        when(memberRepository.findById(1L)).thenReturn(Optional.of(admin));
+        when(disputeRepository.findByIdForUpdate(30L)).thenReturn(Optional.of(dispute));
+        when(taskRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(task));
+
+        adminService.resolveDispute(1L, 30L, false, "제출 결과를 다시 확인하도록 합니다.");
+
+        assertEquals("REJECTED", dispute.getStatus());
+        assertEquals(TaskStatus.SUBMITTED, task.getStatus());
+        verify(timeLedgerService, org.mockito.Mockito.never()).refundTaskReservation(
+                org.mockito.ArgumentMatchers.anyLong(),
+                org.mockito.ArgumentMatchers.anyLong(),
+                org.mockito.ArgumentMatchers.anyString()
+        );
+    }
+
+    @Test
+    void legacyResolvedDisputeIsReconciledAndRefunded() {
+        Member admin = member(1L, "admin@example.com", MemberRole.ADMIN);
+        Task task = disputedTask();
+        Dispute dispute = Dispute.open(10L, 2L, "결과물이 완료 기준과 다릅니다.");
+        ReflectionTestUtils.setField(dispute, "id", 30L);
+        dispute.resolve(true, "기존 관리자 처리", Instant.parse("2026-08-26T00:47:52Z"));
+        when(memberRepository.findById(1L)).thenReturn(Optional.of(admin));
+        when(disputeRepository.findByIdForUpdate(30L)).thenReturn(Optional.of(dispute));
+        when(taskRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(task));
+
+        adminService.resolveDispute(1L, 30L, true, "기존 불일치 데이터 복구");
+
+        assertEquals("RESOLVED", dispute.getStatus());
+        assertEquals(TaskStatus.CANCELLED, task.getStatus());
+        verify(timeLedgerService).refundTaskReservation(
+                2L, 10L, "기존 분쟁 처리 불일치 복구에 따른 예약 재화 반환: 기존 불일치 데이터 복구"
+        );
+        verify(auditLogRepository).save(org.mockito.ArgumentMatchers.any(AdminAuditLog.class));
+    }
+
+    @Test
     void adminCannotSuspendAnotherAdmin() {
         Member admin = member(1L, "admin@example.com", MemberRole.ADMIN);
         Member targetAdmin = member(3L, "other-admin@example.com", MemberRole.ADMIN);
@@ -248,5 +312,14 @@ class AdminServiceTest {
         ReflectionTestUtils.setField(member, "id", id);
         ReflectionTestUtils.setField(member, "role", role);
         return member;
+    }
+
+    private Task disputedTask() {
+        Task task = Task.create(2L, "분쟁 업무", "설명", TaskCategory.DEVELOPMENT, new String[0], 60,
+                Instant.now().plusSeconds(3600), "완료 기준", null);
+        ReflectionTestUtils.setField(task, "id", 10L);
+        ReflectionTestUtils.setField(task, "workerId", 3L);
+        ReflectionTestUtils.setField(task, "status", TaskStatus.DISPUTED);
+        return task;
     }
 }
