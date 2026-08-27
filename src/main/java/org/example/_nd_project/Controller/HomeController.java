@@ -10,6 +10,7 @@ import org.example._nd_project.task.TaskService;
 import org.example._nd_project.task.TaskSort;
 import org.example._nd_project.volunteer.VolunteerCardView;
 import org.example._nd_project.volunteer.VolunteerService;
+import org.example._nd_project.volunteer.WorkerRecommendationView;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -20,6 +21,9 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Controller
 public class HomeController {
@@ -81,9 +85,29 @@ public class HomeController {
             hasApplied = principal != null && volunteerService.hasApplied(selectedTask.id(), principal.memberId());
             volunteers = volunteerService.getVolunteers(selectedTask.id());
         }
+        Object recommendationAttribute = model.getAttribute("workerRecommendations");
+        Map<Long, WorkerRecommendationView> recommendationByVolunteerId = recommendationAttribute instanceof List<?> items
+                ? items.stream()
+                    .filter(WorkerRecommendationView.class::isInstance)
+                    .map(WorkerRecommendationView.class::cast)
+                    .collect(Collectors.toMap(
+                            WorkerRecommendationView::volunteerId,
+                            Function.identity(),
+                            (left, right) -> left
+                    ))
+                : Map.of();
+        if (!recommendationByVolunteerId.isEmpty()) {
+            volunteers = volunteers.stream()
+                    .sorted(java.util.Comparator.comparingInt(volunteer -> {
+                        WorkerRecommendationView recommendation = recommendationByVolunteerId.get(volunteer.id());
+                        return recommendation == null ? Integer.MAX_VALUE : recommendation.rank();
+                    }))
+                    .toList();
+        }
         model.addAttribute("applicantCount", applicantCount);
         model.addAttribute("hasApplied", hasApplied);
         model.addAttribute("volunteers", volunteers);
+        model.addAttribute("recommendationByVolunteerId", recommendationByVolunteerId);
 
         LocalDateTime now = LocalDateTime.now(KOREA);
         if (!model.containsAttribute("minDeadline")) {
