@@ -102,7 +102,7 @@
                 </div>
 
                 <div class="chat-error" th:if="${chatError}" th:text="${chatError}">오류 메시지</div>
-                <form class="composer" th:unless="${selectedRoom.taskDeleted()}" th:action="@{/chat/{id}/messages(id=${selectedRoom.id()})}"
+                <form class="composer" id="composer" th:unless="${selectedRoom.taskDeleted()}" th:action="@{/chat/{id}/messages(id=${selectedRoom.id()})}"
                       method="post" enctype="multipart/form-data">
                     <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                     <label class="attach-button" for="attachment" title="파일 첨부">＋</label>
@@ -142,7 +142,11 @@
         </section>
     </main>
 </div>
-<script>
+<script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7.1.1/bundles/stomp.umd.min.js"></script>
+<script th:inline="javascript">
+    const roomId = /*[[${selectedRoom != null ? selectedRoom.id() : null}]]*/ null;
+    const currentMemberId = /*[[${currentMemberId}]]*/ null;
+    const csrfToken = /*[[${_csrf != null ? _csrf.token : ''}]]*/ '';
     const messages = document.getElementById("messages");
     const scrollMessagesToBottom = () => {
         if (messages) messages.scrollTop = messages.scrollHeight;
@@ -177,6 +181,33 @@
         content.addEventListener("input", () => {
             content.style.height = "auto";
             content.style.height = Math.min(content.scrollHeight, 120) + "px";
+        });
+    }
+
+    // Text messages use the live channel; attachments continue through multipart HTTP.
+    const composer = document.getElementById("composer");
+    if (composer && roomId && window.StompJs) {
+        const client = new StompJs.Client({
+            brokerURL: `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws`,
+            reconnectDelay: 3000,
+            connectHeaders: csrfToken ? { "X-CSRF-TOKEN": csrfToken } : {},
+            onConnect: () => {
+                client.subscribe(`/topic/chat.${roomId}`, (frame) => {
+                    const message = JSON.parse(frame.body);
+                    window.location.reload();
+                });
+            },
+            onStompError: () => composer.classList.add("offline")
+        });
+        client.activate();
+        composer.addEventListener("submit", (event) => {
+            if (fileInput && fileInput.files.length > 0 || !client.connected) return;
+            event.preventDefault();
+            const value = content.value.trim();
+            if (!value) return;
+            client.publish({ destination: `/app/chat/${roomId}/send`, body: JSON.stringify({ content: value }) });
+            content.value = "";
+            content.style.height = "auto";
         });
     }
     const leaveButton = document.getElementById("leaveRoomButton");
