@@ -135,6 +135,14 @@ public class TaskController {
         );
     }
 
+    @GetMapping("/tasks/{taskId}/reference-link")
+    public RedirectView openReferenceLink(@AuthenticationPrincipal MemberPrincipal principal,
+                                          @PathVariable Long taskId) {
+        return new RedirectView(
+                taskService.createReferenceLinkUrl(taskId, principal.memberId()).toString()
+        );
+    }
+
     @PostMapping("/tasks/{taskId}/apply")
     public String applyTask(@AuthenticationPrincipal MemberPrincipal principal,
                             @PathVariable Long taskId,

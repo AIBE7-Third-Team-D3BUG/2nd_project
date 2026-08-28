@@ -60,7 +60,8 @@ public class TaskService {
                 form.getRequestedMinutes(),
                 form.getDeadlineAt().atZone(KOREA).toInstant(),
                 form.getDeliverableDescription().trim(),
-                normalizeNullable(form.getReferenceFileUrl())
+                normalizeNullable(form.getReferenceLinkUrl()),
+                null
         );
         taskRepository.saveAndFlush(task);
         timeLedgerService.reserveForTask(requesterId, task.getId(), form.getRequestedMinutes());
@@ -91,14 +92,12 @@ public class TaskService {
         form.setRequestedMinutes(task.getRequestedMinutes());
         form.setDeadlineAt(task.getDeadlineAt().atZone(KOREA).toLocalDateTime());
         form.setDeliverableDescription(task.getDeliverableDescription());
-        if (isExternalUrl(task.getReferenceFileUrl())) {
-            form.setReferenceFileUrl(task.getReferenceFileUrl());
-        }
+        form.setReferenceLinkUrl(task.getReferenceLinkUrl());
 
         return new TaskEditData(
                 form,
                 task.getCreatedAt().plus(Duration.ofHours(24)).atZone(KOREA).toLocalDateTime(),
-                hasReference(task.getReferenceFileUrl()),
+                hasReference(task.getAttachmentObjectPath()),
                 timeLedgerService.getAvailableMinutes(requesterId)
                         + timeLedgerService.getTaskReservedMinutes(requesterId, taskId)
         );
@@ -114,18 +113,14 @@ public class TaskService {
             throw new ResponseStatusException(CONFLICT, "마감은 최초 등록 시점부터 24시간 이내여야 합니다.");
         }
 
-        String previousReference = task.getReferenceFileUrl();
+        String previousAttachment = task.getAttachmentObjectPath();
         String uploadedPath = null;
         try {
             if (attachment != null && !attachment.isEmpty()) {
                 uploadedPath = taskStorageService.upload(task.getId(), attachment);
             }
-            String requestedLink = normalizeNullable(form.getReferenceFileUrl());
-            String nextReference = uploadedPath != null
-                    ? uploadedPath
-                    : requestedLink != null
-                        ? requestedLink
-                        : isStoredObject(previousReference) ? previousReference : null;
+            String nextAttachment = uploadedPath != null ? uploadedPath : previousAttachment;
+            String nextReferenceLink = normalizeNullable(form.getReferenceLinkUrl());
 
             task.updateDetails(
                     form.getTitle().trim(),
@@ -135,7 +130,8 @@ public class TaskService {
                     form.getRequestedMinutes(),
                     deadline,
                     form.getDeliverableDescription().trim(),
-                    nextReference
+                    nextReferenceLink,
+                    nextAttachment
             );
             timeLedgerService.adjustTaskReservation(
                     requesterId,
@@ -144,8 +140,8 @@ public class TaskService {
             );
             taskRepository.flush();
 
-            if (isStoredObject(previousReference) && !previousReference.equals(nextReference)) {
-                taskStorageService.deleteQuietly(previousReference);
+            if (hasReference(previousAttachment) && !previousAttachment.equals(nextAttachment)) {
+                taskStorageService.deleteQuietly(previousAttachment);
             }
             return toListItem(task);
         } catch (RuntimeException exception) {
@@ -158,12 +154,12 @@ public class TaskService {
     public void delete(Long taskId, Long requesterId) {
         Task task = findOwnedTask(taskId, requesterId);
         ensureEditable(task);
-        String reference = task.getReferenceFileUrl();
+        String attachmentPath = task.getAttachmentObjectPath();
         timeLedgerService.refundTaskReservation(requesterId, taskId);
         task.cancel(Instant.now());
         taskRepository.flush();
-        if (isStoredObject(reference)) {
-            taskStorageService.deleteQuietly(reference);
+        if (hasReference(attachmentPath)) {
+            taskStorageService.deleteQuietly(attachmentPath);
         }
     }
 
@@ -178,7 +174,7 @@ public class TaskService {
             throw new ResponseStatusException(CONFLICT, "매칭 또는 진행 중인 업무만 중도 취소할 수 있습니다.");
         }
 
-        String taskReference = task.getReferenceFileUrl();
+        String taskAttachmentPath = task.getAttachmentObjectPath();
         String resultAsset = submissionRepository.findByTaskId(taskId)
                 .map(submission -> {
                     submissionRepository.delete(submission);
@@ -194,8 +190,8 @@ public class TaskService {
         chatService.markRoomAsTaskDeleted(taskId);
         taskRepository.delete(task);
         taskRepository.flush();
-        if (isStoredObject(taskReference)) {
-            taskStorageService.deleteQuietly(taskReference);
+        if (hasReference(taskAttachmentPath)) {
+            taskStorageService.deleteQuietly(taskAttachmentPath);
         }
         if (isStoredObject(resultAsset)) {
             taskStorageService.deleteQuietly(resultAsset);
@@ -213,12 +209,12 @@ public class TaskService {
     }
 
     private void expireTask(Task task, Instant now) {
-        String reference = task.getReferenceFileUrl();
+        String attachmentPath = task.getAttachmentObjectPath();
         timeLedgerService.refundTaskReservation(task.getRequesterId(), task.getId(), "모집 기한 만료에 따른 예약 재화 반환");
         task.cancel(now);
         taskRepository.flush();
-        if (isStoredObject(reference)) {
-            taskStorageService.deleteQuietly(reference);
+        if (hasReference(attachmentPath)) {
+            taskStorageService.deleteQuietly(attachmentPath);
         }
     }
 
@@ -290,17 +286,23 @@ public class TaskService {
     }
 
     @Transactional(readOnly = true)
-    public URI createAttachmentDownloadUrl(Long taskId, Long requesterId) {
-        Task task = taskRepository.findByIdAndRequesterId(taskId, requesterId)
-                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND));
-        String reference = task.getReferenceFileUrl();
-        if (reference == null || reference.isBlank()) {
+    public URI createAttachmentDownloadUrl(Long taskId, Long memberId) {
+        Task task = findParticipantTask(taskId, memberId);
+        String attachmentPath = task.getAttachmentObjectPath();
+        if (!hasReference(attachmentPath)) {
             throw new ResponseStatusException(NOT_FOUND);
         }
-        if (reference.startsWith("https://") || reference.startsWith("http://")) {
-            return URI.create(reference);
+        return taskStorageService.createSignedDownloadUrl(attachmentPath);
+    }
+
+    @Transactional(readOnly = true)
+    public URI createReferenceLinkUrl(Long taskId, Long memberId) {
+        Task task = findParticipantTask(taskId, memberId);
+        String referenceLink = task.getReferenceLinkUrl();
+        if (!hasReference(referenceLink)) {
+            throw new ResponseStatusException(NOT_FOUND);
         }
-        return taskStorageService.createSignedDownloadUrl(reference);
+        return URI.create(referenceLink);
     }
 
     private TaskListItem toListItem(Task task) {
@@ -321,7 +323,7 @@ public class TaskService {
                 task.getStatus() == TaskStatus.OPEN,
                 task.getStatus() != TaskStatus.OPEN && task.getStatus() != TaskStatus.CANCELLED,
                 urgent,
-                task.getReferenceFileUrl() != null && !task.getReferenceFileUrl().isBlank(),
+                hasReference(task.getReferenceLinkUrl()) || hasReference(task.getAttachmentObjectPath()),
                 task.getDeliverableDescription(),
                 requester == null ? "등록자" : requester.getNickname(),
                 requester == null ? null : requester.getProfileImageUrl()
@@ -353,6 +355,15 @@ public class TaskService {
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND));
     }
 
+    private Task findParticipantTask(Long taskId, Long memberId) {
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND));
+        if (!task.isParticipant(memberId)) {
+            throw new ResponseStatusException(NOT_FOUND);
+        }
+        return task;
+    }
+
     private void ensureEditable(Task task) {
         if (task.getStatus() != TaskStatus.OPEN) {
             throw new ResponseStatusException(CONFLICT, "모집 중인 업무만 수정하거나 삭제할 수 있습니다.");
@@ -363,11 +374,10 @@ public class TaskService {
         return reference != null && !reference.isBlank();
     }
 
-    private static boolean isExternalUrl(String reference) {
-        return reference != null && (reference.startsWith("https://") || reference.startsWith("http://"));
+    private static boolean isStoredObject(String reference) {
+        return hasReference(reference)
+                && !reference.startsWith("https://")
+                && !reference.startsWith("http://");
     }
 
-    private static boolean isStoredObject(String reference) {
-        return hasReference(reference) && !isExternalUrl(reference);
-    }
 }
