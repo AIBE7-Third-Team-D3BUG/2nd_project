@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title th:text="${progress.title()} + ' | D3BUG'">업무 진행 | D3BUG</title>
+    <title th:text="${progress.title()} + ' | BaroHae'">업무 진행 | BaroHae</title>
     <link rel="stylesheet" href="../static/css/task-progress.css" th:href="@{/css/task-progress.css}">
-</head>
+<link rel="icon" type="image/png" href="/images/barohae-logo-check.png" th:href="@{/images/barohae-logo-check.png}"></head>
 <body>
 <div class="progress-shell">
     <header class="progress-header">
-        <a class="brand" th:href="@{/}">D3BUG</a>
+        <a class="brand" th:href="@{/}"><img src="/images/barohae-logo-check.png" th:src="@{/images/barohae-logo-check.png}" alt="바로해"></a>
         <nav aria-label="주요 메뉴">
             <a th:href="@{/}">업무 찾기</a>
             <a th:href="@{/(view='dashboard')}">내 업무</a>
@@ -21,7 +21,7 @@
 
     <main>
         <p class="breadcrumb" th:text="${progress.phaseLabel()}">
-            COMMON-03 · 업무 진행 / 결과 제출
+            BaroHae · 업무 진행 / 결과 제출
         </p>
 
         <section class="hero">
@@ -95,7 +95,7 @@
 
             <aside class="right-column">
                 <article class="panel submit-panel" th:if="${progress.canSubmit()}">
-                    <p class="panel-kicker">COMMON-03</p>
+                    <p class="panel-kicker">BaroHae</p>
                     <h2 th:text="${progress.submission() == null ? '결과 제출' : '수정 결과 제출'}">결과 제출</h2>
                     <p class="panel-description">해결한 내용과 의뢰인이 확인할 방법을 남겨주세요.</p>
 
