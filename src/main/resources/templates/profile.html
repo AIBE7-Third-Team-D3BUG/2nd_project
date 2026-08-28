@@ -84,15 +84,18 @@
 
             <div class="written-reviews-list" th:if="${!#lists.isEmpty(writtenReviews)}">
                 <article class="written-review-item" th:each="review : ${writtenReviews}">
-                    <div class="written-review-title-row">
+                    <div>
+                        <div class="written-review-meta">
+                            <span>받는 사람 <b th:text="${review.revieweeNickname()}">닉네임</b></span>
+                            <span th:text="${#temporals.format(review.createdAt(), 'yyyy.MM.dd HH:mm')}">2026.08.28 14:00</span>
+                        </div>
                         <h3 th:text="${review.taskTitle()}">업무 제목</h3>
-                        <strong th:text="${'★ ' + review.rating() + '.0'}">★ 5.0</strong>
+                        <p class="written-review-content"
+                           th:text="${#strings.isEmpty(review.content()) ? '작성한 리뷰 내용이 없습니다.' : review.content()}">리뷰 내용</p>
+                        <button class="review-more-button" type="button" data-review-more hidden>더보기</button>
                     </div>
-                    <p class="written-review-content"
-                       th:text="${#strings.isEmpty(review.content()) ? '작성한 리뷰 내용이 없습니다.' : review.content()}">리뷰 내용</p>
-                    <div class="written-review-meta">
-                        <span>받는 사람 <b th:text="${review.revieweeNickname()}">닉네임</b></span>
-                        <span th:text="${#temporals.format(review.createdAt(), 'yyyy.MM.dd HH:mm')}">2026.08.28 14:00</span>
+                    <div class="written-review-footer">
+                        <strong th:text="${'★ ' + review.rating() + '.0'}">★ 5.0</strong>
                         <span th:text="${review.deadlineMet() == true ? '마감 준수' : '마감 미준수'}">마감 준수</span>
                     </div>
                 </article>
@@ -115,15 +118,18 @@
 
             <div class="written-reviews-list" th:if="${!#lists.isEmpty(receivedReviews)}">
                 <article class="written-review-item" th:each="review : ${receivedReviews}">
-                    <div class="written-review-title-row">
+                    <div>
+                        <div class="written-review-meta">
+                            <span>작성자 <b th:text="${review.reviewerNickname()}">닉네임</b></span>
+                            <span th:text="${#temporals.format(review.createdAt(), 'yyyy.MM.dd HH:mm')}">2026.08.28 14:00</span>
+                        </div>
                         <h3 th:text="${review.taskTitle()}">업무 제목</h3>
-                        <strong th:text="${'★ ' + review.rating() + '.0'}">★ 5.0</strong>
+                        <p class="written-review-content"
+                           th:text="${#strings.isEmpty(review.content()) ? '작성된 리뷰 내용이 없습니다.' : review.content()}">리뷰 내용</p>
+                        <button class="review-more-button" type="button" data-review-more hidden>더보기</button>
                     </div>
-                    <p class="written-review-content"
-                       th:text="${#strings.isEmpty(review.content()) ? '작성된 리뷰 내용이 없습니다.' : review.content()}">리뷰 내용</p>
-                    <div class="written-review-meta">
-                        <span>작성자 <b th:text="${review.reviewerNickname()}">닉네임</b></span>
-                        <span th:text="${#temporals.format(review.createdAt(), 'yyyy.MM.dd HH:mm')}">2026.08.28 14:00</span>
+                    <div class="written-review-footer">
+                        <strong th:text="${'★ ' + review.rating() + '.0'}">★ 5.0</strong>
                         <span th:text="${review.deadlineMet() == true ? '마감 준수' : '마감 미준수'}">마감 준수</span>
                     </div>
                 </article>
@@ -210,6 +216,21 @@
 
         document.querySelector('[data-time-history-more]')?.addEventListener('click', () => {
             sessionStorage.setItem(scrollPositionKey, String(window.scrollY));
+        });
+
+        requestAnimationFrame(() => {
+            document.querySelectorAll('[data-review-more]').forEach((button) => {
+                const content = button.previousElementSibling;
+                if (!content || content.scrollHeight <= content.clientHeight + 1) {
+                    return;
+                }
+
+                button.hidden = false;
+                button.addEventListener('click', () => {
+                    const expanded = content.classList.toggle('is-expanded');
+                    button.textContent = expanded ? '접기' : '더보기';
+                });
+            });
         });
     })();
 </script>
