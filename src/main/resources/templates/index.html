@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>D3BUG · 긴급업무매칭플랫폼</title>
+    <title>BaroHae · 긴급업무매칭플랫폼</title>
     <link rel="icon" type="image/x-icon" href="favicon.ico" th:href="@{/favicon.ico}">
     <link rel="stylesheet" href="../static/css/app.css" th:href="@{/css/app.css}">
     <!-- Tailwind CSS -->
@@ -55,7 +55,7 @@
 
     <main>
         <section id="page-landing" class="page-section">
-            <p class="eyebrow">WORKER-01 · 긴급 업무 목록</p>
+            <p class="eyebrow">BaroHae · 긴급 업무 목록</p>
             <div class="page-heading">
                 <h1>지금 가능한 업무</h1>
                 <p>마감과 품을 확인하고 바로 지원하세요.</p>
@@ -139,7 +139,7 @@
         </section>
 
         <section id="page-dashboard" class="page-section hidden">
-            <p class="eyebrow">COMMON-03 · 내 업무 대시보드</p>
+            <p class="eyebrow">BaroHae · 내 업무 대시보드</p>
             <div class="page-heading">
                 <h1>내 업무 현황</h1>
                 <p>내가 등록한 업무, 작업 중인 업무, 지원한 업무를 한곳에서 관리하세요.</p>
@@ -155,7 +155,7 @@
                 <div class="registered-tasks-card">
                     <div class="registered-tasks-heading">
                         <div>
-                            <p class="eyebrow">CLIENT · 내가 등록한 업무</p>
+                            <p class="eyebrow">BaroHae · 내가 등록한 업무</p>
                             <h2>내가 등록한 업무</h2>
                             <p class="subtitle">게시한 업무의 마감과 진행 상태를 확인할 수 있습니다.</p>
                         </div>
@@ -201,7 +201,7 @@
                 <div class="registered-tasks-card">
                     <div class="registered-tasks-heading">
                         <div>
-                            <p class="eyebrow">WORKER · 진행 업무</p>
+                            <p class="eyebrow">BaroHae · 진행 업무</p>
                             <h2>내가 작업 중인 업무</h2>
                             <p class="subtitle">현재 배정되었거나 진행 중인 업무입니다.</p>
                         </div>
@@ -235,7 +235,7 @@
                 <div class="registered-tasks-card">
                     <div class="registered-tasks-heading">
                         <div>
-                            <p class="eyebrow">WORKER · 지원 업무</p>
+                            <p class="eyebrow">BaroHae · 지원 업무</p>
                             <h2>내가 지원한 업무</h2>
                             <p class="subtitle">지원 결과와 모집 상태를 확인하세요.</p>
                         </div>
@@ -274,7 +274,7 @@
         </section>
 
         <section id="page-confirm" class="page-section hidden">
-            <p class="eyebrow" th:text="${editingTaskId != null} ? 'CLIENT · 업무 수정' : 'CLIENT-01 · 업무 등록'">CLIENT-01 · 업무 등록</p>
+            <p class="eyebrow" th:text="${editingTaskId != null} ? 'BaroHae · 업무 수정' : 'BaroHae · 업무 등록'">BaroHae · 업무 등록</p>
             <div class="notice">
                 <strong th:text="${editingTaskId != null} ? '업무 수정 안내' : '업무 등록 안내'">업무 등록 안내</strong>
                 <span th:text="${editingTaskId != null} ? '모집 중인 업무 내용을 수정합니다.' : '필요한 내용을 입력하고 확인한 뒤 게시하세요.'">필요한 내용을 입력하고 확인한 뒤 게시하세요.</span>
@@ -426,7 +426,7 @@
         </section>
 
         <section id="page-detail" class="page-section hidden">
-            <p class="eyebrow">COMMON-02 · 업무 상세</p>
+            <p class="eyebrow">· 업무 상세</p>
             <div class="section-grid">
                 <article class="panel">
                     <div class="task-meta">
@@ -501,7 +501,7 @@
         <section id="page-compare" class="page-section hidden max-w-7xl mx-auto px-6 py-10">
             <!-- Breadcrumbs -->
             <div class="text-[11px] font-bold text-gray-400 tracking-wider">
-                CLIENT-03 · 지원자 비교 / 선택
+                BaroHae · 지원자 비교 / 선택
             </div>
             
             <!-- Heading -->
@@ -662,7 +662,7 @@
         <section id="page-compare" class="page-section hidden max-w-7xl mx-auto px-6 py-10" th:remove="all">
             <!-- Breadcrumbs -->
             <div class="text-[11px] font-bold text-gray-400 tracking-wider">
-                CLIENT-03 · 지원자 비교 / 선택
+                BaroHae · 지원자 비교 / 선택
             </div>
             
             <!-- Heading -->
