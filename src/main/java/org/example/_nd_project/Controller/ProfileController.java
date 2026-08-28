@@ -137,9 +137,9 @@ public class ProfileController {
         taskService.expireOverdueOpenTasks();
         model.addAttribute("profile", memberService.getProfile(memberId));
         model.addAttribute("isOwner", isOwner);
+        model.addAttribute("receivedReviews", reviewRepository.findReceivedReviewsByRevieweeId(memberId));
         if (isOwner) {
             model.addAttribute("writtenReviews", reviewRepository.findWrittenReviewsByReviewerId(memberId));
-            model.addAttribute("receivedReviews", reviewRepository.findReceivedReviewsByRevieweeId(memberId));
             var timeTransactionHistory = memberService.getTimeTransactionHistory(memberId, historySize);
             long timeTransactionHistoryCount = memberService.getTimeTransactionHistoryCount(memberId);
             model.addAttribute("timeTransactionHistory", timeTransactionHistory);
@@ -149,7 +149,6 @@ public class ProfileController {
             model.addAttribute("isTimeTransactionHistoryExpanded", historySize > HISTORY_PAGE_SIZE);
         } else {
             model.addAttribute("writtenReviews", java.util.List.of());
-            model.addAttribute("receivedReviews", java.util.List.of());
             model.addAttribute("timeTransactionHistory", java.util.List.of());
             model.addAttribute("hasMoreTimeTransactionHistory", false);
             model.addAttribute("isTimeTransactionHistoryExpanded", false);
