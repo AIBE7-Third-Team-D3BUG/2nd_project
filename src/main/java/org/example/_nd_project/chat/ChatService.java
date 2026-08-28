@@ -179,6 +179,7 @@ public class ChatService {
         }
     }
 
+    @Transactional
     public ChatMessageView sendTextMessage(Long roomId, Long senderId, String content) {
         return sendMessage(roomId, senderId, content, null);
     }

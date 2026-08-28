@@ -72,6 +72,74 @@
             <div class="metric-card" th:if="${isOwner}"><span>업무 예약 중</span><strong><span th:text="${profile.reservedPum()}">0</span>품</strong></div>
         </section>
 
+        <section class="card written-reviews-card" th:if="${isOwner}" aria-labelledby="written-reviews-title">
+            <div class="written-reviews-heading">
+                <div>
+                    <p class="eyebrow">MY REVIEWS</p>
+                    <h2 id="written-reviews-title">작성한 리뷰</h2>
+                    <p class="subtitle">업무 완료 후 내가 남긴 리뷰를 확인할 수 있습니다.</p>
+                </div>
+                <span class="written-reviews-count" th:text="${#lists.size(writtenReviews) + '건'}">0건</span>
+            </div>
+
+            <div class="written-reviews-list" th:if="${!#lists.isEmpty(writtenReviews)}">
+                <article class="written-review-item" th:each="review : ${writtenReviews}">
+                    <div>
+                        <div class="written-review-meta">
+                            <span>받는 사람 <b th:text="${review.revieweeNickname()}">닉네임</b></span>
+                            <span th:text="${#temporals.format(review.createdAt(), 'yyyy.MM.dd HH:mm')}">2026.08.28 14:00</span>
+                        </div>
+                        <h3 th:text="${review.taskTitle()}">업무 제목</h3>
+                        <p class="written-review-content"
+                           th:text="${#strings.isEmpty(review.content()) ? '작성한 리뷰 내용이 없습니다.' : review.content()}">리뷰 내용</p>
+                        <button class="review-more-button" type="button" data-review-more hidden>더보기</button>
+                    </div>
+                    <div class="written-review-footer">
+                        <strong th:text="${'★ ' + review.rating() + '.0'}">★ 5.0</strong>
+                        <span th:text="${review.deadlineMet() == true ? '마감 준수' : '마감 미준수'}">마감 준수</span>
+                    </div>
+                </article>
+            </div>
+
+            <div class="written-reviews-empty" th:if="${#lists.isEmpty(writtenReviews)}">
+                아직 작성한 리뷰가 없습니다. 업무 완료 후 리뷰를 작성하면 이곳에서 확인할 수 있습니다.
+            </div>
+        </section>
+
+        <section class="card written-reviews-card" aria-labelledby="received-reviews-title">
+            <div class="written-reviews-heading">
+                <div>
+                    <p class="eyebrow">REVIEWS FOR ME</p>
+                    <h2 id="received-reviews-title">받은 리뷰</h2>
+                    <p class="subtitle">다른 회원이 나에게 남긴 리뷰를 확인할 수 있습니다.</p>
+                </div>
+                <span class="written-reviews-count" th:text="${#lists.size(receivedReviews) + '건'}">0건</span>
+            </div>
+
+            <div class="written-reviews-list" th:if="${!#lists.isEmpty(receivedReviews)}">
+                <article class="written-review-item" th:each="review : ${receivedReviews}">
+                    <div>
+                        <div class="written-review-meta">
+                            <span>작성자 <b th:text="${review.reviewerNickname()}">닉네임</b></span>
+                            <span th:text="${#temporals.format(review.createdAt(), 'yyyy.MM.dd HH:mm')}">2026.08.28 14:00</span>
+                        </div>
+                        <h3 th:text="${review.taskTitle()}">업무 제목</h3>
+                        <p class="written-review-content"
+                           th:text="${#strings.isEmpty(review.content()) ? '작성된 리뷰 내용이 없습니다.' : review.content()}">리뷰 내용</p>
+                        <button class="review-more-button" type="button" data-review-more hidden>더보기</button>
+                    </div>
+                    <div class="written-review-footer">
+                        <strong th:text="${'★ ' + review.rating() + '.0'}">★ 5.0</strong>
+                        <span th:text="${review.deadlineMet() == true ? '마감 준수' : '마감 미준수'}">마감 준수</span>
+                    </div>
+                </article>
+            </div>
+
+            <div class="written-reviews-empty" th:if="${#lists.isEmpty(receivedReviews)}">
+                아직 받은 리뷰가 없습니다.
+            </div>
+        </section>
+
         <section class="card time-history-card" th:if="${isOwner}" aria-labelledby="time-history-title">
             <div class="time-history-heading">
                 <div>
@@ -148,6 +216,21 @@
 
         document.querySelector('[data-time-history-more]')?.addEventListener('click', () => {
             sessionStorage.setItem(scrollPositionKey, String(window.scrollY));
+        });
+
+        requestAnimationFrame(() => {
+            document.querySelectorAll('[data-review-more]').forEach((button) => {
+                const content = button.previousElementSibling;
+                if (!content || content.scrollHeight <= content.clientHeight + 1) {
+                    return;
+                }
+
+                button.hidden = false;
+                button.addEventListener('click', () => {
+                    const expanded = content.classList.toggle('is-expanded');
+                    button.textContent = expanded ? '접기' : '더보기';
+                });
+            });
         });
     })();
 </script>
