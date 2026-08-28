@@ -68,6 +68,11 @@ public class ChatService {
         });
     }
 
+    @Transactional
+    public void markRoomAsTaskDeleted(Long taskId) {
+        chatRoomRepository.findByTaskId(taskId).ifPresent(ChatRoom::markTaskDeleted);
+    }
+
     @Transactional(readOnly = true)
     public List<ChatRoomView> getRooms(Long memberId) {
         return chatRoomRepository
@@ -129,8 +134,11 @@ public class ChatService {
     }
 
     @Transactional
-    public void sendMessage(Long roomId, Long senderId, String content, MultipartFile attachment) {
+    public ChatMessageView sendMessage(Long roomId, Long senderId, String content, MultipartFile attachment) {
         ChatRoom room = requireRoomMember(roomId, senderId);
+        if (room.isTaskDeleted()) {
+            throw new IllegalArgumentException("의뢰자가 글을 삭제했습니다.");
+        }
         String normalizedContent = content == null ? "" : content.trim();
         boolean hasAttachment = attachment != null && !attachment.isEmpty();
         if (hasAttachment && attachment.getSize() > MAX_ATTACHMENT_SIZE) {
@@ -160,12 +168,20 @@ public class ChatService {
             );
             chatMessageRepository.save(message);
             room.refreshLastMessage(previewOf(normalizedContent, originalName), message.getSentAt());
+            String requesterName = nicknameOf(room.getRequesterMemberId());
+            String workerName = nicknameOf(room.getWorkerMemberId());
+            return toMessageView(message, senderId, room, requesterName, workerName);
         } catch (RuntimeException exception) {
             if (stored != null) {
                 taskStorageService.deleteQuietly(stored.objectPath());
             }
             throw exception;
         }
+    }
+
+    @Transactional
+    public ChatMessageView sendTextMessage(Long roomId, Long senderId, String content) {
+        return sendMessage(roomId, senderId, content, null);
     }
 
     @Transactional(readOnly = true)
@@ -205,7 +221,7 @@ public class ChatService {
         return new ChatRoomView(
                 room.getId(), room.getTaskId(), room.getTaskTitle(), otherMemberId, otherNickname,
                 StringUtils.hasText(room.getLastMessagePreview()) ? room.getLastMessagePreview() : "대화를 시작해보세요.",
-                formatTime(room.getLastMessageAt()), unreadCount, messages
+                formatTime(room.getLastMessageAt()), unreadCount, messages, room.isTaskDeleted()
         );
     }
 

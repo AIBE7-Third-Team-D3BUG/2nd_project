@@ -37,7 +37,7 @@ class ChatControllerTest {
     void chatRoomRendersForParticipant() throws Exception {
         ChatRoomView room = new ChatRoomView(
                 3L, 10L, "AWS 배포 오류 해결", 2L, "작업자",
-                "대화를 시작해보세요.", "", 0, List.of());
+                "대화를 시작해보세요.", "", 0, List.of(), false);
         when(chatService.getRooms(1L)).thenReturn(List.of(room));
         when(chatService.openRoom(3L, 1L)).thenReturn(room);
 

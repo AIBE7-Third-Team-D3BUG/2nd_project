@@ -676,3 +676,17 @@ select.control { cursor: pointer; }
     .ai-recommendation-toolbar { align-items: stretch; flex-direction: column; }
     .ai-recommendation-button { width: 100%; }
 }
+
+/* BaroHae UI refresh */
+.brand img { display:block; width:150px; height:auto; max-height:44px; object-fit:contain; object-position:left center; }
+.app-shell { box-shadow: 0 18px 50px rgba(27, 45, 78, .08); }
+.app-header { height: 78px; background: rgba(255,255,255,.98); }
+.page-heading h1 { font-size: 36px; font-weight: 900; }
+.control { min-height: 48px; border-radius: 10px; font-size: 15px; }
+.task-list { gap: 18px; }
+.task-card { min-height: 250px; padding: 22px; border: 1px solid #e2e8f2; border-radius: 16px; box-shadow: 0 8px 24px rgba(25, 48, 88, .06); transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
+.task-card:hover { transform: translateY(-3px); border-color: #b9c9f8; box-shadow: 0 14px 30px rgba(49,92,244,.12); }
+.task-credit { margin-top: 20px; padding-top: 16px; border-top: 1px solid #edf0f5; }
+.task-credit strong { color: var(--brand); font-size: 24px; }
+.notice { border-radius: 12px; }
+@media (max-width: 760px) { .page-section { padding: 28px 18px 40px; } .page-heading h1 { font-size: 30px; } .search-bar { grid-template-columns: 1fr; } .task-list { grid-template-columns: 1fr; } }
