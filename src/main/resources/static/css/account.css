@@ -410,6 +410,11 @@ h1 {
 .profile-tags { display: flex; flex-wrap: wrap; gap: 7px; }
 .profile-tags span { padding: 6px 12px; border-radius: 999px; color: #5d6674; background: #f3f5f8; font-size: 12px; font-weight: 700; }
 .profile-tags span:first-child { color: var(--brand); background: var(--brand-soft); }
+.profile-tags span:nth-child(2) { color:#087f5b; background:#e6fcf5; }
+.profile-tags span:nth-child(3) { color:#9a6700; background:#fff4cc; }
+.profile-tags span:nth-child(4) { color:#7c3aed; background:#f1eaff; }
+.profile-tags span:nth-child(5) { color:#c2410c; background:#ffedd5; }
+.profile-tags span:nth-child(6) { color:#0369a1; background:#e0f2fe; }
 .portfolio-link { display: inline-block; margin-top: 12px; color: var(--brand); font-size: 13px; font-weight: 800; text-decoration: none; }
 .profile-actions { display: grid; flex: 0 0 130px; gap: 8px; }
 .profile-actions .availability { padding: 10px 14px; border-radius: 7px; color: var(--brand); background: var(--brand-soft); text-align: center; text-decoration: none; font-size: 13px; font-weight: 800; }

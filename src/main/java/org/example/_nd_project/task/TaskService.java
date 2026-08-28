@@ -2,6 +2,7 @@ package org.example._nd_project.task;
 
 import org.example._nd_project.chat.ChatService;
 import org.example._nd_project.member.TimeLedgerService;
+import org.example._nd_project.member.MemberRepository;
 import org.example._nd_project.submission.SubmissionRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,16 +34,19 @@ public class TaskService {
     private final TimeLedgerService timeLedgerService;
     private final SubmissionRepository submissionRepository;
     private final ChatService chatService;
+    private final MemberRepository memberRepository;
 
     public TaskService(TaskRepository taskRepository, TaskStorageService taskStorageService,
                        TimeLedgerService timeLedgerService,
                        SubmissionRepository submissionRepository,
-                       ChatService chatService) {
+                       ChatService chatService,
+                       MemberRepository memberRepository) {
         this.taskRepository = taskRepository;
         this.taskStorageService = taskStorageService;
         this.timeLedgerService = timeLedgerService;
         this.submissionRepository = submissionRepository;
         this.chatService = chatService;
+        this.memberRepository = memberRepository;
     }
 
     @Transactional
@@ -300,6 +304,7 @@ public class TaskService {
     }
 
     private TaskListItem toListItem(Task task) {
+        var requester = memberRepository.findById(task.getRequesterId()).orElse(null);
         Duration remaining = Duration.between(Instant.now(), task.getDeadlineAt());
         boolean urgent = !remaining.isNegative() && remaining.compareTo(Duration.ofHours(3)) <= 0;
         return new TaskListItem(
@@ -317,7 +322,9 @@ public class TaskService {
                 task.getStatus() != TaskStatus.OPEN && task.getStatus() != TaskStatus.CANCELLED,
                 urgent,
                 task.getReferenceFileUrl() != null && !task.getReferenceFileUrl().isBlank(),
-                task.getDeliverableDescription()
+                task.getDeliverableDescription(),
+                requester == null ? "등록자" : requester.getNickname(),
+                requester == null ? null : requester.getProfileImageUrl()
         );
     }
 
