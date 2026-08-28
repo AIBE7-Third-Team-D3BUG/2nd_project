@@ -19,6 +19,32 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
     boolean existsByTaskId(Long taskId);
 
     @Query("""
+            select new org.example._nd_project.submission.WrittenReviewView(
+                review.taskId, task.title, reviewee.nickname, review.rating,
+                review.content, review.deadlineMet, review.createdAt
+            )
+            from Review review
+            join Task task on task.id = review.taskId
+            join Member reviewee on reviewee.id = review.revieweeId
+            where review.reviewerId = :reviewerId
+            order by review.createdAt desc
+            """)
+    List<WrittenReviewView> findWrittenReviewsByReviewerId(@Param("reviewerId") Long reviewerId);
+
+    @Query("""
+            select new org.example._nd_project.submission.ReceivedReviewView(
+                review.taskId, task.title, reviewer.nickname, review.rating,
+                review.content, review.deadlineMet, review.createdAt
+            )
+            from Review review
+            join Task task on task.id = review.taskId
+            join Member reviewer on reviewer.id = review.reviewerId
+            where review.revieweeId = :revieweeId
+            order by review.createdAt desc
+            """)
+    List<ReceivedReviewView> findReceivedReviewsByRevieweeId(@Param("revieweeId") Long revieweeId);
+
+    @Query("""
             select review.revieweeId as memberId,
                    sum(case when review.deadlineMet = true then 1 else 0 end) as metCount,
                    count(review) as sampleCount

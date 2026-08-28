@@ -7,6 +7,7 @@ import org.example._nd_project.member.MemberService;
 import org.example._nd_project.member.MemberWithdrawalService;
 import org.example._nd_project.member.ProfileUpdateForm;
 import org.example._nd_project.security.MemberPrincipal;
+import org.example._nd_project.submission.ReviewRepository;
 import org.example._nd_project.task.TaskService;
 import org.example._nd_project.task.TaskStorageException;
 import org.example._nd_project.volunteer.VolunteerService;
@@ -35,15 +36,18 @@ public class ProfileController {
     private final ObjectProvider<MemberWithdrawalService> memberWithdrawalService;
     private final TaskService taskService;
     private final VolunteerService volunteerService;
+    private final ReviewRepository reviewRepository;
 
     public ProfileController(MemberService memberService,
                              ObjectProvider<MemberWithdrawalService> memberWithdrawalService,
                              TaskService taskService,
-                             VolunteerService volunteerService) {
+                             VolunteerService volunteerService,
+                             ReviewRepository reviewRepository) {
         this.memberService = memberService;
         this.memberWithdrawalService = memberWithdrawalService;
         this.taskService = taskService;
         this.volunteerService = volunteerService;
+        this.reviewRepository = reviewRepository;
     }
 
     @GetMapping("/profile")
@@ -134,6 +138,8 @@ public class ProfileController {
         model.addAttribute("profile", memberService.getProfile(memberId));
         model.addAttribute("isOwner", isOwner);
         if (isOwner) {
+            model.addAttribute("writtenReviews", reviewRepository.findWrittenReviewsByReviewerId(memberId));
+            model.addAttribute("receivedReviews", reviewRepository.findReceivedReviewsByRevieweeId(memberId));
             var timeTransactionHistory = memberService.getTimeTransactionHistory(memberId, historySize);
             long timeTransactionHistoryCount = memberService.getTimeTransactionHistoryCount(memberId);
             model.addAttribute("timeTransactionHistory", timeTransactionHistory);
@@ -142,6 +148,8 @@ public class ProfileController {
             model.addAttribute("nextHistorySize", historySize + HISTORY_PAGE_SIZE);
             model.addAttribute("isTimeTransactionHistoryExpanded", historySize > HISTORY_PAGE_SIZE);
         } else {
+            model.addAttribute("writtenReviews", java.util.List.of());
+            model.addAttribute("receivedReviews", java.util.List.of());
             model.addAttribute("timeTransactionHistory", java.util.List.of());
             model.addAttribute("hasMoreTimeTransactionHistory", false);
             model.addAttribute("isTimeTransactionHistoryExpanded", false);
