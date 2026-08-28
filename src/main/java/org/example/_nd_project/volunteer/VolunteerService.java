@@ -193,7 +193,8 @@ public class VolunteerService {
                     status,
                     status.getLabel(),
                     appliedDateLabel,
-                    task.getReferenceFileUrl() != null && !task.getReferenceFileUrl().isBlank()
+                    (task.getReferenceLinkUrl() != null && !task.getReferenceLinkUrl().isBlank())
+                            || (task.getAttachmentObjectPath() != null && !task.getAttachmentObjectPath().isBlank())
             ));
         }
         return result;

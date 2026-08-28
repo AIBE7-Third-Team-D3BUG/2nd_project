@@ -229,7 +229,11 @@ public class ChatService {
     }
 
     private boolean isTaskCompleted(ChatRoom room) {
-        return taskRepository.findById(room.getTaskId())
+        Long taskId = room.getTaskId();
+        if (taskId == null) {
+            return false;
+        }
+        return taskRepository.findById(taskId)
                 .map(task -> task.getStatus() == org.example._nd_project.task.TaskStatus.COMPLETED)
                 .orElse(false);
     }

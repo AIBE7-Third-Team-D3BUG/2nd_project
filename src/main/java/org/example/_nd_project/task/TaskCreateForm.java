@@ -45,7 +45,7 @@ public class TaskCreateForm {
     private String deliverableDescription;
 
     @Size(max = 1500, message = "참고 링크는 1,500자 이내로 입력해주세요.")
-    private String referenceFileUrl;
+    private String referenceLinkUrl;
 
     @AssertTrue(message = "요청 시간은 30분 단위로 선택해주세요.")
     public boolean isRequestedMinutesValid() {
@@ -96,6 +96,6 @@ public class TaskCreateForm {
     public void setDeadlineAt(LocalDateTime deadlineAt) { this.deadlineAt = deadlineAt; }
     public String getDeliverableDescription() { return deliverableDescription; }
     public void setDeliverableDescription(String deliverableDescription) { this.deliverableDescription = deliverableDescription; }
-    public String getReferenceFileUrl() { return referenceFileUrl; }
-    public void setReferenceFileUrl(String referenceFileUrl) { this.referenceFileUrl = referenceFileUrl; }
+    public String getReferenceLinkUrl() { return referenceLinkUrl; }
+    public void setReferenceLinkUrl(String referenceLinkUrl) { this.referenceLinkUrl = referenceLinkUrl; }
 }

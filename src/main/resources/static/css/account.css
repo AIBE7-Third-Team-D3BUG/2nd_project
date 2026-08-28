@@ -436,7 +436,7 @@ h1 {
 .written-review-item:hover { border-color: #aeb8ca; box-shadow: 0 6px 18px rgba(30, 43, 71, .06); }
 .written-review-item > div:first-child { flex: 1; min-width: 0; }
 .written-review-item h3 { display: -webkit-box; overflow: hidden; margin: 9px 0 7px; color: var(--ink); font-size: 18px; line-height: 1.4; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
-.written-review-content { display: -webkit-box; overflow: hidden; margin: 0; color: var(--muted); font-size: 13px; line-height: 1.55; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
+.written-review-content { display: -webkit-box; overflow: hidden; margin: 0; color: var(--muted); font-size: 13px; line-height: 1.55; overflow-wrap: anywhere; word-break: break-word; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
 .written-review-content.is-expanded { display: block; overflow: visible; white-space: pre-line; -webkit-line-clamp: unset; }
 .review-more-button { margin-top: 8px; padding: 0; border: 0; color: var(--brand); background: transparent; font: inherit; font-size: 12px; font-weight: 800; cursor: pointer; }
 .review-more-button:hover { text-decoration: underline; }

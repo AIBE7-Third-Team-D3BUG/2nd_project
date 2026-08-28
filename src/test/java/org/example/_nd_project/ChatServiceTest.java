@@ -89,6 +89,22 @@ class ChatServiceTest {
     }
 
     @Test
+    void deletedTaskRoomWithoutTaskIdRemainsVisible() {
+        ChatRoom room = roomWithId(1L, 10L, 1L, 2L);
+        room.markTaskDeleted();
+        ReflectionTestUtils.setField(room, "taskId", null);
+        when(chatRoomRepository.findByRequesterMemberIdOrWorkerMemberIdOrderByLastMessageAtDescUpdatedAtDesc(1L, 1L))
+                .thenReturn(List.of(room));
+
+        var rooms = chatService.getRooms(1L);
+
+        assertEquals(1, rooms.size());
+        assertTrue(rooms.get(0).taskDeleted());
+        assertFalse(rooms.get(0).readOnly());
+        verify(taskRepository, never()).findById(any());
+    }
+
+    @Test
     void participantCanSendMessageWithPrivateAttachment() {
         ChatRoom room = roomWithId(1L, 10L, 1L, 2L);
         when(chatRoomRepository.findById(1L)).thenReturn(Optional.of(room));

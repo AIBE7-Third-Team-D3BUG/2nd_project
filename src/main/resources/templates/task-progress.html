@@ -91,6 +91,26 @@
                         </li>
                     </ul>
                 </article>
+
+                <article class="panel criteria-panel" th:if="${progress.hasReferenceLink()}">
+                    <p class="panel-kicker">REFERENCE LINK</p>
+                    <h2>참고 링크</h2>
+                    <p class="panel-description">의뢰자가 등록한 외부 참고 자료입니다.</p>
+                    <a class="result-asset" th:href="@{/tasks/{id}/reference-link(id=${progress.taskId()})}"
+                       target="_blank" rel="noopener">
+                        <span>↗</span><strong>참고 링크 열기</strong>
+                    </a>
+                </article>
+
+                <article class="panel criteria-panel" th:if="${progress.hasReferenceAttachment()}">
+                    <p class="panel-kicker">REFERENCE FILE</p>
+                    <h2>업무 첨부파일</h2>
+                    <p class="panel-description">의뢰자가 등록한 작업 참고 자료입니다.</p>
+                    <a class="result-asset" th:href="@{/tasks/{id}/attachment(id=${progress.taskId()})}"
+                       target="_blank" rel="noopener">
+                        <span>↗</span><strong>첨부파일 확인하기</strong>
+                    </a>
+                </article>
             </section>
 
             <aside class="right-column">

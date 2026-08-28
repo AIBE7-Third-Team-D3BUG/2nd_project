@@ -23,8 +23,22 @@ public record TaskProgressView(
         List<String> completionCriteria,
         List<ActivityView> activities,
         SubmissionView submission,
-        ReviewView review
+        ReviewView review,
+        boolean hasReferenceLink,
+        boolean hasReferenceAttachment
 ) {
+    public TaskProgressView(
+            Long taskId, String title, String requesterName, String workerName, String deadlineLabel,
+            int requestedMinutes, String statusLabel, boolean requester, boolean worker, boolean canStart,
+            boolean waitingForWorkerStart, boolean canSubmit, boolean canReview, boolean completed,
+            boolean cancelled, boolean disputed, int currentStep, List<String> completionCriteria,
+            List<ActivityView> activities, SubmissionView submission, ReviewView review
+    ) {
+        this(taskId, title, requesterName, workerName, deadlineLabel, requestedMinutes, statusLabel,
+                requester, worker, canStart, waitingForWorkerStart, canSubmit, canReview, completed,
+                cancelled, disputed, currentStep, completionCriteria, activities, submission, review, false, false);
+    }
+
     public boolean canCancel() {
         return requester && (currentStep == 2 || currentStep == 3) && !cancelled;
     }

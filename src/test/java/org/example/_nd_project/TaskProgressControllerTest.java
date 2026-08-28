@@ -88,16 +88,20 @@ class TaskProgressControllerTest {
                         "8월 24일 14:20",
                         null
                 ),
-                null
+                null,
+                true,
+                true
         );
         when(taskProgressService.getProgress(10L, 3L)).thenReturn(progress);
 
         mockMvc.perform(get("/tasks/10/progress").with(user(principal)))
                 .andExpect(status().isOk())
                 .andExpect(view().name("task-progress"))
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("CLIENT-04 · 완료 승인 / 리뷰")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("BAROHAE · 완료 승인 / 리뷰")))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("결과가 도착했어요")))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("작업자 평점")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("참고 링크 열기")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("첨부파일 확인하기")))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("후기 작성 및 완료 승인")));
     }
 
@@ -203,7 +207,7 @@ class TaskProgressControllerTest {
 
         mockMvc.perform(get("/tasks/10/progress").with(user(worker)))
                 .andExpect(status().isOk())
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("COMMON-03 · 업무 시작")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("BAROHAE · 업무 시작")))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("작업자로 선택되었어요")))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("업무 시작하기")));
     }
