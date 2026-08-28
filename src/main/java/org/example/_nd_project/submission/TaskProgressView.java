@@ -35,32 +35,32 @@ public record TaskProgressView(
 
     public String phaseLabel() {
         if (completed) {
-            return "COMMON-05 · 업무 완료 / 정산";
+            return "BAROHAE · 업무 완료 / 정산";
         }
         if (cancelled) {
-            return "COMMON-05 · 업무 취소";
+            return "BAROHAE · 업무 취소";
         }
         if (disputed) {
-            return "COMMON-04 · 문제 신고 / 검토";
+            return "BAROHAE · 문제 신고 / 검토";
         }
         if (canReview) {
-            return "CLIENT-04 · 완료 승인 / 리뷰";
+            return "BAROHAE · 완료 승인 / 리뷰";
         }
         if (canStart) {
-            return "COMMON-03 · 업무 시작";
+            return "BAROHAE · 업무 시작";
         }
         if (waitingForWorkerStart) {
-            return "COMMON-03 · 업무 시작 대기";
+            return "BAROHAE · 업무 시작 대기";
         }
         if (canSubmit) {
-            return "COMMON-03 · 업무 진행 / 결과 제출";
+            return "BAROHAE · 업무 진행 / 결과 제출";
         }
         if (submission != null && worker) {
-            return "COMMON-03 · 완료 승인 대기";
+            return "BAROHAE · 완료 승인 대기";
         }
         return requester
-                ? "COMMON-03 · 업무 진행 확인"
-                : "COMMON-03 · 업무 진행 / 결과 제출";
+                ? "BAROHAE · 업무 진행 확인"
+                : "BAROHAE · 업무 진행 / 결과 제출";
     }
 
     public record ActivityView(String title, String description, String timeLabel, boolean current) {

@@ -109,8 +109,7 @@
                         <p th:text="${#lists.isEmpty(task.skillTags()) ? task.description() : #strings.listJoin(task.skillTags(), ' · ')}">
                             Spring Boot · AWS · Nginx
                         </p>
-                        <a class="requester-profile-link" th:href="@{/members/{id}(id=${task.requesterId()})}"
-                           onclick="event.stopPropagation();">등록자 프로필</a>
+                        <a class="requester-profile-link" th:href="@{/members/{id}(id=${task.requesterId()})}" onclick="event.stopPropagation();">등록자 프로필</a>
                     </div>
                     <div class="task-credit">
                         <strong><span th:text="${task.requestedPum()}">4</span>품</strong>
@@ -372,16 +371,12 @@
                     </div>
                     <div class="field">
                         <label for="task-minutes">요청 시간</label>
-                        <select id="task-minutes" class="control" th:field="*{requestedMinutes}" required
-                                th:if="${editingTaskId != null or canCreateTask}">
-                            <option value="30" th:disabled="${maximumSpendableMinutes < 30}">1품 · 30분</option>
-                            <option value="60" th:disabled="${maximumSpendableMinutes < 60}">2품 · 1시간</option>
-                            <option value="90" th:disabled="${maximumSpendableMinutes < 90}">3품 · 1시간 30분</option>
-                            <option value="120" th:disabled="${maximumSpendableMinutes < 120}">4품 · 2시간</option>
-                            <option value="180" th:disabled="${maximumSpendableMinutes < 180}">6품 · 3시간</option>
-                            <option value="240" th:disabled="${maximumSpendableMinutes < 240}">8품 · 4시간</option>
-                        </select>
-                        <select id="task-minutes" class="control" disabled
+                        <div th:if="${editingTaskId != null or canCreateTask}" class="minutes-input-wrap">
+                            <input id="task-pum" class="control" type="number" min="1" th:max="${(maximumSpendableMinutes < 1410 ? maximumSpendableMinutes : 1410) / 30}" th:value="${taskForm.requestedMinutes / 30}" step="1" inputmode="numeric" placeholder="품 단위로 입력" required>
+                            <input id="task-minutes" type="hidden" th:field="*{requestedMinutes}">
+                            <span id="task-minutes-display" class="minutes-display">4품 · 2시간</span>
+                        </div>
+                        <select id="task-minutes-disabled" class="control" disabled
                                 th:if="${editingTaskId == null and !canCreateTask}">
                             <option selected th:text="${currentMemberId == null ? '로그인 후 선택할 수 있습니다' : '사용 가능한 품이 없습니다'}">
                                 사용 가능한 품이 없습니다
@@ -426,7 +421,7 @@
         </section>
 
         <section id="page-detail" class="page-section hidden">
-            <p class="eyebrow">· 업무 상세</p>
+            <p class="eyebrow">BaroHae · 업무 상세</p>
             <div class="section-grid">
                 <article class="panel">
                     <div class="task-meta">
@@ -783,6 +778,20 @@
     const taskSortSelect = document.getElementById("task-sort");
     const taskCategoryFilter = document.getElementById("task-category-filter");
     const aiSituationInput = document.getElementById("ai-task-situation");
+    const pumInput = document.getElementById("task-pum");
+    const minutesInput = document.getElementById("task-minutes");
+    const minutesDisplay = document.getElementById("task-minutes-display");
+    function updateMinutesDisplay() {
+        if (!pumInput || !minutesInput || !minutesDisplay) return;
+        const pum = Number(pumInput.value || 0);
+        const minutes = pum * 30;
+        minutesInput.value = minutes;
+        const hours = Math.floor(minutes / 60);
+        const rest = minutes % 60;
+        const time = hours > 0 ? `${hours}시간${rest ? ` ${rest}분` : ''}` : `${rest}분`;
+        minutesDisplay.textContent = pum >= 1 ? `${pum}품 · ${time}` : "1품 이상 입력해주세요";
+    }
+    if (pumInput) { pumInput.addEventListener("input", updateMinutesDisplay); updateMinutesDisplay(); }
     const aiDraftButton = document.getElementById("ai-draft-button");
     const aiDraftStatus = document.getElementById("ai-draft-status");
 

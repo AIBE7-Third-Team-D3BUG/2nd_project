@@ -441,3 +441,8 @@ main { padding: 34px 42px 60px; }
 .task-credit strong { color: var(--brand); font-size: 24px; }
 .notice { border-radius: 12px; }
 @media (max-width: 760px) { .page-section { padding: 28px 18px 40px; } .page-heading h1 { font-size: 30px; } .search-bar { grid-template-columns: 1fr; } .task-list { grid-template-columns: 1fr; } }
+.task-summary > div { min-width:0; }
+.task-summary > div:nth-child(3) { white-space:nowrap; }
+.task-summary > div:nth-child(3) strong { display:flex; align-items:baseline; gap:4px; white-space:nowrap; }
+.task-summary > div:nth-child(3) strong span { font-size:18px; }
+@media (max-width:760px) { .task-summary > div:nth-child(3) { white-space:normal; } }
