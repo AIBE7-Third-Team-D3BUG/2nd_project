@@ -80,6 +80,7 @@ main { padding: 32px 42px 42px; }
 .mine .message-meta { justify-content: flex-end; }
 .chat-error { margin: 0 24px 10px; padding: 9px 12px; color: #b33030; background: #fff0f0; border-radius: 8px; font-size: 13px; }
 .task-deleted-notice { margin: 0 0 20px; padding: 12px 14px; color: #8f2b2b; background: #fff1f1; border: 1px solid #ffd4d4; border-radius: 10px; font-size: 13px; font-weight: 700; }
+.completed-chat-notice { margin-top: 20px; color: #375b86; background: #eef6ff; border-color: #cfe3fa; }
 .composer { position: relative; z-index: 2; min-height: 76px; display: grid; grid-template-columns: 42px 48px minmax(0, 1fr) 78px; align-items: end; gap: 10px; padding: 15px 20px 18px; background: white; border-top: 1px solid var(--line); }
 .attach-button { width: 42px; height: 42px; display: grid; place-items: center; color: var(--blue); background: var(--blue-soft); border-radius: 9px; cursor: pointer; font-size: 25px; }
 .attachment-limit { align-self: center; color: #929bad; font-size: 11px; white-space: nowrap; }

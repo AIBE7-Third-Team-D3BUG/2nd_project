@@ -70,8 +70,10 @@
                     </div>
                     <div class="empty-messages" th:if="${#lists.isEmpty(selectedRoom.messages())}">
                         <span>💬</span>
-                        <strong>첫 메시지를 보내보세요</strong>
-                        <p>업무 관련 대화와 파일은 이 채팅방에서만 확인할 수 있습니다.</p>
+                        <strong th:text="${selectedRoom.readOnly() ? '아직 대화 내역이 없습니다' : '첫 메시지를 보내보세요'}">첫 메시지를 보내보세요</strong>
+                        <p th:text="${selectedRoom.readOnly() ? '완료 승인된 업무라 새 메시지를 보낼 수 없습니다.' : '업무 관련 대화와 파일은 이 채팅방에서만 확인할 수 있습니다.'}">
+                            업무 관련 대화와 파일은 이 채팅방에서만 확인할 수 있습니다.
+                        </p>
                     </div>
 
                     <div class="message-row" th:each="message : ${selectedRoom.messages()}"
@@ -99,10 +101,14 @@
                             </div>
                         </div>
                     </div>
+
+                    <div class="task-deleted-notice completed-chat-notice" th:if="${selectedRoom.readOnly()}">
+                        완료 승인과 후기가 등록되어 대화 내역만 확인할 수 있습니다.
+                    </div>
                 </div>
 
                 <div class="chat-error" th:if="${chatError}" th:text="${chatError}">오류 메시지</div>
-                <form class="composer" id="composer" th:unless="${selectedRoom.taskDeleted()}" th:action="@{/chat/{id}/messages(id=${selectedRoom.id()})}"
+                <form class="composer" id="composer" th:unless="${selectedRoom.taskDeleted() or selectedRoom.readOnly()}" th:action="@{/chat/{id}/messages(id=${selectedRoom.id()})}"
                       method="post" enctype="multipart/form-data">
                     <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                     <label class="attach-button" for="attachment" title="파일 첨부">＋</label>

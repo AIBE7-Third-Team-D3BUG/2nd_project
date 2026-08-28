@@ -139,6 +139,9 @@ public class ChatService {
         if (room.isTaskDeleted()) {
             throw new IllegalArgumentException("의뢰자가 글을 삭제했습니다.");
         }
+        if (isTaskCompleted(room)) {
+            throw new IllegalArgumentException("완료 승인된 업무의 채팅방에서는 메시지를 보낼 수 없습니다.");
+        }
         String normalizedContent = content == null ? "" : content.trim();
         boolean hasAttachment = attachment != null && !attachment.isEmpty();
         if (hasAttachment && attachment.getSize() > MAX_ATTACHMENT_SIZE) {
@@ -221,8 +224,14 @@ public class ChatService {
         return new ChatRoomView(
                 room.getId(), room.getTaskId(), room.getTaskTitle(), otherMemberId, otherNickname,
                 StringUtils.hasText(room.getLastMessagePreview()) ? room.getLastMessagePreview() : "대화를 시작해보세요.",
-                formatTime(room.getLastMessageAt()), unreadCount, messages, room.isTaskDeleted()
+                formatTime(room.getLastMessageAt()), unreadCount, messages, room.isTaskDeleted(), isTaskCompleted(room)
         );
+    }
+
+    private boolean isTaskCompleted(ChatRoom room) {
+        return taskRepository.findById(room.getTaskId())
+                .map(task -> task.getStatus() == org.example._nd_project.task.TaskStatus.COMPLETED)
+                .orElse(false);
     }
 
     private ChatMessageView toMessageView(ChatMessage message, Long memberId, ChatRoom room,
