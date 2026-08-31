@@ -4,6 +4,8 @@
 .idea
 .env
 build
+uploads
 Docs
 img.png
 *.iml
+*.log
