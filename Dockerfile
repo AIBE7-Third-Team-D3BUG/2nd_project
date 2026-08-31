@@ -1,4 +1,4 @@
-FROM eclipse-temurin:17-jdk AS build
+FROM eclipse-temurin:17-jdk-jammy AS build
 
 WORKDIR /workspace
 
@@ -6,14 +6,18 @@ COPY gradlew build.gradle settings.gradle ./
 COPY gradle ./gradle
 RUN chmod +x gradlew
 COPY src ./src
-RUN ./gradlew bootJar --no-daemon
+RUN ./gradlew clean bootJar -x test --no-daemon
 
-FROM eclipse-temurin:17-jre
+FROM eclipse-temurin:17-jre-jammy
 
 WORKDIR /app
 
-COPY --from=build /workspace/build/libs/*.jar app.jar
+RUN useradd --system --user-group spring
 
-EXPOSE 8080
+COPY --from=build --chown=spring:spring /workspace/build/libs/*.jar app.jar
 
-ENTRYPOINT ["sh", "-c", "java -XX:MaxRAMPercentage=70.0 -jar app.jar"]
+USER spring
+
+EXPOSE 10000
+
+ENTRYPOINT ["java", "-XX:MaxRAMPercentage=60.0", "-XX:InitialRAMPercentage=15.0", "-XX:+UseSerialGC", "-XX:+ExitOnOutOfMemoryError", "-jar", "app.jar"]
