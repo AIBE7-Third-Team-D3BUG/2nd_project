@@ -424,6 +424,20 @@ select.control { cursor: pointer; }
     color: var(--success);
     background: var(--success-soft);
 }
+.error-notice {
+    color: #b42318;
+    background: #fff1f0;
+}
+.access-denied-notice {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    z-index: 100;
+    width: min(420px, calc(100% - 32px));
+    margin: 0;
+    transform: translateX(-50%);
+    box-shadow: 0 12px 30px rgba(91, 24, 24, .18);
+}
 .empty-state {
     padding: 50px 20px;
     border: 1px dashed var(--line-strong);

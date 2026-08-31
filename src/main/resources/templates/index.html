@@ -91,6 +91,10 @@
             <div class="notice success-notice" th:if="${param.cancelledApply}">
                 지원이 취소되었습니다.
             </div>
+            <div class="notice error-notice access-denied-notice" role="alert" th:if="${param.accessDenied}">
+                <strong>권한이 없습니다.</strong>
+                <span>관리자 메뉴는 관리자 계정만 이용할 수 있습니다.</span>
+            </div>
 
             <div class="task-list">
                 <article th:each="task : ${availableTasks}"
