@@ -39,14 +39,14 @@
         <section class="task-summary" aria-label="업무 요약">
             <div><span>의뢰인</span><strong th:text="${progress.requesterName()}">의뢰인</strong></div>
             <div><span>작업자</span><strong th:text="${progress.workerName()}">작업자</strong></div>
-            <div><span>정산 예정</span><strong><span th:text="${progress.requestedPum()}">4</span>품</strong></div>
+            <div><span th:text="${progress.completed() ? '정산 완료' : '정산 예정'}">정산 예정</span><strong><span th:text="${progress.requestedPum()}">4</span>품</strong></div>
             <div><span>마감</span><strong th:text="${progress.deadlineLabel()}">2시간 42분 남음</strong></div>
         </section>
 
         <ol class="stepper" aria-label="업무 진행 단계">
             <li th:each="label, step : ${ {'매칭', '진행 중', '결과 제출', '완료 승인', '정산'} }"
-                th:classappend="${step.index + 1 < progress.currentStep() ? 'done' : (step.index + 1 == progress.currentStep() ? 'current' : '')}">
-                <span class="step-dot" th:text="${step.index + 1 < progress.currentStep() ? '✓' : step.index + 1}">1</span>
+                th:classappend="${progress.completed() or step.index + 1 < progress.currentStep() ? 'done' : (step.index + 1 == progress.currentStep() ? 'current' : '')}">
+                <span class="step-dot" th:text="${progress.completed() or step.index + 1 < progress.currentStep() ? '✓' : step.index + 1}">1</span>
                 <strong th:text="${label}">매칭</strong>
             </li>
         </ol>
