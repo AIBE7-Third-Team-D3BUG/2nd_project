@@ -106,6 +106,49 @@ class TaskProgressControllerTest {
     }
 
     @Test
+    void completedScreenMarksSettlementAsCompleted() throws Exception {
+        MemberPrincipal requester = new MemberPrincipal(
+                3L,
+                "requester@example.com",
+                "password",
+                "의뢰인",
+                "USER",
+                true
+        );
+        TaskProgressView progress = new TaskProgressView(
+                10L,
+                "AWS 배포 후 502 오류 해결",
+                "의뢰인",
+                "작업자",
+                "완료",
+                120,
+                "완료",
+                true,
+                false,
+                false,
+                false,
+                false,
+                false,
+                true,
+                false,
+                false,
+                5,
+                List.of("서비스 정상 응답 확인"),
+                List.of(),
+                null,
+                null
+        );
+        when(taskProgressService.getProgress(10L, 3L)).thenReturn(progress);
+
+        mockMvc.perform(get("/tasks/10/progress").with(user(requester)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString(
+                        "<div><span>정산 완료</span><strong>")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString(
+                        "<li class=\"done\">\n                <span class=\"step-dot\">✓</span>\n                <strong>정산</strong>")));
+    }
+
+    @Test
     void selectedWorkerCanStartTaskFromProgressScreen() throws Exception {
         MemberPrincipal worker = new MemberPrincipal(
                 8L,
