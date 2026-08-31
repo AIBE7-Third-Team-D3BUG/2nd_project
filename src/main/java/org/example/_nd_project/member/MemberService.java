@@ -66,6 +66,35 @@ public class MemberService {
         }
     }
 
+    @Transactional
+    public Member registerWithSocialLogin(String email, String nickname) {
+        String normalizedEmail = normalizeEmail(email);
+        String normalizedNickname = nickname.trim();
+        if (memberRepository.existsByEmail(normalizedEmail)) {
+            throw new DuplicateMemberException("email", "이미 가입된 이메일입니다. 기존 이메일 로그인으로 계정을 확인해주세요.");
+        }
+        if (memberRepository.existsByNickname(normalizedNickname)) {
+            throw new DuplicateMemberException("nickname", "이미 사용 중인 닉네임입니다.");
+        }
+
+        try {
+            Member member = memberRepository.saveAndFlush(Member.register(
+                    normalizedEmail,
+                    passwordEncoder.encode(UUID.randomUUID().toString()),
+                    normalizedNickname,
+                    Instant.now()
+            ));
+            timeAccountRepository.save(new TimeAccount(member.getId(), SIGNUP_REWARD_MINUTES));
+            timeAccountRepository.flush();
+            timeTransactionRepository.saveAndFlush(TimeTransaction.signupReward(
+                    member.getId(), SIGNUP_REWARD_MINUTES, UUID.randomUUID().toString()
+            ));
+            return member;
+        } catch (DataIntegrityViolationException exception) {
+            throw new DuplicateMemberException("email", "이미 가입된 이메일 또는 닉네임입니다.");
+        }
+    }
+
     @Transactional(readOnly = true)
     public MemberProfileView getProfile(Long memberId) {
         Member member = requireMember(memberId);
@@ -143,6 +172,12 @@ public class MemberService {
     @Transactional
     public void recordSuccessfulLogin(String email) {
         memberRepository.findByEmail(normalizeEmail(email))
+                .ifPresent(member -> member.recordLogin(Instant.now()));
+    }
+
+    @Transactional
+    public void recordSuccessfulLogin(Long memberId) {
+        memberRepository.findById(memberId)
                 .ifPresent(member -> member.recordLogin(Instant.now()));
     }
 
