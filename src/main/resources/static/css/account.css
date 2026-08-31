@@ -230,6 +230,30 @@ h1 {
 }
 .primary-button:hover { background: var(--brand-hover); }
 .primary-button:active { transform: translateY(1px); }
+.social-login-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 22px 0 12px;
+    color: var(--muted);
+    font-size: 12px;
+}
+.social-login-divider::before,
+.social-login-divider::after { content: ""; height: 1px; flex: 1; background: var(--line); }
+.kakao-login-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 48px;
+    border-radius: 8px;
+    color: #191919;
+    background: #fee500;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 800;
+}
+.kakao-login-button:hover { background: #f4dc00; }
 .text-link {
     margin-top: 22px;
     color: var(--muted);

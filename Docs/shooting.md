@@ -1,4 +1,93 @@
 ================================================================================
+[2026-08-31] 카카오 소셜 로그인 연동 및 OAuth 인증 오류 해결
+================================================================================
+
+1. 카카오 소셜 로그인 기능 추가
+--------------------------------------------------------------------------------
+  [목표]
+  * 기존 이메일/비밀번호 로그인과 별도로 카카오 계정으로 회원가입과 로그인이 가능하도록 구성.
+
+  [처리 내용]
+  * `spring-boot-starter-oauth2-client` 의존성을 추가하고, Kakao OAuth2 Client 등록 정보를 설정.
+    - 인가 서버: `https://kauth.kakao.com/oauth/authorize`
+    - 토큰 서버: `https://kauth.kakao.com/oauth/token`
+    - 사용자 정보 API: `https://kapi.kakao.com/v2/user/me`
+    - 요청 동의 항목: 닉네임(`profile_nickname`), 카카오 계정 이메일(`account_email`)
+  * 환경 변수로 REST API 키, Client Secret, 기능 활성화 여부를 주입하도록 구성.
+    - `KAKAO_REST_API_KEY`
+    - `KAKAO_CLIENT_SECRET`
+    - `KAKAO_LOGIN_ENABLED`
+  * 로그인 화면에 기능이 활성화된 경우에만 `카카오로 시작하기` 버튼을 표시.
+  * OAuth 공급자와 회원을 연결하는 `oauth_accounts` 테이블 및 Flyway 마이그레이션(V17)을 추가.
+  * 카카오 사용자 정보에서 공급자 식별자와 이메일을 받아 기존 연결 계정을 조회하고,
+    연결 계정이 없으면 신규 회원·시간 계정·가입 보상 내역을 생성한 뒤 연결 정보를 저장.
+  * 탈퇴 시 `oauth_accounts` 연결 정보도 함께 삭제하도록 처리.
+
+  [계정 연결 정책]
+  * 일반 이메일 회원과 같은 이메일이더라도 자동으로 카카오 계정을 연결하지 않음.
+  * 기존 계정의 소유자를 검증하지 않은 상태에서 연결하면 계정 탈취 위험이 있으므로,
+    이미 사용 중인 이메일은 기존 로그인 방식으로 계정을 확인하도록 안내.
+
+  [관련 파일]
+  * `SecurityConfig`, `KakaoOAuth2UserService`, `MemberPrincipal`
+  * `OAuthAccount`, `OAuthAccountRepository`, `MemberService`, `MemberWithdrawalService`
+  * `V17__add_oauth_accounts.sql`, `application-db.yaml`, `login.html`, `.env.sample`
+
+2. OpenAI API 키 미설정으로 애플리케이션이 시작되지 않는 문제
+--------------------------------------------------------------------------------
+  [증상]
+  * 애플리케이션 시작 시 `openAiSdkAudioSpeechModel` 또는
+    `openAiSdkModerationModel` Bean 생성 과정에서 다음 오류가 발생.
+    `At least one credential source must be specified: credential (apiKey) ...`
+
+  [원인]
+  * 프로젝트에서 사용하지 않는 OpenAI Spring AI Starter가 의존성에 포함되어 있어,
+    음성·Moderation 자동 구성 Bean이 OpenAI API 키 없이 생성되려고 시도함.
+
+  [해결]
+  * 사용 중인 Google GenAI 설정은 유지하고, 사용하지 않는 OpenAI Starter와 관련 자동 구성 제외 설정을 제거.
+  * 애플리케이션이 OpenAI API 키를 요구하지 않도록 정리.
+
+3. 카카오 개발자 콘솔 설정 오류
+--------------------------------------------------------------------------------
+  [증상]
+  * `KOE205`: 서비스 설정 오류로 로그인 진행 불가.
+  * `KOE006`: 앱 관리자 설정 오류로 로그인 진행 불가.
+
+  [원인 및 조치]
+  * `KOE205`: 코드에서 요청한 동의 항목이 카카오 개발자 콘솔에서 활성화되지 않았거나,
+    신청이 필요한 동의 항목이 승인되지 않은 상태.
+    - 카카오 로그인 > 동의항목에서 닉네임과 카카오계정(이메일)을 활성화.
+  * `KOE006`: 카카오 개발자 콘솔에 등록한 Redirect URI와 애플리케이션 요청 URI가 일치하지 않음.
+    - 로컬 개발 URI를 `http://localhost:8080/login/oauth2/code/kakao`로 정확히 등록.
+    - `127.0.0.1`로 접속하는 경우 해당 주소도 별도로 등록.
+  * Client Secret 사용이 활성화된 앱은 REST API 키와 별개로 Client Secret을 환경 변수에 설정.
+
+4. 동의 화면 이후 `ProviderNotFoundException`으로 로그인에 실패하는 문제
+--------------------------------------------------------------------------------
+  [증상]
+  * 카카오 동의 화면까지는 정상으로 표시되지만 콜백 이후 로그인 실패.
+  * 서버 로그:
+    `No AuthenticationProvider found for OAuth2LoginAuthenticationToken`
+
+  [원인]
+  * 보안 설정에서 직접 만든 `AuthenticationManager`가 이메일/비밀번호 로그인용
+    `DaoAuthenticationProvider`만 보유하고 있었음.
+  * 이 설정이 Spring Security의 OAuth2 로그인용 `OAuth2LoginAuthenticationProvider` 등록을 막아,
+    카카오 콜백 토큰을 인증할 수 없었음.
+
+  [해결]
+  * 전역 `AuthenticationManager` 강제 설정을 제거.
+  * 이메일/비밀번호용 `DaoAuthenticationProvider`는 `HttpSecurity.authenticationProvider(...)`로 등록하여,
+    Spring Security가 OAuth2 로그인 Provider와 함께 구성하도록 변경.
+  * 일반 로그인과 카카오 로그인에서 공통 성공 처리기를 사용하여 마지막 로그인 시간을 기록하고,
+    일반 회원은 프로필 화면으로, 관리자는 관리자 화면으로 이동.
+  * OAuth 실패 시 예외 유형과 메시지만 서버 로그에 남기고, 민감한 키나 사용자 정보는 기록하지 않도록 처리.
+
+  [검증]
+  * `gradlew.bat test` 실행 성공.
+
+================================================================================
 [2026-08-26] 예외 처리 점검 및 최근 트러블슈팅
 ================================================================================
 
