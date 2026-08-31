@@ -19,11 +19,14 @@ public class AuthController {
 
     private final MemberService memberService;
     private final boolean kakaoLoginEnabled;
+    private final boolean googleLoginEnabled;
 
     public AuthController(MemberService memberService,
-                          @Value("${app.oauth.kakao.enabled:false}") boolean kakaoLoginEnabled) {
+                          @Value("${app.oauth.kakao.enabled:false}") boolean kakaoLoginEnabled,
+                          @Value("${app.oauth.google.enabled:false}") boolean googleLoginEnabled) {
         this.memberService = memberService;
         this.kakaoLoginEnabled = kakaoLoginEnabled;
+        this.googleLoginEnabled = googleLoginEnabled;
     }
 
     @GetMapping("/signup")
@@ -57,6 +60,7 @@ public class AuthController {
             return "redirect:/profile";
         }
         model.addAttribute("kakaoLoginEnabled", kakaoLoginEnabled);
+        model.addAttribute("googleLoginEnabled", googleLoginEnabled);
         return "login";
     }
 

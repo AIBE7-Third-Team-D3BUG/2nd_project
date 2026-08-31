@@ -15,6 +15,10 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.core.session.SessionRegistry;
 import org.springframework.security.core.session.SessionRegistryImpl;
+import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
+import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
+import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,6 +55,7 @@ public class SecurityConfig {
                                                    LoginFailureHandler loginFailureHandler,
                                                    MemberService memberService,
                                                    ObjectProvider<KakaoOAuth2UserService> kakaoOAuth2UserServiceProvider,
+                                                   ObjectProvider<GoogleOAuth2UserService> googleOAuth2UserServiceProvider,
                                                    SessionRegistry sessionRegistry) throws Exception {
         AuthenticationSuccessHandler loginSuccessHandler = (request, response, authentication) -> {
             attempts.clear(authentication.getName(), request.getRemoteAddr());
@@ -97,13 +102,24 @@ public class SecurityConfig {
                 .addFilterBefore(new LoginRateLimitFilter(attempts), UsernamePasswordAuthenticationFilter.class);
 
         KakaoOAuth2UserService kakaoOAuth2UserService = kakaoOAuth2UserServiceProvider.getIfAvailable();
-        if (kakaoOAuth2UserService != null) {
+        GoogleOAuth2UserService googleOAuth2UserService = googleOAuth2UserServiceProvider.getIfAvailable();
+        if (kakaoOAuth2UserService != null || googleOAuth2UserService != null) {
+            OAuth2UserService<OAuth2UserRequest, OAuth2User> socialOAuth2UserService = userRequest -> {
+                String registrationId = userRequest.getClientRegistration().getRegistrationId();
+                if ("kakao".equals(registrationId) && kakaoOAuth2UserService != null) {
+                    return kakaoOAuth2UserService.loadUser(userRequest);
+                }
+                if ("google".equals(registrationId) && googleOAuth2UserService != null) {
+                    return googleOAuth2UserService.loadUser(userRequest);
+                }
+                return new DefaultOAuth2UserService().loadUser(userRequest);
+            };
             http.oauth2Login(oauth2 -> oauth2
                     .loginPage("/login")
-                    .userInfoEndpoint(userInfo -> userInfo.userService(kakaoOAuth2UserService))
+                    .userInfoEndpoint(userInfo -> userInfo.userService(socialOAuth2UserService))
                     .successHandler(loginSuccessHandler)
                     .failureHandler((request, response, exception) -> {
-                        log.warn("Kakao OAuth login failed: type={}, message={}",
+                        log.warn("Social OAuth login failed: type={}, message={}",
                                 exception.getClass().getSimpleName(), exception.getMessage());
                         response.sendRedirect(request.getContextPath() + "/login?socialError");
                     })
