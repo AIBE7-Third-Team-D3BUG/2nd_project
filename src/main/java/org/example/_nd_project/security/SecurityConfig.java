@@ -84,6 +84,10 @@ public class SecurityConfig {
                         .failureHandler(loginFailureHandler)
                         .successHandler(loginSuccessHandler)
                 )
+                .exceptionHandling(exceptions -> exceptions
+                        .accessDeniedHandler((request, response, exception) ->
+                                response.sendRedirect(request.getContextPath() + "/?accessDenied"))
+                )
                 .logout(logout -> logout
                         .logoutUrl("/logout")
                         .logoutSuccessUrl("/login?logout")
