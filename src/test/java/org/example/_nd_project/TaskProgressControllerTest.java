@@ -144,8 +144,8 @@ class TaskProgressControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(org.hamcrest.Matchers.containsString(
                         "<div><span>정산 완료</span><strong>")))
-                .andExpect(content().string(org.hamcrest.Matchers.containsString(
-                        "<li class=\"done\">\n                <span class=\"step-dot\">✓</span>\n                <strong>정산</strong>")));
+                .andExpect(content().string(org.hamcrest.Matchers.matchesPattern(
+                        "(?s).*<li class=\"done\">\\s*<span class=\"step-dot\">✓</span>\\s*<strong>정산</strong>.*")));
     }
 
     @Test
