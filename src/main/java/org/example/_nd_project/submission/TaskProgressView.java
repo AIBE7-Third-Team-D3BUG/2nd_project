@@ -23,8 +23,22 @@ public record TaskProgressView(
         List<String> completionCriteria,
         List<ActivityView> activities,
         SubmissionView submission,
-        ReviewView review
+        ReviewView review,
+        boolean hasReferenceLink,
+        boolean hasReferenceAttachment
 ) {
+    public TaskProgressView(
+            Long taskId, String title, String requesterName, String workerName, String deadlineLabel,
+            int requestedMinutes, String statusLabel, boolean requester, boolean worker, boolean canStart,
+            boolean waitingForWorkerStart, boolean canSubmit, boolean canReview, boolean completed,
+            boolean cancelled, boolean disputed, int currentStep, List<String> completionCriteria,
+            List<ActivityView> activities, SubmissionView submission, ReviewView review
+    ) {
+        this(taskId, title, requesterName, workerName, deadlineLabel, requestedMinutes, statusLabel,
+                requester, worker, canStart, waitingForWorkerStart, canSubmit, canReview, completed,
+                cancelled, disputed, currentStep, completionCriteria, activities, submission, review, false, false);
+    }
+
     public boolean canCancel() {
         return requester && (currentStep == 2 || currentStep == 3) && !cancelled;
     }
@@ -35,32 +49,32 @@ public record TaskProgressView(
 
     public String phaseLabel() {
         if (completed) {
-            return "COMMON-05 · 업무 완료 / 정산";
+            return "BAROHAE · 업무 완료 / 정산";
         }
         if (cancelled) {
-            return "COMMON-05 · 업무 취소";
+            return "BAROHAE · 업무 취소";
         }
         if (disputed) {
-            return "COMMON-04 · 문제 신고 / 검토";
+            return "BAROHAE · 문제 신고 / 검토";
         }
         if (canReview) {
-            return "CLIENT-04 · 완료 승인 / 리뷰";
+            return "BAROHAE · 완료 승인 / 리뷰";
         }
         if (canStart) {
-            return "COMMON-03 · 업무 시작";
+            return "BAROHAE · 업무 시작";
         }
         if (waitingForWorkerStart) {
-            return "COMMON-03 · 업무 시작 대기";
+            return "BAROHAE · 업무 시작 대기";
         }
         if (canSubmit) {
-            return "COMMON-03 · 업무 진행 / 결과 제출";
+            return "BAROHAE · 업무 진행 / 결과 제출";
         }
         if (submission != null && worker) {
-            return "COMMON-03 · 완료 승인 대기";
+            return "BAROHAE · 완료 승인 대기";
         }
         return requester
-                ? "COMMON-03 · 업무 진행 확인"
-                : "COMMON-03 · 업무 진행 / 결과 제출";
+                ? "BAROHAE · 업무 진행 확인"
+                : "BAROHAE · 업무 진행 / 결과 제출";
     }
 
     public record ActivityView(String title, String description, String timeLabel, boolean current) {

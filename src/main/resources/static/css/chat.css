@@ -80,6 +80,7 @@ main { padding: 32px 42px 42px; }
 .mine .message-meta { justify-content: flex-end; }
 .chat-error { margin: 0 24px 10px; padding: 9px 12px; color: #b33030; background: #fff0f0; border-radius: 8px; font-size: 13px; }
 .task-deleted-notice { margin: 0 0 20px; padding: 12px 14px; color: #8f2b2b; background: #fff1f1; border: 1px solid #ffd4d4; border-radius: 10px; font-size: 13px; font-weight: 700; }
+.completed-chat-notice { margin-top: 20px; color: #375b86; background: #eef6ff; border-color: #cfe3fa; }
 .composer { position: relative; z-index: 2; min-height: 76px; display: grid; grid-template-columns: 42px 48px minmax(0, 1fr) 78px; align-items: end; gap: 10px; padding: 15px 20px 18px; background: white; border-top: 1px solid var(--line); }
 .attach-button { width: 42px; height: 42px; display: grid; place-items: center; color: var(--blue); background: var(--blue-soft); border-radius: 9px; cursor: pointer; font-size: 25px; }
 .attachment-limit { align-self: center; color: #929bad; font-size: 11px; white-space: nowrap; }
@@ -108,3 +109,17 @@ main { padding: 32px 42px 42px; }
     .composer { grid-template-columns: 38px 42px minmax(0, 1fr) 58px; padding: 10px; }
     .attach-button { width: 38px; }
 }
+
+/* BaroHae UI refresh */
+.brand img { display:block; width:150px; height:auto; max-height:44px; object-fit:contain; object-position:left center; }
+.app-shell { box-shadow: 0 18px 50px rgba(27, 45, 78, .08); }
+.app-header { height: 78px; background: rgba(255,255,255,.98); }
+.page-heading h1 { font-size: 36px; font-weight: 900; }
+.control { min-height: 48px; border-radius: 10px; font-size: 15px; }
+.task-list { gap: 18px; }
+.task-card { min-height: 250px; padding: 22px; border: 1px solid #e2e8f2; border-radius: 16px; box-shadow: 0 8px 24px rgba(25, 48, 88, .06); transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
+.task-card:hover { transform: translateY(-3px); border-color: #b9c9f8; box-shadow: 0 14px 30px rgba(49,92,244,.12); }
+.task-credit { margin-top: 20px; padding-top: 16px; border-top: 1px solid #edf0f5; }
+.task-credit strong { color: var(--brand); font-size: 24px; }
+.notice { border-radius: 12px; }
+@media (max-width: 760px) { .page-section { padding: 28px 18px 40px; } .page-heading h1 { font-size: 30px; } .search-bar { grid-template-columns: 1fr; } .task-list { grid-template-columns: 1fr; } }

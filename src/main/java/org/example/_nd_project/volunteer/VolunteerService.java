@@ -41,8 +41,7 @@ public class VolunteerService {
 
     @Transactional
     public Volunteer apply(Long taskId, Long memberId, String message) {
-        Task task = taskRepository.findById(taskId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "업무를 찾을 수 없습니다."));
+        Task task = findTaskForUpdate(taskId);
 
         if (task.getStatus() != TaskStatus.OPEN) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "모집 중인 업무에만 지원할 수 있습니다.");
@@ -67,14 +66,14 @@ public class VolunteerService {
 
     @Transactional
     public void cancelApplication(Long taskId, Long memberId) {
+        Task task = findTaskForUpdate(taskId);
         Volunteer volunteer = volunteerRepository.findByTaskIdAndMemberId(taskId, memberId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "지원 정보를 찾을 수 없습니다."));
 
         if (volunteer.getStatus() == VolunteerStatus.ACCEPTED) {
-            Task task = taskRepository.findById(taskId).orElse(null);
-            if (task != null && task.getWorkerId() != null && task.getWorkerId().equals(memberId)) {
-                chatService.deleteRoomForTask(taskId);
+            if (task.getWorkerId() != null && task.getWorkerId().equals(memberId)) {
                 task.unassignWorker();
+                chatService.deleteRoomForTask(taskId);
             }
             List<Volunteer> remaining = volunteerRepository.findByTaskIdAndStatusNotOrderByCreatedAtAsc(taskId, VolunteerStatus.CANCELLED);
             for (Volunteer v : remaining) {
@@ -116,8 +115,7 @@ public class VolunteerService {
 
     @Transactional
     public void selectVolunteer(Long taskId, Long requesterId, Long volunteerId) {
-        Task task = taskRepository.findById(taskId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "업무를 찾을 수 없습니다."));
+        Task task = findTaskForUpdate(taskId);
 
         if (!task.getRequesterId().equals(requesterId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "의뢰인만 지원자를 선택할 수 있습니다.");
@@ -141,8 +139,7 @@ public class VolunteerService {
 
     @Transactional
     public void unselectVolunteer(Long taskId, Long requesterId, Long volunteerId) {
-        Task task = taskRepository.findById(taskId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "업무를 찾을 수 없습니다."));
+        Task task = findTaskForUpdate(taskId);
 
         if (!task.getRequesterId().equals(requesterId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "의뢰인만 작업자 선택을 취소할 수 있습니다.");
@@ -155,13 +152,18 @@ public class VolunteerService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "선택된 작업자만 선택을 취소할 수 있습니다.");
         }
 
-        chatService.deleteRoomForTask(taskId);
         task.unassignWorker();
+        chatService.deleteRoomForTask(taskId);
 
         List<Volunteer> allVolunteers = volunteerRepository.findByTaskIdAndStatusNotOrderByCreatedAtAsc(taskId, VolunteerStatus.CANCELLED);
         for (Volunteer v : allVolunteers) {
             v.resetToApplied();
         }
+    }
+
+    private Task findTaskForUpdate(Long taskId) {
+        return taskRepository.findByIdForUpdate(taskId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "업무를 찾을 수 없습니다."));
     }
 
     @Transactional(readOnly = true)
@@ -193,7 +195,8 @@ public class VolunteerService {
                     status,
                     status.getLabel(),
                     appliedDateLabel,
-                    task.getReferenceFileUrl() != null && !task.getReferenceFileUrl().isBlank()
+                    (task.getReferenceLinkUrl() != null && !task.getReferenceLinkUrl().isBlank())
+                            || (task.getAttachmentObjectPath() != null && !task.getAttachmentObjectPath().isBlank())
             ));
         }
         return result;

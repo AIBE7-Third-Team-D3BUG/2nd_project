@@ -54,8 +54,11 @@ public class Task {
     @Column(name = "revision_limit", nullable = false)
     private int revisionLimit;
 
-    @Column(name = "reference_file_url", length = 1500)
-    private String referenceFileUrl;
+    @Column(name = "reference_link_url", length = 1500)
+    private String referenceLinkUrl;
+
+    @Column(name = "attachment_object_path", length = 1500)
+    private String attachmentObjectPath;
 
     @Column(length = 1000)
     private String caution;
@@ -90,7 +93,7 @@ public class Task {
 
     private Task(Long requesterId, String title, String description, TaskCategory category,
                  String[] requiredSkillTags, int requestedMinutes, Instant deadlineAt,
-                 String deliverableDescription, String referenceFileUrl) {
+                 String deliverableDescription, String referenceLinkUrl, String attachmentObjectPath) {
         this.requesterId = requesterId;
         this.title = title;
         this.description = description;
@@ -99,23 +102,33 @@ public class Task {
         this.requestedMinutes = requestedMinutes;
         this.deadlineAt = deadlineAt;
         this.deliverableDescription = deliverableDescription;
-        this.referenceFileUrl = referenceFileUrl;
+        this.referenceLinkUrl = referenceLinkUrl;
+        this.attachmentObjectPath = attachmentObjectPath;
     }
 
     public static Task create(Long requesterId, String title, String description, TaskCategory category,
                               String[] requiredSkillTags, int requestedMinutes, Instant deadlineAt,
                               String deliverableDescription, String referenceFileUrl) {
+        return create(requesterId, title, description, category, requiredSkillTags, requestedMinutes,
+                deadlineAt, deliverableDescription,
+                isExternalUrl(referenceFileUrl) ? referenceFileUrl : null,
+                isExternalUrl(referenceFileUrl) ? null : referenceFileUrl);
+    }
+
+    public static Task create(Long requesterId, String title, String description, TaskCategory category,
+                              String[] requiredSkillTags, int requestedMinutes, Instant deadlineAt,
+                              String deliverableDescription, String referenceLinkUrl, String attachmentObjectPath) {
         return new Task(requesterId, title, description, category, requiredSkillTags, requestedMinutes,
-                deadlineAt, deliverableDescription, referenceFileUrl);
+                deadlineAt, deliverableDescription, referenceLinkUrl, attachmentObjectPath);
     }
 
     public void attachReferenceFile(String objectPath) {
-        this.referenceFileUrl = objectPath;
+        this.attachmentObjectPath = objectPath;
     }
 
     public void updateDetails(String title, String description, TaskCategory category,
                               String[] requiredSkillTags, int requestedMinutes, Instant deadlineAt,
-                              String deliverableDescription, String referenceFileUrl) {
+                              String deliverableDescription, String referenceLinkUrl, String attachmentObjectPath) {
         this.title = title;
         this.description = description;
         this.category = category;
@@ -123,7 +136,8 @@ public class Task {
         this.requestedMinutes = requestedMinutes;
         this.deadlineAt = deadlineAt;
         this.deliverableDescription = deliverableDescription;
-        this.referenceFileUrl = referenceFileUrl;
+        this.referenceLinkUrl = referenceLinkUrl;
+        this.attachmentObjectPath = attachmentObjectPath;
     }
 
     public void cancel(Instant cancelledAt) {
@@ -230,7 +244,8 @@ public class Task {
     public int getRequestedMinutes() { return requestedMinutes; }
     public Instant getDeadlineAt() { return deadlineAt; }
     public String getDeliverableDescription() { return deliverableDescription; }
-    public String getReferenceFileUrl() { return referenceFileUrl; }
+    public String getReferenceLinkUrl() { return referenceLinkUrl; }
+    public String getAttachmentObjectPath() { return attachmentObjectPath; }
     public TaskStatus getStatus() { return status; }
     public Instant getMatchedAt() { return matchedAt; }
     public Instant getStartedAt() { return startedAt; }
@@ -239,4 +254,8 @@ public class Task {
     public Instant getCancelledAt() { return cancelledAt; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
+
+    private static boolean isExternalUrl(String value) {
+        return value != null && (value.startsWith("https://") || value.startsWith("http://"));
+    }
 }

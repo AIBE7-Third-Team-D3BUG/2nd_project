@@ -7,6 +7,7 @@ import org.example._nd_project.member.SignupForm;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,9 +18,15 @@ import org.springframework.web.bind.annotation.PostMapping;
 public class AuthController {
 
     private final MemberService memberService;
+    private final boolean kakaoLoginEnabled;
+    private final boolean googleLoginEnabled;
 
-    public AuthController(MemberService memberService) {
+    public AuthController(MemberService memberService,
+                          @Value("${app.oauth.kakao.enabled:false}") boolean kakaoLoginEnabled,
+                          @Value("${app.oauth.google.enabled:false}") boolean googleLoginEnabled) {
         this.memberService = memberService;
+        this.kakaoLoginEnabled = kakaoLoginEnabled;
+        this.googleLoginEnabled = googleLoginEnabled;
     }
 
     @GetMapping("/signup")
@@ -48,8 +55,13 @@ public class AuthController {
     }
 
     @GetMapping("/login")
-    public String login(Authentication authentication) {
-        return isAuthenticated(authentication) ? "redirect:/profile" : "login";
+    public String login(Authentication authentication, Model model) {
+        if (isAuthenticated(authentication)) {
+            return "redirect:/profile";
+        }
+        model.addAttribute("kakaoLoginEnabled", kakaoLoginEnabled);
+        model.addAttribute("googleLoginEnabled", googleLoginEnabled);
+        return "login";
     }
 
     private boolean isAuthenticated(Authentication authentication) {

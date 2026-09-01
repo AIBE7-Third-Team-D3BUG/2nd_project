@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
 
@@ -46,7 +47,7 @@ class VolunteerServiceTest {
     void cannotApplyToOwnTask() {
         Task task = Task.create(1L, "title", "desc", TaskCategory.DEVELOPMENT, new String[0], 60,
                 Instant.now().plusSeconds(3600), "deliverable", null);
-        when(taskRepository.findById(10L)).thenReturn(Optional.of(task));
+        when(taskRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(task));
 
         assertThrows(ResponseStatusException.class, () ->
                 volunteerService.apply(10L, 1L, "msg"));
@@ -57,7 +58,7 @@ class VolunteerServiceTest {
         Task task = Task.create(1L, "title", "desc", TaskCategory.DEVELOPMENT, new String[0], 60,
                 Instant.now().plusSeconds(3600), "deliverable", null);
         Volunteer existing = Volunteer.create(10L, 2L, "msg");
-        when(taskRepository.findById(10L)).thenReturn(Optional.of(task));
+        when(taskRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(task));
         when(volunteerRepository.findByTaskIdAndMemberId(10L, 2L)).thenReturn(Optional.of(existing));
 
         assertThrows(ResponseStatusException.class, () ->
@@ -68,7 +69,7 @@ class VolunteerServiceTest {
     void applySucceeds() {
         Task task = Task.create(1L, "title", "desc", TaskCategory.DEVELOPMENT, new String[0], 60,
                 Instant.now().plusSeconds(3600), "deliverable", null);
-        when(taskRepository.findById(10L)).thenReturn(Optional.of(task));
+        when(taskRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(task));
         when(volunteerRepository.findByTaskIdAndMemberId(10L, 2L)).thenReturn(Optional.empty());
         when(volunteerRepository.save(any(Volunteer.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -85,7 +86,7 @@ class VolunteerServiceTest {
     void nonOwnerCannotSelectVolunteer() {
         Task task = Task.create(1L, "title", "desc", TaskCategory.DEVELOPMENT, new String[0], 60,
                 Instant.now().plusSeconds(3600), "deliverable", null);
-        when(taskRepository.findById(10L)).thenReturn(Optional.of(task));
+        when(taskRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(task));
 
         assertThrows(ResponseStatusException.class, () ->
                 volunteerService.selectVolunteer(10L, 999L, 50L));
@@ -98,7 +99,7 @@ class VolunteerServiceTest {
         org.springframework.test.util.ReflectionTestUtils.setField(task, "id", 10L);
         Volunteer volunteer = Volunteer.create(10L, 2L, "msg");
         org.springframework.test.util.ReflectionTestUtils.setField(volunteer, "id", 50L);
-        when(taskRepository.findById(10L)).thenReturn(Optional.of(task));
+        when(taskRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(task));
         when(volunteerRepository.findByIdAndTaskId(50L, 10L)).thenReturn(Optional.of(volunteer));
         when(volunteerRepository.findByTaskIdAndStatusNotOrderByCreatedAtAsc(10L, VolunteerStatus.CANCELLED))
                 .thenReturn(java.util.List.of(volunteer));
@@ -111,7 +112,10 @@ class VolunteerServiceTest {
 
     @Test
     void cancelApplicationSucceeds() {
+        Task task = Task.create(1L, "title", "desc", TaskCategory.DEVELOPMENT, new String[0], 60,
+                Instant.now().plusSeconds(3600), "deliverable", null);
         Volunteer volunteer = Volunteer.create(10L, 2L, "msg");
+        when(taskRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(task));
         when(volunteerRepository.findByTaskIdAndMemberId(10L, 2L)).thenReturn(Optional.of(volunteer));
 
         volunteerService.cancelApplication(10L, 2L);
@@ -129,7 +133,7 @@ class VolunteerServiceTest {
         volunteer.accept();
 
         when(volunteerRepository.findByTaskIdAndMemberId(10L, 2L)).thenReturn(Optional.of(volunteer));
-        when(taskRepository.findById(10L)).thenReturn(Optional.of(task));
+        when(taskRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(task));
         when(volunteerRepository.findByTaskIdAndStatusNotOrderByCreatedAtAsc(10L, VolunteerStatus.CANCELLED))
                 .thenReturn(java.util.List.of(volunteer));
 
@@ -148,7 +152,7 @@ class VolunteerServiceTest {
         Volunteer volunteer = Volunteer.create(10L, 2L, "msg");
         volunteer.accept();
 
-        when(taskRepository.findById(10L)).thenReturn(Optional.of(task));
+        when(taskRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(task));
         when(volunteerRepository.findByIdAndTaskId(50L, 10L)).thenReturn(Optional.of(volunteer));
         when(volunteerRepository.findByTaskIdAndStatusNotOrderByCreatedAtAsc(10L, VolunteerStatus.CANCELLED))
                 .thenReturn(java.util.List.of(volunteer));
@@ -161,10 +165,35 @@ class VolunteerServiceTest {
 
     @Test
     void cannotCancelNonExistingApplication() {
+        Task task = Task.create(1L, "title", "desc", TaskCategory.DEVELOPMENT, new String[0], 60,
+                Instant.now().plusSeconds(3600), "deliverable", null);
+        when(taskRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(task));
         when(volunteerRepository.findByTaskIdAndMemberId(10L, 2L)).thenReturn(Optional.empty());
 
         assertThrows(ResponseStatusException.class, () ->
                 volunteerService.cancelApplication(10L, 2L));
+    }
+
+    @Test
+    void cannotUnselectVolunteerAfterWorkerStarts() {
+        Task task = Task.create(1L, "title", "desc", TaskCategory.DEVELOPMENT, new String[0], 60,
+                Instant.now().plusSeconds(3600), "deliverable", null);
+        task.assignWorker(2L, Instant.now());
+        task.startWork(2L, Instant.now());
+
+        Volunteer volunteer = Volunteer.create(10L, 2L, "msg");
+        volunteer.accept();
+
+        when(taskRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(task));
+        when(volunteerRepository.findByIdAndTaskId(50L, 10L)).thenReturn(Optional.of(volunteer));
+
+        assertThrows(IllegalStateException.class, () ->
+                volunteerService.unselectVolunteer(10L, 1L, 50L));
+
+        verify(taskRepository).findByIdForUpdate(10L);
+        verify(chatService, never()).deleteRoomForTask(10L);
+        assertEquals(org.example._nd_project.task.TaskStatus.IN_PROGRESS, task.getStatus());
+        assertEquals(2L, task.getWorkerId());
     }
 
     @Test

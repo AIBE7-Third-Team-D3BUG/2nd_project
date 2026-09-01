@@ -7,6 +7,7 @@ import org.example._nd_project.member.MemberWithdrawalService;
 import org.example._nd_project.member.TimeTransactionHistoryView;
 import org.example._nd_project.security.MemberPrincipal;
 import org.example._nd_project.task.TaskService;
+import org.example._nd_project.submission.ReviewRepository;
 import org.example._nd_project.volunteer.VolunteerService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,6 +36,7 @@ class ProfileControllerTest {
     @MockitoBean MemberWithdrawalService memberWithdrawalService;
     @MockitoBean TaskService taskService;
     @MockitoBean VolunteerService volunteerService;
+    @MockitoBean ReviewRepository reviewRepository;
 
     @Test
     void myProfileTemplateRenders() throws Exception {
