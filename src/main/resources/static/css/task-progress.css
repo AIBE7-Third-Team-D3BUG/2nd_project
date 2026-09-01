@@ -202,6 +202,8 @@ main { padding: 34px 42px 60px; }
 }
 .notice.success { color: var(--success); border-color: #c9ecd9; background: var(--success-soft); }
 .notice.warning { color: var(--warning); border-color: #f0d7a9; background: var(--warning-soft); }
+.notice.danger { color: var(--danger); border-color: #f1c0bc; background: var(--danger-soft); }
+.deadline-status { font-weight: 800; }
 .content-grid { display: grid; grid-template-columns: minmax(0, 1fr) 390px; gap: 20px; align-items: start; }
 .left-column,
 .right-column { display: grid; gap: 16px; min-width: 0; }
@@ -357,6 +359,19 @@ main { padding: 34px 42px 60px; }
 .settlement-row span { color: #697282; font-size: 12px; }
 .settlement-row strong { color: var(--brand); font-size: 20px; }
 .approve-form { margin: 0; }
+.deadline-evaluation {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    margin: 0 0 18px;
+    padding: 12px 13px;
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    background: #f7f8fa;
+}
+.deadline-evaluation span { color: var(--muted); font-size: 11px; line-height: 1.5; }
+.deadline-evaluation strong { flex: 0 0 auto; color: var(--ink); font-size: 12px; }
 .review-rating { margin: 0 0 18px; padding: 0; border: 0; }
 .review-rating legend { margin-bottom: 9px; color: #353b46; font-size: 12px; font-weight: 800; }
 .review-rating legend span { color: var(--danger); }

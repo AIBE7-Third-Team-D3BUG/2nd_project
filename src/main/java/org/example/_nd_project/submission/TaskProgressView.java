@@ -25,7 +25,8 @@ public record TaskProgressView(
         SubmissionView submission,
         ReviewView review,
         boolean hasReferenceLink,
-        boolean hasReferenceAttachment
+        boolean hasReferenceAttachment,
+        DeadlineView deadlineStatus
 ) {
     public TaskProgressView(
             Long taskId, String title, String requesterName, String workerName, String deadlineLabel,
@@ -36,7 +37,22 @@ public record TaskProgressView(
     ) {
         this(taskId, title, requesterName, workerName, deadlineLabel, requestedMinutes, statusLabel,
                 requester, worker, canStart, waitingForWorkerStart, canSubmit, canReview, completed,
-                cancelled, disputed, currentStep, completionCriteria, activities, submission, review, false, false);
+                cancelled, disputed, currentStep, completionCriteria, activities, submission, review,
+                false, false, DeadlineView.hidden());
+    }
+
+    public TaskProgressView(
+            Long taskId, String title, String requesterName, String workerName, String deadlineLabel,
+            int requestedMinutes, String statusLabel, boolean requester, boolean worker, boolean canStart,
+            boolean waitingForWorkerStart, boolean canSubmit, boolean canReview, boolean completed,
+            boolean cancelled, boolean disputed, int currentStep, List<String> completionCriteria,
+            List<ActivityView> activities, SubmissionView submission, ReviewView review,
+            boolean hasReferenceLink, boolean hasReferenceAttachment
+    ) {
+        this(taskId, title, requesterName, workerName, deadlineLabel, requestedMinutes, statusLabel,
+                requester, worker, canStart, waitingForWorkerStart, canSubmit, canReview, completed,
+                cancelled, disputed, currentStep, completionCriteria, activities, submission, review,
+                hasReferenceLink, hasReferenceAttachment, DeadlineView.hidden());
     }
 
     public boolean canCancel() {
@@ -99,6 +115,19 @@ public record TaskProgressView(
 
         public String ratingLabel() {
             return "★".repeat(rating) + "☆".repeat(5 - rating) + " " + rating + ".0";
+        }
+    }
+
+    public record DeadlineView(
+            String label,
+            boolean visible,
+            boolean deadlineMet,
+            boolean overdue,
+            boolean severe,
+            String tone
+    ) {
+        public static DeadlineView hidden() {
+            return new DeadlineView("", false, false, false, false, "warning");
         }
     }
 }
