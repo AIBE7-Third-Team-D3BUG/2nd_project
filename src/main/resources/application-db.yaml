@@ -51,6 +51,9 @@ spring:
             token-uri: https://kauth.kakao.com/oauth/token
             user-info-uri: https://kapi.kakao.com/v2/user/me
             user-name-attribute: id
+          google:
+            # 기존 Google 세션이 있어도 로그인할 계정을 매번 선택하도록 한다.
+            authorization-uri: https://accounts.google.com/o/oauth2/v2/auth?prompt=select_account
 
   flyway:
     enabled: true
