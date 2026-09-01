@@ -9,7 +9,9 @@ services:
     healthCheckPath: /login
     envVars:
       - key: SPRING_PROFILES_ACTIVE
-        value: web,db
+        value: web,db,ai-google
+      - key: GEMINI_API_KEY
+        sync: false
       - key: SESSION_COOKIE_SECURE
         value: "true"
       - key: JPA_DDL_AUTO
