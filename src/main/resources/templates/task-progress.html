@@ -58,6 +58,12 @@
         <div class="notice success" th:if="${param.revisionRequested}">작업자에게 수정 요청을 전달했습니다.</div>
         <div class="notice warning" th:if="${param.reported}">문제 신고가 접수되었습니다. 정산은 검토가 끝날 때까지 보류됩니다.</div>
         <div class="notice warning" th:if="${uploadError}" th:text="${uploadError}">첨부 파일 용량이 너무 커서 전송할 수 없습니다.</div>
+        <div class="notice deadline-status"
+             th:if="${progress.deadlineStatus().visible()}"
+             th:classappend="${progress.deadlineStatus().tone()}"
+             th:text="${progress.deadlineStatus().label()}">
+            결과 제출이 지연되고 있습니다.
+        </div>
 
         <div class="content-grid">
             <section class="left-column">
@@ -211,10 +217,12 @@
                                       placeholder="작업 결과와 소통에 대한 후기를 남겨주세요."></textarea>
                             <small th:errors="*{content}"></small>
                         </div>
-                        <label class="deadline-check">
-                            <input type="checkbox" th:field="*{deadlineMet}">
-                            <span>약속한 마감 시간을 지켰어요</span>
-                        </label>
+                        <div class="deadline-evaluation" th:if="${progress.deadlineStatus().visible()}">
+                            <span>마감 준수 여부는 최초 제출 시각으로 자동 반영됩니다.</span>
+                            <strong th:text="${progress.deadlineStatus().deadlineMet() ? '마감 준수' : '마감 미준수'}">
+                                마감 준수
+                            </strong>
+                        </div>
                         <button class="primary-action" type="submit">후기 작성 및 완료 승인</button>
                     </form>
 
@@ -251,7 +259,7 @@
                     <p><strong th:text="${progress.requestedPum()}">4</strong>품이 작업자에게 전달되었습니다.</p>
                     <div class="completed-review" th:if="${progress.review() != null}">
                         <strong th:text="${progress.review().ratingLabel()}">★★★★★ 5.0</strong>
-                        <span th:text="${progress.review().deadlineMet() == true ? '마감 준수' : '마감 준수 미선택'}">마감 준수</span>
+                        <span th:text="${progress.review().deadlineMet() == true ? '마감 준수' : '마감 미준수'}">마감 준수</span>
                         <p class="expandable-content" th:if="${progress.review().hasContent()}"
                            th:text="${progress.review().content()}">작성한 후기</p>
                         <button class="content-toggle" th:if="${progress.review().hasContent()}"
