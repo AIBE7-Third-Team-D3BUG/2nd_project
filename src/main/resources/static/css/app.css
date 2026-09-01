@@ -363,6 +363,11 @@ select.control { cursor: pointer; }
 }
 .notice strong { display: block; margin-bottom: 4px; color: var(--brand); font-size: 14px; }
 .notice span { display: block; }
+.error-page { max-width: 680px; min-height: 100vh; margin: 0 auto; padding: 160px 24px 48px; text-align: center; }
+.error-page h1 { margin: 0; font-size: clamp(28px, 5vw, 42px); letter-spacing: -0.04em; }
+.error-page > p:not(.eyebrow) { max-width: 480px; margin: 16px auto 0; color: var(--muted); line-height: 1.7; }
+.error-page-actions { display: flex; justify-content: center; gap: 10px; margin-top: 30px; }
+.secondary-button { color: var(--ink); background: #fff; border: 1px solid var(--line); }
 .sr-only {
     position: absolute;
     width: 1px;

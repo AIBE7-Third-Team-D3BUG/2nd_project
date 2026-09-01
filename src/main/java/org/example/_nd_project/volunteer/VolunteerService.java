@@ -17,6 +17,9 @@ import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 public class VolunteerService {
@@ -109,8 +112,9 @@ public class VolunteerService {
             return List.of();
         }
         List<Volunteer> volunteers = volunteerRepository.findByTaskIdAndStatusNotOrderByCreatedAtAsc(taskId, VolunteerStatus.CANCELLED);
+        Map<Long, Member> members = membersById(volunteers.stream().map(Volunteer::getMemberId).toList());
         return volunteers.stream()
-                .map(this::toCardView)
+                .map(volunteer -> toCardView(volunteer, members.get(volunteer.getMemberId())))
                 .toList();
     }
 
@@ -170,9 +174,13 @@ public class VolunteerService {
             return List.of();
         }
         List<Volunteer> applications = volunteerRepository.findByMemberIdAndStatusOrderByCreatedAtDesc(memberId, VolunteerStatus.APPLIED);
+        Map<Long, Task> tasks = taskRepository.findAllById(
+                        applications.stream().map(Volunteer::getTaskId).distinct().toList()
+                ).stream()
+                .collect(Collectors.toMap(Task::getId, Function.identity()));
         List<AppliedTaskItem> result = new java.util.ArrayList<>();
         for (Volunteer v : applications) {
-            Task task = taskRepository.findById(v.getTaskId()).orElse(null);
+            Task task = tasks.get(v.getTaskId());
             if (task == null || task.getStatus() == TaskStatus.CANCELLED) {
                 continue;
             }
@@ -218,8 +226,15 @@ public class VolunteerService {
         return APPLIED_DATE_FORMAT.format(deadline.atZone(KOREA));
     }
 
-    private VolunteerCardView toCardView(Volunteer volunteer) {
-        Member member = memberRepository.findById(volunteer.getMemberId()).orElse(null);
+    private Map<Long, Member> membersById(List<Long> memberIds) {
+        if (memberIds.isEmpty()) {
+            return Map.of();
+        }
+        return memberRepository.findAllById(memberIds).stream()
+                .collect(Collectors.toMap(Member::getId, Function.identity()));
+    }
+
+    private VolunteerCardView toCardView(Volunteer volunteer, Member member) {
         String nickname = member != null ? member.getNickname() : "사용자";
         String avatarText = nickname.length() >= 2 ? nickname.substring(nickname.length() - 2) : nickname;
         int completedCount = member != null ? member.getCompletedTaskCount() : 0;

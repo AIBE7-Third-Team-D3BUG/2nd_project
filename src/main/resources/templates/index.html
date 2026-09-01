@@ -96,6 +96,11 @@
                 <span>관리자 메뉴는 관리자 계정만 이용할 수 있습니다.</span>
             </div>
 
+            <div class="notice error-notice" role="alert" th:if="${globalError}">
+                <strong>요청을 처리하지 못했습니다.</strong>
+                <span th:text="${globalError}">요청한 페이지 또는 자료를 찾을 수 없습니다.</span>
+            </div>
+
             <div class="task-list">
                 <article th:each="task : ${availableTasks}"
                          class="task-card"
