@@ -14,10 +14,19 @@ public class SubmissionDeadlinePolicy {
     static final long MAX_SEVERE_DELAY_MINUTES = 120;
 
     public SubmissionDeadlineAssessment assess(Task task, Submission submission, Instant now) {
-        Instant deadline = task.getDeadlineAt();
         Instant submittedAt = firstSubmissionAt(task, submission);
-        boolean submitted = submittedAt != null;
-        Instant referenceTime = submitted ? submittedAt : now;
+        return assessAt(task, submittedAt == null ? now : submittedAt, submittedAt != null);
+    }
+
+    public SubmissionDeadlineAssessment assessAtSubmission(Task task, Instant submittedAt) {
+        if (submittedAt == null) {
+            throw new IllegalArgumentException("제출 판정 시각이 필요합니다.");
+        }
+        return assessAt(task, submittedAt, true);
+    }
+
+    private SubmissionDeadlineAssessment assessAt(Task task, Instant referenceTime, boolean submitted) {
+        Instant deadline = task.getDeadlineAt();
         long severeThresholdMinutes = severeThresholdMinutes(task.getRequestedMinutes());
 
         if (!referenceTime.isAfter(deadline)) {

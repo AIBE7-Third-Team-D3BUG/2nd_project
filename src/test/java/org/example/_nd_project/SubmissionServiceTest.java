@@ -1,6 +1,8 @@
 package org.example._nd_project;
 
 import org.example._nd_project.submission.Submission;
+import org.example._nd_project.submission.SubmissionDeadlineAssessment;
+import org.example._nd_project.submission.SubmissionDeadlinePolicy;
 import org.example._nd_project.submission.SubmissionForm;
 import org.example._nd_project.submission.SubmissionRepository;
 import org.example._nd_project.submission.SubmissionService;
@@ -21,6 +23,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -37,7 +40,12 @@ class SubmissionServiceTest {
 
     @BeforeEach
     void setUp() {
-        submissionService = new SubmissionService(taskRepository, submissionRepository, taskStorageService);
+        submissionService = new SubmissionService(
+                taskRepository,
+                submissionRepository,
+                taskStorageService,
+                new SubmissionDeadlinePolicy()
+        );
     }
 
     @Test
@@ -46,6 +54,7 @@ class SubmissionServiceTest {
         when(task.isWorker(8L)).thenReturn(true);
         when(task.getStatus()).thenReturn(TaskStatus.IN_PROGRESS);
         when(task.getRequestedMinutes()).thenReturn(120);
+        when(task.getDeadlineAt()).thenReturn(Instant.now().plusSeconds(3_600));
         when(taskRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(task));
         when(submissionRepository.findByTaskId(10L)).thenReturn(Optional.empty());
         SubmissionForm form = new SubmissionForm();
@@ -60,8 +69,59 @@ class SubmissionServiceTest {
                 captor.getValue().getResultDescription());
         assertEquals("https://example.com/result", captor.getValue().getResultFileUrl());
         assertEquals(120, captor.getValue().getActualMinutes());
+        assertEquals(SubmissionDeadlineAssessment.Status.ON_TIME,
+                captor.getValue().getDeadlineAssessment().status());
         verify(task).submitResult(org.mockito.ArgumentMatchers.eq(8L), any(Instant.class));
         verify(taskRepository).flush();
+    }
+
+    @Test
+    void lateFirstSubmissionStoresImmutableDelayAssessment() {
+        Task task = org.mockito.Mockito.mock(Task.class);
+        when(task.isWorker(8L)).thenReturn(true);
+        when(task.getStatus()).thenReturn(TaskStatus.IN_PROGRESS);
+        when(task.getRequestedMinutes()).thenReturn(120);
+        when(task.getDeadlineAt()).thenReturn(Instant.now().minusSeconds(20 * 60));
+        when(taskRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(task));
+        when(submissionRepository.findByTaskId(10L)).thenReturn(Optional.empty());
+        SubmissionForm form = new SubmissionForm();
+        form.setResultDescription("지연 제출 결과");
+
+        submissionService.submit(10L, 8L, form, null);
+
+        ArgumentCaptor<Submission> captor = ArgumentCaptor.forClass(Submission.class);
+        verify(submissionRepository).saveAndFlush(captor.capture());
+        SubmissionDeadlineAssessment assessment = captor.getValue().getDeadlineAssessment();
+        assertEquals(SubmissionDeadlineAssessment.Status.LATE, assessment.status());
+        assertTrue(assessment.lateMinutes() >= 20 && assessment.lateMinutes() <= 21);
+        assertEquals(60, assessment.severeThresholdMinutes());
+    }
+
+    @Test
+    void resubmissionKeepsFirstSubmissionAssessment() {
+        Task task = org.mockito.Mockito.mock(Task.class);
+        when(task.isWorker(8L)).thenReturn(true);
+        when(task.getStatus()).thenReturn(TaskStatus.IN_PROGRESS);
+        when(task.getRequestedMinutes()).thenReturn(120);
+        when(taskRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(task));
+        SubmissionDeadlineAssessment firstAssessment = new SubmissionDeadlineAssessment(
+                SubmissionDeadlineAssessment.Status.LATE,
+                true,
+                25,
+                60
+        );
+        Submission existing = Submission.create(
+                10L, 8L, "최초 결과", null, 120, firstAssessment, Instant.now().minusSeconds(300)
+        );
+        when(submissionRepository.findByTaskId(10L)).thenReturn(Optional.of(existing));
+        SubmissionForm form = new SubmissionForm();
+        form.setResultDescription("수정 결과");
+
+        submissionService.submit(10L, 8L, form, null);
+
+        assertEquals("수정 결과", existing.getResultDescription());
+        assertEquals(SubmissionDeadlineAssessment.Status.LATE, existing.getDeadlineAssessment().status());
+        assertEquals(25, existing.getDeadlineAssessment().lateMinutes());
     }
 
     @Test

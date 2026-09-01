@@ -14,6 +14,8 @@ import org.example._nd_project.member.MemberRole;
 import org.example._nd_project.submission.DisputeRepository;
 import org.example._nd_project.submission.ReviewRepository;
 import org.example._nd_project.submission.SubmissionRepository;
+import org.example._nd_project.submission.Submission;
+import org.example._nd_project.submission.SubmissionDeadlineAssessment;
 import org.example._nd_project.task.Task;
 import org.example._nd_project.task.TaskCategory;
 import org.example._nd_project.task.TaskRepository;
@@ -100,6 +102,48 @@ class AdminMonitoringServiceTest {
     }
 
     @Test
+    void adminCanInspectPersistedLateSubmissionAssessment() {
+        Instant submittedAt = Instant.now();
+        Task task = Task.create(2L, "지연 제출 확인", "설명", TaskCategory.DEVELOPMENT, new String[0],
+                120, submittedAt.minusSeconds(20 * 60), "완료 기준", null);
+        ReflectionTestUtils.setField(task, "id", 10L);
+        ReflectionTestUtils.setField(task, "workerId", 3L);
+        ReflectionTestUtils.setField(task, "status", org.example._nd_project.task.TaskStatus.SUBMITTED);
+        ReflectionTestUtils.setField(task, "submittedAt", submittedAt);
+        ReflectionTestUtils.setField(task, "createdAt", submittedAt.minusSeconds(3_600));
+        Submission submission = Submission.create(
+                10L,
+                3L,
+                "지연 제출 결과",
+                null,
+                120,
+                new SubmissionDeadlineAssessment(
+                        SubmissionDeadlineAssessment.Status.LATE,
+                        true,
+                        20,
+                        60
+                ),
+                submittedAt
+        );
+        ReflectionTestUtils.setField(submission, "createdAt", submittedAt);
+        ReflectionTestUtils.setField(submission, "updatedAt", submittedAt);
+        Member requester = member(2L, MemberRole.USER);
+        Member worker = member(3L, MemberRole.USER);
+        when(taskRepository.findById(10L)).thenReturn(Optional.of(task));
+        when(memberRepository.findAllById(List.of(2L, 3L))).thenReturn(List.of(requester, worker));
+        when(submissionRepository.findByTaskId(10L)).thenReturn(Optional.of(submission));
+        when(reviewRepository.findByTaskId(10L)).thenReturn(Optional.empty());
+        when(disputeRepository.findByTaskId(10L)).thenReturn(Optional.empty());
+        when(chatRoomRepository.findByTaskId(10L)).thenReturn(Optional.empty());
+
+        AdminTaskProgressView result = service.getTaskProgress(10L);
+
+        assertEquals(20, result.submission().lateMinutes());
+        assertEquals("결과 제출이 20분 지연되고 있습니다.", result.submission().deadlineLabel());
+        assertEquals(false, result.submission().deadlineMet());
+    }
+
+    @Test
     void chatSearchReturnsOnlyRoomsForMatchedMemberIds() {
         when(memberRepository.findIdsByNicknameOrEmail("target@example.com")).thenReturn(List.of(2L));
         when(chatRoomRepository.findByParticipantIds(
@@ -122,4 +166,3 @@ class AdminMonitoringServiceTest {
         return member;
     }
 }
-

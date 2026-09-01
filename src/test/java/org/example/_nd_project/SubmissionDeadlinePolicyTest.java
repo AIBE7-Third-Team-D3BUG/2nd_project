@@ -45,6 +45,18 @@ class SubmissionDeadlinePolicyTest {
     }
 
     @Test
+    void submissionAssessmentTreatsProvidedTimeAsCompletedSubmission() {
+        SubmissionDeadlineAssessment assessment = policy.assessAtSubmission(
+                task(30),
+                deadline
+        );
+
+        assertEquals(SubmissionDeadlineAssessment.Status.ON_TIME, assessment.status());
+        assertTrue(assessment.submitted());
+        assertTrue(assessment.deadlineMet());
+    }
+
+    @Test
     void submissionAtEndOfGracePeriodMeetsDeadline() {
         SubmissionDeadlineAssessment assessment = policy.assess(
                 task(30),
@@ -128,7 +140,20 @@ class SubmissionDeadlinePolicyTest {
     }
 
     private Submission submissionAt(Instant submittedAt) {
-        Submission submission = Submission.create(10L, 8L, "결과", null, 30);
+        Submission submission = Submission.create(
+                10L,
+                8L,
+                "결과",
+                null,
+                30,
+                new SubmissionDeadlineAssessment(
+                        SubmissionDeadlineAssessment.Status.ON_TIME,
+                        true,
+                        0,
+                        30
+                ),
+                submittedAt
+        );
         ReflectionTestUtils.setField(submission, "createdAt", submittedAt);
         return submission;
     }

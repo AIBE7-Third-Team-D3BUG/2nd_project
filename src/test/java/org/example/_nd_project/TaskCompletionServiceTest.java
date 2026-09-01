@@ -7,7 +7,7 @@ import org.example._nd_project.submission.Review;
 import org.example._nd_project.submission.ReviewForm;
 import org.example._nd_project.submission.ReviewRepository;
 import org.example._nd_project.submission.Submission;
-import org.example._nd_project.submission.SubmissionDeadlinePolicy;
+import org.example._nd_project.submission.SubmissionDeadlineAssessment;
 import org.example._nd_project.submission.SubmissionRepository;
 import org.example._nd_project.submission.TaskCompletionService;
 import org.example._nd_project.task.Task;
@@ -54,8 +54,7 @@ class TaskCompletionServiceTest {
                 disputeRepository,
                 reviewRepository,
                 timeLedgerService,
-                memberRepository,
-                new SubmissionDeadlinePolicy()
+                memberRepository
         );
     }
 
@@ -68,11 +67,10 @@ class TaskCompletionServiceTest {
         when(task.getWorkerId()).thenReturn(8L);
         when(task.getId()).thenReturn(10L);
         when(task.getRequestedMinutes()).thenReturn(120);
-        Instant deadline = Instant.parse("2026-09-01T03:00:00Z");
-        when(task.getDeadlineAt()).thenReturn(deadline);
         when(taskRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(task));
         Submission submission = mock(Submission.class);
-        when(submission.getCreatedAt()).thenReturn(deadline.minusSeconds(60));
+        when(submission.getDeadlineAssessment()).thenReturn(new SubmissionDeadlineAssessment(
+                SubmissionDeadlineAssessment.Status.ON_TIME, true, 0, 60));
         when(submissionRepository.findByTaskId(10L)).thenReturn(Optional.of(submission));
 
         ReviewForm form = new ReviewForm();
@@ -103,11 +101,10 @@ class TaskCompletionServiceTest {
         when(task.getWorkerId()).thenReturn(8L);
         when(task.getId()).thenReturn(10L);
         when(task.getRequestedMinutes()).thenReturn(120);
-        Instant deadline = Instant.parse("2026-09-01T03:00:00Z");
-        when(task.getDeadlineAt()).thenReturn(deadline);
         when(taskRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(task));
         Submission submission = mock(Submission.class);
-        when(submission.getCreatedAt()).thenReturn(deadline.plusSeconds(10 * 60 + 1));
+        when(submission.getDeadlineAssessment()).thenReturn(new SubmissionDeadlineAssessment(
+                SubmissionDeadlineAssessment.Status.LATE, true, 11, 60));
         when(submissionRepository.findByTaskId(10L)).thenReturn(Optional.of(submission));
 
         ReviewForm form = new ReviewForm();

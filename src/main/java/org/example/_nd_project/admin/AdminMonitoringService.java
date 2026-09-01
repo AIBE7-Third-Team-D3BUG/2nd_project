@@ -211,9 +211,15 @@ public class AdminMonitoringService {
     }
 
     private AdminTaskProgressView.SubmissionRow submissionRow(Submission value) {
-        return value == null ? null : new AdminTaskProgressView.SubmissionRow(
+        if (value == null) {
+            return null;
+        }
+        var deadlineAssessment = value.getDeadlineAssessment();
+        return new AdminTaskProgressView.SubmissionRow(
                 value.getResultDescription(), value.getActualMinutes() / 30, value.getRequesterNote(),
-                StringUtils.hasText(value.getResultFileUrl()), format(value.getCreatedAt()), format(value.getUpdatedAt()));
+                StringUtils.hasText(value.getResultFileUrl()), format(value.getCreatedAt()), format(value.getUpdatedAt()),
+                deadlineAssessment.label(), deadlineAssessment.lateMinutes(), deadlineAssessment.deadlineMet(),
+                deadlineAssessment.severe(), format(value.getDeadlineAssessedAt()));
     }
 
     private AdminTaskProgressView.ReviewRow reviewRow(Review value) {
@@ -290,4 +296,3 @@ public class AdminMonitoringService {
         return instant == null ? "-" : DATE_TIME.format(instant.atZone(KOREA));
     }
 }
-

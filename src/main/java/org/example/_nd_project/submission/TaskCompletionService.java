@@ -21,22 +21,19 @@ public class TaskCompletionService {
     private final ReviewRepository reviewRepository;
     private final TimeLedgerService timeLedgerService;
     private final MemberRepository memberRepository;
-    private final SubmissionDeadlinePolicy submissionDeadlinePolicy;
 
     public TaskCompletionService(TaskRepository taskRepository,
                                  SubmissionRepository submissionRepository,
                                  DisputeRepository disputeRepository,
                                  ReviewRepository reviewRepository,
                                  TimeLedgerService timeLedgerService,
-                                 MemberRepository memberRepository,
-                                 SubmissionDeadlinePolicy submissionDeadlinePolicy) {
+                                 MemberRepository memberRepository) {
         this.taskRepository = taskRepository;
         this.submissionRepository = submissionRepository;
         this.disputeRepository = disputeRepository;
         this.reviewRepository = reviewRepository;
         this.timeLedgerService = timeLedgerService;
         this.memberRepository = memberRepository;
-        this.submissionDeadlinePolicy = submissionDeadlinePolicy;
     }
 
     @Transactional
@@ -54,7 +51,7 @@ public class TaskCompletionService {
         if (reviewRepository.existsByTaskId(taskId)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 후기가 작성된 업무입니다.");
         }
-        boolean deadlineMet = submissionDeadlinePolicy.assess(task, submission, Instant.now()).deadlineMet();
+        boolean deadlineMet = submission.getDeadlineAssessment().deadlineMet();
         try {
             timeLedgerService.settleTask(
                     task.getRequesterId(),

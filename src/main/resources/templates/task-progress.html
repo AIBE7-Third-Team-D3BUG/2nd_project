@@ -60,9 +60,9 @@
         <div class="notice warning" th:if="${uploadError}" th:text="${uploadError}">첨부 파일 용량이 너무 커서 전송할 수 없습니다.</div>
         <div class="notice deadline-status"
              th:if="${progress.deadlineStatus().visible()}"
-             th:classappend="${progress.deadlineStatus().tone()}"
-             th:text="${progress.deadlineStatus().label()}">
-            결과 제출이 지연되고 있습니다.
+             th:classappend="${progress.deadlineStatus().tone()}">
+            <strong th:text="${progress.deadlineStatus().label()}">결과 제출이 지연되고 있습니다.</strong>
+            <small th:if="${progress.submission() != null}">최초 제출 시각을 기준으로 저장된 판정입니다.</small>
         </div>
 
         <div class="content-grid">
