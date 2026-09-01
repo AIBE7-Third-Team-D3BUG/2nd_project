@@ -349,3 +349,293 @@
   [예방]
   * 개발 중에는 IntelliJ 실행과 Gradle `bootRun` 중 하나만 사용함.
   * 동시에 여러 인스턴스가 필요하면 실행 환경별로 `SERVER_PORT`를 다르게 지정함.
+
+
+ # 트러블슈팅 기록 08/28
+
+이 문서는 프로젝트 진행 중 실제로 발견하고 수정한 오류를 정리한 기록이다. 각 항목은 현상, 원인, 조치, 검증 결과, 재발 방지책 순서로 작성한다.
+
+## 1. 분쟁 승인 후 사용자 재화가 반환되지 않는 문제
+
+### 현상
+
+관리자가 분쟁을 승인하면 관리자 화면에서는 분쟁이 해결된 것으로 사라졌지만, 사용자 화면에는 계속 `분쟁 중` 또는 `검토 중`으로 표시됐다. 업무 등록 시 예약한 재화도 반환되지 않았다.
+
+### 원인
+
+기존 `AdminService.resolveDispute()`가 분쟁 레코드만 `RESOLVED`로 변경하고 다음 처리를 수행하지 않았다.
+
+- 업무 상태 변경
+- 요청자 예약 재화 반환
+- 재화 거래 원장 기록
+- 관리자 처리 감사 로그의 복구 내용 기록
+
+그 결과 분쟁 상태와 업무 상태가 서로 달라지는 데이터 불일치가 발생했다.
+
+### 조치
+
+- 분쟁과 업무를 비관적 잠금으로 조회
+- 승인 시 `TimeLedgerService.refundTaskReservation()` 호출
+- 업무를 `CANCELLED`로 변경
+- 기각 시 업무를 `SUBMITTED`로 복귀
+- 재화 환불 원장과 관리자 감사 로그를 같은 트랜잭션에서 저장
+- 과거에 이미 `RESOLVED`로 저장됐지만 업무가 `DISPUTED`인 레코드를 보정하는 복구 로직 추가
+
+관련 파일:
+
+- `src/main/java/org/example/_nd_project/admin/AdminService.java`
+- `src/main/java/org/example/_nd_project/task/Task.java`
+- `src/main/java/org/example/_nd_project/submission/DisputeRepository.java`
+
+### 검증 결과
+
+Supabase의 기존 업무 #22를 확인한 결과 다음과 같이 복구됐다.
+
+- 업무 상태: `DISPUTED` → `CANCELLED`
+- 예약 재화: 30분 반환
+- 사용자 #4 잔액: 사용 가능 120분, 예약 0분
+- `TASK_REFUND` 거래 원장 생성
+- `DISPUTE_RECONCILED` 관리자 감사 로그 생성
+
+### 재발 방지
+
+분쟁, 업무 상태, 재화 반환을 별개의 처리로 두지 않고 하나의 트랜잭션으로 처리한다. 또한 상태 전이를 도메인 메서드로 제한하고, 승인·기각·복구 시나리오를 단위 테스트로 유지한다.
+
+## 2. Flyway 마이그레이션 체크섬 불일치로 애플리케이션이 실행되지 않는 문제
+
+### 현상
+
+Spring Boot 실행 시 다음 오류가 발생했다.
+
+```text
+Migration checksum mismatch for migration version 14
+Applied to database : 1425679367
+Resolved locally    : 1217308031
+```
+
+### 원인
+
+운영 DB에 이미 적용된 V14 SQL과 로컬 V14 파일의 내용이 달랐다. 실제 SQL 동작은 같았지만 `END IF` 들여쓰기 차이로 Flyway 체크섬이 달라졌다.
+
+### 조치
+
+- DB의 실제 함수 정의를 읽기 전용으로 확인
+- DB에 적용된 함수와 로컬 SQL의 의미가 같은지 대조
+- 로컬 V14 파일을 적용 당시 형식으로 복원
+- Flyway `validate`와 애플리케이션 기동으로 검증
+
+관련 파일:
+
+- `src/main/resources/db/migration/V14__allow_member_data_purge.sql`
+- `src/main/resources/application-db.yaml`
+
+### 검증 결과
+
+- Flyway 마이그레이션 검증 성공
+- Spring Boot 정상 기동
+- Supabase PostgreSQL 연결 성공
+- 전체 테스트 통과
+- 기존 DB 데이터 및 Flyway 이력은 변경하지 않음
+
+### 추가 확인 사항
+
+운영 DB에는 V15가 적용돼 있지만 현재 로컬 저장소에는 V14까지만 존재한다. 애플리케이션 실행을 막지는 않지만, 배포 전 V15 마이그레이션 파일을 저장소와 동기화해야 한다.
+
+### 재발 방지
+
+- 이미 적용된 Flyway 파일은 수정하지 않는다.
+- 스키마 변경은 새 버전의 마이그레이션으로 추가한다.
+- 병합 전 `flyway validate`를 실행한다.
+- 운영 DB와 저장소의 마이그레이션 버전을 정기적으로 대조한다.
+
+## 3. 브랜치 병합 중 ProfileController 충돌 표식이 포함된 문제
+
+### 현상
+
+브랜치 병합 후 `ProfileController.java`에 다음과 같은 충돌 표식과 중복 코드가 포함될 위험이 있었다.
+
+```text
+<<<<<<< min
+=======
+>>>>>>> main
+```
+
+프로필 조회, 회원 탈퇴, 프로필 이미지 매핑이 중복으로 존재해 그대로 저장하면 컴파일 또는 매핑 오류가 발생할 수 있었다.
+
+### 원인
+
+`min`과 `main`에서 같은 프로필 기능을 동시에 수정했고, Git이 생성자·매핑 메서드·회원 탈퇴 메서드를 자동으로 통합하지 못했다.
+
+### 조치
+
+- 두 브랜치의 기능 차이를 비교
+- 중복 import와 중복 매핑 제거
+- 프로필 조회, 수정, 탈퇴, 이미지 조회를 하나의 컨트롤러 구현으로 통합
+- 충돌 표식 검색
+- 컴파일과 전체 테스트 실행
+
+관련 파일:
+
+- `src/main/java/org/example/_nd_project/Controller/ProfileController.java`
+- `src/test/java/org/example/_nd_project/ProfileControllerTest.java`
+
+### 검증 결과
+
+- 충돌 표식 없음
+- 프로필 관련 매핑 중복 제거
+- 전체 테스트 통과
+- `/` 화면과 애플리케이션 기동 확인
+
+### 재발 방지
+
+병합 시 충돌 여부만 확인하지 않고 다음 검사를 함께 수행한다.
+
+- 충돌 표식 검색
+- 컴파일
+- 전체 테스트
+- 주요 URL 매핑 확인
+- 템플릿 렌더링 확인
+
+## 4. DB 프로필에서 AI ChatModel 빈이 없어 실행되지 않는 문제
+
+### 현상
+
+`db` 프로필로 테스트를 실행할 때 AI API 키가 없는 환경에서 다음 오류가 발생했다.
+
+```text
+No qualifying bean of type 'org.springframework.ai.chat.model.ChatModel'
+```
+
+또는 OpenAI 오디오 자동 설정이 인증 정보 부족으로 실패했다.
+
+### 원인
+
+DB 통합 테스트는 AI 기능을 호출하지 않는데도 Spring AI 자동 설정이 활성화되어 `ChatModel`과 OpenAI 클라이언트를 생성하려고 했다.
+
+### 조치
+
+- DB 전용 환경에서는 사용하지 않는 AI 자동 설정을 제외
+- AI 기능은 `ai-google` 프로필을 활성화했을 때만 실제 모델과 연결
+- AI가 없는 환경에서는 업무 초안 기능이 안내 메시지를 반환하도록 처리
+- 추천 기능은 AI 설명이 실패해도 서버 계산 점수로 동작하도록 fallback 적용
+
+관련 파일:
+
+- `src/main/resources/application-db.yaml`
+- `src/main/resources/application-ai-google.yaml`
+- `src/main/java/org/example/_nd_project/task/ai/TaskAiConfiguration.java`
+- `src/main/java/org/example/_nd_project/volunteer/ai/WorkerRecommendationAiConfiguration.java`
+
+### 검증 결과
+
+- 일반 테스트 통과
+- Supabase 통합 테스트 통과
+- `web,db,ai-google` 프로필 애플리케이션 기동 성공
+
+### 재발 방지
+
+외부 API 의존 기능은 프로필별로 분리하고, 외부 서비스가 일시적으로 unavailable해도 핵심 업무 기능이 중단되지 않도록 fallback을 제공한다.
+
+## 5. 채팅 첨부파일 전송 후 메시지 입력 영역이 사라지는 문제
+
+### 현상
+
+채팅방에서 이미지를 첨부해 전송하면 첨부 미리보기 영역이 커지면서 메시지 입력창과 전송 버튼이 화면에서 사라지는 문제가 있었다.
+
+### 원인
+
+첨부파일 미리보기와 메시지 작성 영역의 높이·스크롤 책임이 분리되어 있지 않아, 큰 이미지가 채팅 작성 영역을 밀어내거나 가렸다.
+
+### 조치
+
+- 채팅 메시지 목록과 입력 영역을 별도 영역으로 분리
+- 첨부 이미지의 최대 표시 크기 제한
+- 메시지 입력 영역을 고정된 하단 영역으로 유지
+- 메시지 목록에만 스크롤이 생기도록 레이아웃 조정
+
+관련 파일:
+
+- `src/main/resources/templates/chat.html`
+- `src/main/resources/static/css/app.css`
+- `src/main/java/org/example/_nd_project/chat/ChatService.java`
+
+### 재발 방지
+
+텍스트 메시지, 이미지 첨부, 긴 파일명, 큰 이미지가 포함된 상태를 각각 확인하고 브라우저 화면에서 입력창·전송 버튼이 계속 노출되는지 점검한다.
+
+## 6. 채팅 메시지가 상대방이 읽지 않았는데 읽음으로 표시되는 문제
+
+### 현상
+
+메시지를 전송하자마자 발신자 화면에 상대방이 읽은 것으로 표시됐다. 고정된 문구인지 실제 DB 읽음 상태인지 확인이 필요했다.
+
+### 원인
+
+발신자 메시지를 보낸 직후 화면에서 읽음 상태를 고정값처럼 표시하고 있었다. 실제 상대방이 채팅방을 열었는지와 연결되지 않았다.
+
+### 조치
+
+- `chat_messages.read_at`을 실제 읽음 시각으로 사용
+- 상대방이 채팅방을 열었을 때 서버의 `markRead()`를 호출
+- 발신자 화면은 `readAt`이 존재할 때만 읽음으로 표시
+- 읽지 않은 메시지 수를 DB 기준으로 계산
+
+관련 파일:
+
+- `src/main/java/org/example/_nd_project/chat/ChatMessageRepository.java`
+- `src/main/java/org/example/_nd_project/chat/ChatService.java`
+- `src/main/resources/templates/chat.html`
+
+### 재발 방지
+
+읽음 상태는 화면의 기본 문구가 아니라 DB의 `read_at` 값으로만 표시한다. 발신·수신 계정별 읽음 상태 테스트를 별도로 유지한다.
+
+## 7. 신규 계정의 프로필·채팅 접근 시 Whitelabel 오류가 발생하는 문제
+
+### 현상
+
+신규 계정으로 프로필 또는 채팅 화면에 접근하면 `Whitelabel Error Page`가 나타나는 경우가 있었다.
+
+### 원인
+
+- 인증된 사용자 전용 URL과 신규 회원의 초기 데이터 상태가 충분히 고려되지 않음
+- 프로필·채팅 조회 결과가 없을 때 예외 또는 잘못된 템플릿 경로로 연결됨
+- 병합 과정에서 컨트롤러 매핑이 중복·누락될 가능성이 있었음
+
+### 조치
+
+- 신규 회원도 프로필을 조회할 수 있도록 기본 프로필 데이터를 처리
+- 채팅방이 없을 때 빈 목록 화면을 표시
+- 사용자에게 접근 권한·존재하지 않는 리소스·일시적 오류를 구분해 안내
+- 프로필 Controller 병합 충돌과 중복 매핑 정리
+
+### 재발 방지
+
+신규 회원 기준으로 다음 흐름을 별도 확인한다.
+
+1. 가입 직후 로그인
+2. 내 프로필 접속
+3. 다른 사용자 프로필 접속
+4. 채팅 메뉴 접속
+5. 채팅방이 없는 상태에서 빈 화면 확인
+
+## 공통 대응 원칙
+
+- 현상과 원인을 분리해 기록한다.
+- 상태 변경이 여러 테이블에 걸치면 하나의 트랜잭션으로 처리한다.
+- 외부 서비스 장애가 핵심 기능 장애로 전파되지 않도록 fallback을 둔다.
+- DB 스키마 변경은 Flyway 버전 파일로만 관리한다.
+- 오류 수정 후 단위 테스트, 통합 테스트, 애플리케이션 기동을 함께 확인한다.
+- 병합 후 충돌 표식과 중복 URL 매핑을 검색한다.
+- 사용자에게는 내부 예외 메시지 대신 다음 행동을 알 수 있는 안내를 제공한다.
+
+## 보완이 필요한 운영 항목
+
+현재 코드와 테스트에서 확인된 문제 해결 기록은 남아 있지만, 다음은 추가로 정리할 필요가 있다.
+
+- 회고·트러블슈팅 이슈 템플릿 표준화
+- Flyway V15 파일 저장소 동기화
+- 채팅 첨부파일·추천 기능의 브라우저 E2E 테스트
+- 실제 사용자 수를 기준으로 한 부하 테스트
+- 장애 발생 시 로그·알림·롤백 절차 문서화
+ 
