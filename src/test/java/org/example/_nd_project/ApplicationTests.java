@@ -6,6 +6,7 @@ import org.example._nd_project.chat.ChatRoomRepository;
 import org.example._nd_project.member.MemberRepository;
 import org.example._nd_project.member.TimeAccountRepository;
 import org.example._nd_project.member.TimeTransactionRepository;
+import org.example._nd_project.notification.MemberNotificationRepository;
 import org.example._nd_project.submission.DisputeRepository;
 import org.example._nd_project.submission.ReviewRepository;
 import org.example._nd_project.submission.SubmissionRepository;
@@ -31,6 +32,7 @@ class ApplicationTests {
     @MockitoBean ChatRoomRepository chatRoomRepository;
     @MockitoBean ChatMessageRepository chatMessageRepository;
     @MockitoBean AdminAuditLogRepository adminAuditLogRepository;
+    @MockitoBean MemberNotificationRepository memberNotificationRepository;
 
     @Test
     void contextLoads() {

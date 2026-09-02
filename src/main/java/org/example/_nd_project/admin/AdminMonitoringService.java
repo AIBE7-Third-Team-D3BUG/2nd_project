@@ -8,6 +8,7 @@ import org.example._nd_project.member.Member;
 import org.example._nd_project.member.MemberRepository;
 import org.example._nd_project.member.MemberRole;
 import org.example._nd_project.member.MemberStatus;
+import org.example._nd_project.notification.DelayPenaltyNotificationService;
 import org.example._nd_project.submission.Dispute;
 import org.example._nd_project.submission.DisputeRepository;
 import org.example._nd_project.submission.Review;
@@ -54,12 +55,14 @@ public class AdminMonitoringService {
     private final DisputeRepository disputeRepository;
     private final AdminAuditLogRepository auditLogRepository;
     private final TaskStorageService taskStorageService;
+    private final DelayPenaltyNotificationService delayPenaltyNotificationService;
 
     public AdminMonitoringService(MemberRepository memberRepository, TaskRepository taskRepository,
                                   ChatRoomRepository chatRoomRepository, ChatMessageRepository chatMessageRepository,
                                   SubmissionRepository submissionRepository, ReviewRepository reviewRepository,
                                   DisputeRepository disputeRepository, AdminAuditLogRepository auditLogRepository,
-                                  TaskStorageService taskStorageService) {
+                                  TaskStorageService taskStorageService,
+                                  DelayPenaltyNotificationService delayPenaltyNotificationService) {
         this.memberRepository = memberRepository;
         this.taskRepository = taskRepository;
         this.chatRoomRepository = chatRoomRepository;
@@ -69,6 +72,7 @@ public class AdminMonitoringService {
         this.disputeRepository = disputeRepository;
         this.auditLogRepository = auditLogRepository;
         this.taskStorageService = taskStorageService;
+        this.delayPenaltyNotificationService = delayPenaltyNotificationService;
     }
 
     @Transactional(readOnly = true)
@@ -206,6 +210,8 @@ public class AdminMonitoringService {
         String normalizedReason = requireReason(reason);
         Submission submission = requireSubmissionForUpdate(taskId);
         submission.exemptDelayPenalty(adminId, normalizedReason, Instant.now());
+        submissionRepository.flush();
+        delayPenaltyNotificationService.notifyPenaltyExempted(submission, normalizedReason);
         audit(adminId, "SUBMISSION_DELAY_PENALTY_EXEMPTED", "SUBMISSION", submission.getId(),
                 "업무 #" + taskId + " · 작업자 #" + submission.getWorkerId() + " · " + normalizedReason);
     }
@@ -217,7 +223,10 @@ public class AdminMonitoringService {
         Submission submission = requireSubmissionForUpdate(taskId);
         String previousReason = submission.getPenaltyExemptionReason();
         Long previousAdminId = submission.getPenaltyExemptedBy();
+        Instant restoredAt = Instant.now();
         submission.restoreDelayPenalty();
+        submissionRepository.flush();
+        delayPenaltyNotificationService.notifyPenaltyRestored(submission, normalizedReason, restoredAt);
         audit(adminId, "SUBMISSION_DELAY_PENALTY_RESTORED", "SUBMISSION", submission.getId(),
                 "업무 #" + taskId + " · 작업자 #" + submission.getWorkerId()
                         + " · 면제 취소 사유: " + normalizedReason
