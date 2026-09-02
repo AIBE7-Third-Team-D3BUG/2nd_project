@@ -2,6 +2,7 @@ package org.example._nd_project;
 
 import org.example._nd_project.Controller.HomeController;
 import org.example._nd_project.member.MemberProfileView;
+import org.example._nd_project.submission.WorkerDelayMetrics;
 import org.example._nd_project.member.MemberService;
 import org.example._nd_project.security.MemberPrincipal;
 import org.example._nd_project.task.TaskCreateForm;
@@ -104,7 +105,8 @@ class HomeControllerTest {
                 0.0,
                 availableMinutes,
                 reservedMinutes,
-                Instant.now()
+                Instant.now(),
+                WorkerDelayMetrics.empty(90)
         );
     }
 }

@@ -8,6 +8,7 @@ import org.example._nd_project.member.TimeTransactionHistoryView;
 import org.example._nd_project.security.MemberPrincipal;
 import org.example._nd_project.task.TaskService;
 import org.example._nd_project.submission.ReviewRepository;
+import org.example._nd_project.submission.WorkerDelayMetrics;
 import org.example._nd_project.volunteer.VolunteerService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,7 +46,8 @@ class ProfileControllerTest {
         );
         when(memberService.getProfile(3L)).thenReturn(new MemberProfileView(
                 3L, "member@example.com", "회원", "도움을 드립니다.", false,
-                null, List.of("Spring"), true, 0, 0, 0.0, 120, 0, Instant.now()
+                null, List.of("Spring"), true, 0, 0, 0.0, 120, 0, Instant.now(),
+                new WorkerDelayMetrics(90, 3, 2, 1, 0, 1)
         ));
         when(memberService.getTimeTransactionHistory(3L, 10)).thenReturn(List.of(
                 new TimeTransactionHistoryView("가입 축하 품 지급", "신규 회원 체험 시간 지급", 4,
@@ -63,6 +65,8 @@ class ProfileControllerTest {
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("가입 축하 품 지급")))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("이용 내역 더보기")))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("data-time-history-more")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("결과 제출 신뢰도")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("1점")))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("회원 프로필 | D3BUG")));
 
         when(memberService.getTimeTransactionHistory(3L, 20)).thenReturn(List.of(

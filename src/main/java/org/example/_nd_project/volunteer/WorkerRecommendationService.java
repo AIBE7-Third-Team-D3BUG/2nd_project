@@ -5,6 +5,8 @@ import org.example._nd_project.member.Member;
 import org.example._nd_project.member.MemberRepository;
 import org.example._nd_project.member.MemberStatus;
 import org.example._nd_project.submission.ReviewRepository;
+import org.example._nd_project.submission.WorkerDelayMetrics;
+import org.example._nd_project.submission.WorkerDelayMetricsService;
 import org.example._nd_project.task.Task;
 import org.example._nd_project.task.TaskRepository;
 import org.example._nd_project.task.TaskStatus;
@@ -48,6 +50,7 @@ public class WorkerRecommendationService {
     private final ReviewRepository reviewRepository;
     private final ChatMessageRepository chatMessageRepository;
     private final WorkerRecommendationAiClient aiClient;
+    private final WorkerDelayMetricsService workerDelayMetricsService;
 
     public WorkerRecommendationService(
             VolunteerRepository volunteerRepository,
@@ -55,7 +58,8 @@ public class WorkerRecommendationService {
             MemberRepository memberRepository,
             ReviewRepository reviewRepository,
             ChatMessageRepository chatMessageRepository,
-            WorkerRecommendationAiClient aiClient
+            WorkerRecommendationAiClient aiClient,
+            WorkerDelayMetricsService workerDelayMetricsService
     ) {
         this.volunteerRepository = volunteerRepository;
         this.taskRepository = taskRepository;
@@ -63,6 +67,7 @@ public class WorkerRecommendationService {
         this.reviewRepository = reviewRepository;
         this.chatMessageRepository = chatMessageRepository;
         this.aiClient = aiClient;
+        this.workerDelayMetricsService = workerDelayMetricsService;
     }
 
     public List<WorkerRecommendationView> recommend(Long taskId, Long requesterId) {
@@ -102,6 +107,7 @@ public class WorkerRecommendationService {
         Map<Long, ChatMessageRepository.WorkerResponseMetric> responseMetrics = chatMessageRepository
                 .findWorkerResponseMetrics(eligibleIds).stream()
                 .collect(Collectors.toMap(ChatMessageRepository.WorkerResponseMetric::getMemberId, Function.identity()));
+        Map<Long, WorkerDelayMetrics> recentDelayMetrics = workerDelayMetricsService.getForMembers(eligibleIds);
 
         List<Candidate> ranked = applications.stream()
                 .filter(application -> members.containsKey(application.getMemberId()))
@@ -112,7 +118,11 @@ public class WorkerRecommendationService {
                         categoryCounts.getOrDefault(application.getMemberId(), 0L),
                         activeCounts.getOrDefault(application.getMemberId(), 0L),
                         deadlineMetrics.get(application.getMemberId()),
-                        responseMetrics.get(application.getMemberId())
+                        responseMetrics.get(application.getMemberId()),
+                        recentDelayMetrics.getOrDefault(
+                                application.getMemberId(),
+                                WorkerDelayMetrics.empty(WorkerDelayMetricsService.WINDOW_DAYS)
+                        )
                 ))
                 .sorted(Comparator.comparingInt(Candidate::score).reversed()
                         .thenComparing(Candidate::appliedAt, Comparator.nullsLast(Comparator.naturalOrder()))
@@ -136,7 +146,8 @@ public class WorkerRecommendationService {
             long categoryCompletedCount,
             long activeTaskCount,
             ReviewRepository.DeadlineMetric deadlineMetric,
-            ChatMessageRepository.WorkerResponseMetric responseMetric
+            ChatMessageRepository.WorkerResponseMetric responseMetric,
+            WorkerDelayMetrics recentDelayMetrics
     ) {
         SkillMatch skillMatch = skillMatch(task.getRequiredSkillTags(), member.getSkillTags());
         int reviewCount = member.getReviewCount();
@@ -163,6 +174,7 @@ public class WorkerRecommendationService {
                 "C" + volunteer.getId(), volunteer, member, clampScore(score), skillMatch,
                 Math.toIntExact(categoryCompletedCount), rating, reviewCount,
                 (int) Math.round(deadlineRate * 100), Math.toIntExact(deadlineSamples),
+                recentDelayMetrics,
                 responseSeconds, Math.toIntExact(responseSamples), Math.toIntExact(activeTaskCount)
         );
     }
@@ -206,6 +218,11 @@ public class WorkerRecommendationService {
                     .append(", 리뷰표본=").append(candidate.reviewCount())
                     .append(", 기한준수율=").append(candidate.deadlinePercent()).append('%')
                     .append(", 기한표본=").append(candidate.deadlineSamples())
+                    .append(", 최근90일지연점수=").append(candidate.recentDelayMetrics().delayPoints())
+                    .append(", 최근90일준수율=").append(candidate.recentDelayMetrics().deadlineMetPercent()).append('%')
+                    .append(", 최근90일표본=").append(candidate.recentDelayMetrics().submissionCount())
+                    .append(", 최근90일일반지연=").append(candidate.recentDelayMetrics().lateCount())
+                    .append(", 최근90일심각지연=").append(candidate.recentDelayMetrics().severeCount())
                     .append(", 평균응답초=").append(candidate.responseSamples() == 0 ? "표본없음" : Math.round(candidate.responseSeconds()))
                     .append(", 응답표본=").append(candidate.responseSamples())
                     .append(", 현재작업수=").append(candidate.activeTaskCount())
@@ -220,7 +237,9 @@ public class WorkerRecommendationService {
         boolean aiEnhanced = aiItem != null;
         String summary = aiEnhanced ? aiItem.summary() : fallbackSummary(candidate);
         List<String> strengths = aiEnhanced ? aiItem.strengths() : fallbackStrengths(candidate);
-        List<String> cautions = aiEnhanced ? aiItem.cautions() : fallbackCautions(candidate);
+        List<String> cautions = aiEnhanced
+                ? mergeVerifiedDelayCautions(candidate, aiItem.cautions())
+                : fallbackCautions(candidate);
         return new WorkerRecommendationView(
                 rank,
                 candidate.volunteer().getId(),
@@ -234,6 +253,12 @@ public class WorkerRecommendationService {
                 candidate.reviewCount(),
                 candidate.deadlinePercent(),
                 candidate.deadlineSamples(),
+                candidate.recentDelayMetrics().delayPoints(),
+                candidate.recentDelayMetrics().deadlineMetPercent(),
+                Math.toIntExact(candidate.recentDelayMetrics().submissionCount()),
+                candidate.recentDelayMetrics().lateCount(),
+                candidate.recentDelayMetrics().severeCount(),
+                candidate.recentDelayMetrics().statusLabel(),
                 responseLabel(candidate.responseSeconds(), candidate.responseSamples()),
                 candidate.responseSamples(),
                 candidate.activeTaskCount(),
@@ -272,8 +297,30 @@ public class WorkerRecommendationService {
         List<String> cautions = new ArrayList<>();
         if (candidate.reviewCount() == 0) cautions.add("리뷰 표본 없음");
         if (candidate.responseSamples() == 0) cautions.add("응답 속도 표본 없음");
+        cautions.addAll(verifiedDelayCautions(candidate));
         if (candidate.activeTaskCount() > 0) cautions.add("현재 작업 " + candidate.activeTaskCount() + "건 진행 중");
         return List.copyOf(cautions.subList(0, Math.min(3, cautions.size())));
+    }
+
+    private List<String> mergeVerifiedDelayCautions(Candidate candidate, List<String> aiCautions) {
+        return java.util.stream.Stream.concat(
+                        verifiedDelayCautions(candidate).stream(),
+                        aiCautions == null ? java.util.stream.Stream.empty() : aiCautions.stream()
+                )
+                .filter(value -> value != null && !value.isBlank())
+                .distinct()
+                .limit(3)
+                .toList();
+    }
+
+    private List<String> verifiedDelayCautions(Candidate candidate) {
+        if (candidate.recentDelayMetrics().severeCount() > 0) {
+            return List.of("최근 90일 심각 지연 " + candidate.recentDelayMetrics().severeCount() + "건");
+        }
+        if (candidate.recentDelayMetrics().lateCount() > 0) {
+            return List.of("최근 90일 일반 지연 " + candidate.recentDelayMetrics().lateCount() + "건");
+        }
+        return List.of();
     }
 
     private AiWorkerRecommendationItem normalizeAiItem(AiWorkerRecommendationItem item) {
@@ -405,6 +452,7 @@ public class WorkerRecommendationService {
             int reviewCount,
             int deadlinePercent,
             int deadlineSamples,
+            WorkerDelayMetrics recentDelayMetrics,
             double responseSeconds,
             int responseSamples,
             int activeTaskCount

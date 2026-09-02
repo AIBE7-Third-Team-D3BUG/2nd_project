@@ -3,6 +3,8 @@
 
 
 /* BaroHae UI refresh */
+.pill.watch { color:#866000; background:#fff5cc; }
+.pill.warning { color:#b54708; background:#fff0e5; }
 .brand img { display:block; width:150px; height:auto; max-height:44px; object-fit:contain; object-position:left center; }
 .app-shell { box-shadow: 0 18px 50px rgba(27, 45, 78, .08); }
 .app-header { height: 78px; background: rgba(255,255,255,.98); }

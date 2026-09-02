@@ -591,6 +591,7 @@
                                 <div><dt>평점</dt><dd th:text="${recommendation.reviewCount() == 0 ? '표본 없음' : #numbers.formatDecimal(recommendation.rating(), 1, 1) + ' / 5'}">4.8 / 5</dd></div>
                                 <div><dt>평균 응답</dt><dd th:text="${recommendation.averageResponseLabel()}">12분</dd></div>
                                 <div><dt>기한 준수</dt><dd th:text="${recommendation.deadlineSampleCount() == 0 ? '표본 없음' : recommendation.deadlineMetPercent() + '%'}">90%</dd></div>
+                                <div><dt>최근 90일 지연</dt><dd th:text="${recommendation.recentDeadlineSampleCount() == 0 ? '표본 없음' : recommendation.recentDelayPoints() + '점 · 준수 ' + recommendation.recentDeadlineMetPercent() + '%'}">0점 · 준수 100%</dd></div>
                                 <div><dt>현재 작업</dt><dd th:text="|${recommendation.activeTaskCount()}건|">0건</dd></div>
                             </dl>
                             <ul class="ai-strength-list" th:if="${not #lists.isEmpty(recommendation.strengths())}">
