@@ -340,46 +340,68 @@ public class AdminService {
         }
 
         Instant resolvedAt = Instant.now();
+        String resolutionSummary;
         if (accepted) {
-            timeLedgerService.refundTaskReservation(
-                    task.getRequesterId(), task.getId(), "관리자 분쟁 승인에 따른 예약 재화 반환: " + normalizedNote
+            resolutionSummary = resolveAcceptedDispute(
+                    dispute, task, resolvedAt, normalizedNote, "관리자 분쟁 승인에 따른"
             );
+        } else {
+            task.resolveDispute(false, resolvedAt);
+            resolutionSummary = "업무 #" + task.getId() + " 결과 확인 상태 복귀 · " + normalizedNote;
         }
-        task.resolveDispute(accepted, resolvedAt);
         dispute.resolve(accepted, normalizedNote, resolvedAt);
         audit(
                 adminId,
                 accepted ? "DISPUTE_RESOLVED" : "DISPUTE_REJECTED",
                 "DISPUTE",
                 disputeId,
-                accepted
-                        ? "업무 #" + task.getId() + " 취소 및 예약 재화 반환 · " + normalizedNote
-                        : "업무 #" + task.getId() + " 결과 확인 상태 복귀 · " + normalizedNote
+                resolutionSummary
         );
     }
 
     private void reconcileLegacyDisputeResolution(Long adminId, Dispute dispute, Task task, String note) {
         boolean accepted = "RESOLVED".equals(dispute.getStatus());
         Instant resolvedAt = dispute.getResolvedAt() == null ? Instant.now() : dispute.getResolvedAt();
+        String resolutionSummary;
         if (accepted) {
-            timeLedgerService.refundTaskReservation(
-                    task.getRequesterId(), task.getId(), "기존 분쟁 처리 불일치 복구에 따른 예약 재화 반환: " + note
+            resolutionSummary = resolveAcceptedDispute(
+                    dispute, task, resolvedAt, note, "기존 분쟁 처리 불일치 복구에 따른"
             );
+        } else {
+            task.resolveDispute(false, resolvedAt);
+            resolutionSummary = "업무 #" + task.getId() + " 결과 확인 상태 복구 · " + note;
         }
-        task.resolveDispute(accepted, resolvedAt);
         audit(
                 adminId,
                 "DISPUTE_RECONCILED",
                 "DISPUTE",
                 dispute.getId(),
-                accepted
-                        ? "업무 #" + task.getId() + " 취소 및 예약 재화 반환 복구 · " + note
-                        : "업무 #" + task.getId() + " 결과 확인 상태 복구 · " + note
+                resolutionSummary
         );
     }
 
-    private AdminDashboardView.MemberRow memberRow(Member member, TimeAccount account,
-                                                    WorkerDelayMetrics delayMetrics) {
+    private String resolveAcceptedDispute(Dispute dispute, Task task, Instant resolvedAt, String note,
+                                          String reasonPrefix) {
+        if (task.isWorker(dispute.getOpenedByMemberId())) {
+            Long workerId = task.getWorkerId();
+            if (workerId == null) {
+                throw new IllegalStateException("분쟁을 신청한 작업자를 찾을 수 없습니다.");
+            }
+            timeLedgerService.settleTask(
+                    task.getRequesterId(), workerId, task.getId(), task.getRequestedMinutes()
+            );
+            task.resolveWorkerDispute(resolvedAt);
+            return "업무 #" + task.getId() + " 작업자 정산 완료 · " + note;
+        }
+
+        timeLedgerService.refundTaskReservation(
+                task.getRequesterId(), task.getId(), reasonPrefix + " 예약 재화 반환: " + note
+        );
+        task.resolveDispute(true, resolvedAt);
+        return "업무 #" + task.getId() + " 취소 및 예약 재화 반환 · " + note;
+    }
+
+    private AdminDashboardView.MemberRow memberRow(Member member, TimeAccount account) {
         return new AdminDashboardView.MemberRow(
                 member.getId(), member.getEmail(), member.getNickname(), member.getRole().name(), member.getStatus().name(),
                 account == null ? 0 : account.getAvailableMinutes() / 30,
@@ -403,8 +425,16 @@ public class AdminService {
         Task task = tasks.get(dispute.getTaskId());
         return new AdminDashboardView.DisputeRow(
                 dispute.getId(), dispute.getTaskId(), task == null ? "업무 #" + dispute.getTaskId() : task.getTitle(),
-                memberName(members, dispute.getOpenedByMemberId()), dispute.getDescription(), dispute.getStatus(),
+                memberName(members, dispute.getOpenedByMemberId()), disputeReporterRole(dispute, task),
+                dispute.getDescription(), dispute.getStatus(),
                 format(dispute.getCreatedAt()));
+    }
+
+    private String disputeReporterRole(Dispute dispute, Task task) {
+        if (task == null) {
+            return "신고자";
+        }
+        return task.isWorker(dispute.getOpenedByMemberId()) ? "작업자" : "의뢰인";
     }
 
     private AdminDashboardView.TransactionRow transactionRow(TimeTransaction transaction, Map<Long, Member> members) {

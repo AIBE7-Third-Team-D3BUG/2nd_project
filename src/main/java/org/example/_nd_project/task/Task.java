@@ -204,6 +204,12 @@ public class Task {
         this.status = TaskStatus.SUBMITTED;
     }
 
+    public void resolveWorkerDispute(Instant resolvedAt) {
+        requireStatus(TaskStatus.DISPUTED, "분쟁 중인 업무만 관리자 처리할 수 있습니다.");
+        this.status = TaskStatus.COMPLETED;
+        this.completedAt = resolvedAt;
+    }
+
     public boolean isRequester(Long memberId) {
         return Objects.equals(requesterId, memberId);
     }

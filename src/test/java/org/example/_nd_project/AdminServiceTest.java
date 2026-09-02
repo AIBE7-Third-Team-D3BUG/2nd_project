@@ -43,6 +43,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -259,6 +260,29 @@ class AdminServiceTest {
         assertEquals(TaskStatus.CANCELLED, task.getStatus());
         verify(timeLedgerService).refundTaskReservation(
                 2L, 10L, "관리자 분쟁 승인에 따른 예약 재화 반환: 요청자에게 예약 품을 반환합니다."
+        );
+        verify(auditLogRepository).save(org.mockito.ArgumentMatchers.any(AdminAuditLog.class));
+    }
+
+    @Test
+    void acceptedWorkerDisputeSettlesReservedTimeToWorker() {
+        Member admin = member(1L, "admin@example.com", MemberRole.ADMIN);
+        Task task = disputedTask();
+        Dispute dispute = Dispute.open(10L, 3L, "결과를 제출했지만 의뢰인과 연락이 닿지 않습니다.");
+        ReflectionTestUtils.setField(dispute, "id", 30L);
+        when(memberRepository.findById(1L)).thenReturn(Optional.of(admin));
+        when(disputeRepository.findByIdForUpdate(30L)).thenReturn(Optional.of(dispute));
+        when(taskRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(task));
+
+        adminService.resolveDispute(1L, 30L, true, "작업 결과와 채팅 기록을 확인했습니다.");
+
+        assertEquals("RESOLVED", dispute.getStatus());
+        assertEquals(TaskStatus.COMPLETED, task.getStatus());
+        verify(timeLedgerService).settleTask(2L, 3L, 10L, 60);
+        verify(timeLedgerService, never()).refundTaskReservation(
+                org.mockito.ArgumentMatchers.anyLong(),
+                org.mockito.ArgumentMatchers.anyLong(),
+                org.mockito.ArgumentMatchers.anyString()
         );
         verify(auditLogRepository).save(org.mockito.ArgumentMatchers.any(AdminAuditLog.class));
     }
