@@ -231,8 +231,17 @@
                         </form>
                     </details>
 
+                </article>
+
+                <article class="panel approval-panel" th:if="${progress.canOpenDispute()}">
+                    <p class="panel-kicker" th:text="${progress.worker() ? 'WORKER ACTION' : 'REQUESTER ACTION'}">WORKER ACTION</p>
+                    <h2>문제가 있나요?</h2>
+                    <p class="panel-description"
+                       th:text="${progress.worker() ? '결과를 제출했지만 의뢰인과 연락이 닿지 않거나 정산에 문제가 있다면 신고할 수 있습니다.' : '제출된 결과에 문제가 있다면 신고할 수 있습니다.'}">
+                        결과 제출 또는 정산 과정에서 문제가 있다면 신고할 수 있습니다.
+                    </p>
                     <details class="action-details danger-details" th:open="${openAction == 'dispute'}">
-                        <summary>문제가 있나요? 문제 신고</summary>
+                        <summary>문제 신고 접수</summary>
                         <form th:action="@{/tasks/{id}/disputes(id=${progress.taskId()})}"
                               th:object="${disputeForm}" method="post">
                             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">

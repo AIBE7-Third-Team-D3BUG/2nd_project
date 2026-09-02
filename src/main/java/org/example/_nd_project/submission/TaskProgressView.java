@@ -43,6 +43,10 @@ public record TaskProgressView(
         return requester && (currentStep == 2 || currentStep == 3) && !cancelled;
     }
 
+    public boolean canOpenDispute() {
+        return (requester || worker) && currentStep == 4 && !completed && !cancelled && !disputed;
+    }
+
     public int requestedPum() {
         return requestedMinutes / 30;
     }
