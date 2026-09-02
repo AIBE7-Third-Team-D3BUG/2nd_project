@@ -89,7 +89,16 @@
                 <div><span>일반 지연</span><strong th:text="|${profile.delayMetrics().lateCount()}건|">0건</strong></div>
                 <div><span>심각 지연</span><strong th:text="|${profile.delayMetrics().severeCount()}건|">0건</strong></div>
             </div>
-            <p class="delay-metrics-guide">유예 시간 내 제출은 0점, 일반 지연은 1점, 심각 지연은 2점으로 계산합니다. 현재는 정보 제공용이며 자동 제재에는 사용하지 않습니다.</p>
+            <p class="delay-metrics-guide" th:text="|유예 시간 내 제출은 0점, 일반 지연은 1점, 심각 지연은 2점으로 계산합니다. 최근 90일 ${T(org.example._nd_project.volunteer.WorkerApplicationPolicyService).RESTRICTION_THRESHOLD}점부터 신규 업무 지원이 제한됩니다.|">최근 90일 5점부터 신규 업무 지원이 제한됩니다.</p>
+            <div class="delay-policy-notice restricted" th:if="${profile.applicationEligibility().restricted()}">
+                <strong>신규 업무 지원 제한 중</strong>
+                <span th:text="|최근 90일 지연 ${profile.delayMetrics().delayPoints()}점 · 예상 해제 ${profile.applicationEligibility().recoveryAtLabel()}|">5점 · 예상 해제</span>
+                <small>기존 진행 업무와 결과 제출은 계속할 수 있습니다.</small>
+            </div>
+            <div class="delay-policy-notice warning" th:if="${profile.applicationEligibility().warning()}">
+                <strong>신규 지원 가능 · 지연 점수 주의</strong>
+                <span th:text="|현재 ${profile.delayMetrics().delayPoints()}점이며 ${T(org.example._nd_project.volunteer.WorkerApplicationPolicyService).RESTRICTION_THRESHOLD}점부터 신규 업무 지원이 제한됩니다.|">현재 3점</span>
+            </div>
         </section>
 
         <section class="card written-reviews-card" th:if="${isOwner}" aria-labelledby="written-reviews-title">

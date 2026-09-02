@@ -27,4 +27,12 @@ class WorkerDelayMetricsRepositorySupabaseTest {
 
         assertThat(result).isEmpty();
     }
+
+    @Test
+    void recentWorkerDelayEventQueryExecutesAgainstPostgresql() {
+        var result = submissionRepository.findWorkerDelayEvents(
+                -1L, Instant.now().minus(Duration.ofDays(90)));
+
+        assertThat(result).isEmpty();
+    }
 }

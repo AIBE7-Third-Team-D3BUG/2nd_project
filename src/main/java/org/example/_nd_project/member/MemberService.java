@@ -1,7 +1,8 @@
 package org.example._nd_project.member;
 
-import org.example._nd_project.submission.WorkerDelayMetricsService;
 import org.example._nd_project.task.TaskStorageService;
+import org.example._nd_project.volunteer.WorkerApplicationEligibility;
+import org.example._nd_project.volunteer.WorkerApplicationPolicyService;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -25,20 +26,20 @@ public class MemberService {
     private final TimeTransactionRepository timeTransactionRepository;
     private final PasswordEncoder passwordEncoder;
     private final TaskStorageService taskStorageService;
-    private final WorkerDelayMetricsService workerDelayMetricsService;
+    private final WorkerApplicationPolicyService workerApplicationPolicyService;
 
     public MemberService(MemberRepository memberRepository,
                          TimeAccountRepository timeAccountRepository,
                          TimeTransactionRepository timeTransactionRepository,
                          PasswordEncoder passwordEncoder,
                          TaskStorageService taskStorageService,
-                         WorkerDelayMetricsService workerDelayMetricsService) {
+                         WorkerApplicationPolicyService workerApplicationPolicyService) {
         this.memberRepository = memberRepository;
         this.timeAccountRepository = timeAccountRepository;
         this.timeTransactionRepository = timeTransactionRepository;
         this.passwordEncoder = passwordEncoder;
         this.taskStorageService = taskStorageService;
-        this.workerDelayMetricsService = workerDelayMetricsService;
+        this.workerApplicationPolicyService = workerApplicationPolicyService;
     }
 
     @Transactional
@@ -107,13 +108,14 @@ public class MemberService {
         double rating = member.getReviewCount() == 0
                 ? 0.0
                 : (double) member.getRatingSum() / member.getReviewCount();
+        WorkerApplicationEligibility applicationEligibility = workerApplicationPolicyService.getEligibility(memberId);
         return new MemberProfileView(
                 member.getId(), member.getEmail(), member.getNickname(), member.getIntroduction(),
                 member.getProfileImageUrl() != null && !member.getProfileImageUrl().isBlank(),
                 member.getPortfolioUrl(), Arrays.asList(member.getSkillTags()), member.isNotificationEnabled(),
                 member.getCompletedTaskCount(), member.getReviewCount(), rating,
                 account.getAvailableMinutes(), account.getReservedMinutes(), member.getCreatedAt(),
-                workerDelayMetricsService.getForMember(memberId)
+                applicationEligibility.metrics(), applicationEligibility
         );
     }
 
