@@ -15,7 +15,7 @@ public record AdminDashboardView(
                             int availablePum, int reservedPum, String createdAtLabel) {}
     public record TaskRow(Long id, String title, String requesterName, String workerName,
                           String status, int requestedPum, String deadlineLabel, boolean cancellable) {}
-    public record DisputeRow(Long id, Long taskId, String taskTitle, String openedBy,
+    public record DisputeRow(Long id, Long taskId, String taskTitle, String openedBy, String openedByRole,
                              String description, String status, String createdAtLabel) {}
     public record TransactionRow(Long id, String memberName, String type, int deltaPum,
                                  int balancePum, String reason, String createdAtLabel) {}
