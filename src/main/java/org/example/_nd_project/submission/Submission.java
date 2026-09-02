@@ -51,6 +51,18 @@ public class Submission {
     @Column(name = "deadline_assessed_at", nullable = false)
     private Instant deadlineAssessedAt;
 
+    @Column(name = "penalty_exempted", nullable = false)
+    private boolean penaltyExempted;
+
+    @Column(name = "penalty_exemption_reason", length = 450)
+    private String penaltyExemptionReason;
+
+    @Column(name = "penalty_exempted_by")
+    private Long penaltyExemptedBy;
+
+    @Column(name = "penalty_exempted_at")
+    private Instant penaltyExemptedAt;
+
     @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
     private Instant createdAt;
 
@@ -110,6 +122,33 @@ public class Submission {
         );
     }
 
+    public void exemptDelayPenalty(Long adminId, String reason, Instant exemptedAt) {
+        if (deadlineStatus != SubmissionDeadlineAssessment.Status.LATE
+                && deadlineStatus != SubmissionDeadlineAssessment.Status.SEVERE) {
+            throw new IllegalStateException("지연 또는 심각 지연 제출만 패널티를 면제할 수 있습니다.");
+        }
+        if (penaltyExempted) {
+            throw new IllegalStateException("이미 패널티가 면제된 제출입니다.");
+        }
+        if (reason == null || reason.isBlank()) {
+            throw new IllegalArgumentException("패널티 면제 사유를 입력해주세요.");
+        }
+        this.penaltyExempted = true;
+        this.penaltyExemptionReason = reason.trim();
+        this.penaltyExemptedBy = Objects.requireNonNull(adminId, "면제 처리 관리자 정보가 필요합니다.");
+        this.penaltyExemptedAt = Objects.requireNonNull(exemptedAt, "면제 처리 시각이 필요합니다.");
+    }
+
+    public void restoreDelayPenalty() {
+        if (!penaltyExempted) {
+            throw new IllegalStateException("면제되지 않은 제출입니다.");
+        }
+        this.penaltyExempted = false;
+        this.penaltyExemptionReason = null;
+        this.penaltyExemptedBy = null;
+        this.penaltyExemptedAt = null;
+    }
+
     public Long getId() { return id; }
     public Long getTaskId() { return taskId; }
     public Long getWorkerId() { return workerId; }
@@ -117,6 +156,10 @@ public class Submission {
     public String getResultFileUrl() { return resultFileUrl; }
     public int getActualMinutes() { return actualMinutes; }
     public String getRequesterNote() { return requesterNote; }
+    public boolean isPenaltyExempted() { return penaltyExempted; }
+    public String getPenaltyExemptionReason() { return penaltyExemptionReason; }
+    public Long getPenaltyExemptedBy() { return penaltyExemptedBy; }
+    public Instant getPenaltyExemptedAt() { return penaltyExemptedAt; }
     public Instant getDeadlineAssessedAt() { return deadlineAssessedAt; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
