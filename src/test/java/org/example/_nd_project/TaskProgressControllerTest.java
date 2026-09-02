@@ -90,7 +90,15 @@ class TaskProgressControllerTest {
                 ),
                 null,
                 true,
-                true
+                true,
+                new TaskProgressView.DeadlineView(
+                        "마감 전에 결과를 제출했어요.",
+                        true,
+                        true,
+                        false,
+                        false,
+                        "success"
+                )
         );
         when(taskProgressService.getProgress(10L, 3L)).thenReturn(progress);
 
@@ -102,7 +110,13 @@ class TaskProgressControllerTest {
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("작업자 평점")))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("참고 링크 열기")))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("첨부파일 확인하기")))
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("후기 작성 및 완료 승인")));
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("후기 작성 및 완료 승인")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("마감 전에 결과를 제출했어요.")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString(
+                        "최초 제출 시각을 기준으로 저장된 판정입니다.")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("마감 준수 여부는 최초 제출 시각으로 자동 반영됩니다.")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(
+                        org.hamcrest.Matchers.containsString("name=\"deadlineMet\""))));
     }
 
     @Test
@@ -294,8 +308,7 @@ class TaskProgressControllerTest {
                         .with(user(requester))
                         .with(csrf())
                         .param("rating", "5")
-                        .param("content", "빠르게 해결해주셨어요.")
-                        .param("deadlineMet", "true"))
+                        .param("content", "빠르게 해결해주셨어요."))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/tasks/10/progress?approved"));
 

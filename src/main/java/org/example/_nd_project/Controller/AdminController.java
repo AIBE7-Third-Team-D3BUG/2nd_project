@@ -80,6 +80,26 @@ public class AdminController {
         return "admin/task-progress";
     }
 
+    @PostMapping("/admin/tasks/{taskId}/submission-penalty/exempt")
+    public String exemptSubmissionPenalty(@AuthenticationPrincipal MemberPrincipal principal,
+                                          @PathVariable Long taskId,
+                                          @RequestParam String reason,
+                                          RedirectAttributes redirectAttributes) {
+        return executeTo(redirectAttributes, "제출 지연 패널티를 면제했습니다.",
+                "/admin/tasks/" + taskId + "/progress",
+                () -> monitoringService.exemptSubmissionDelayPenalty(principal.memberId(), taskId, reason));
+    }
+
+    @PostMapping("/admin/tasks/{taskId}/submission-penalty/restore")
+    public String restoreSubmissionPenalty(@AuthenticationPrincipal MemberPrincipal principal,
+                                           @PathVariable Long taskId,
+                                           @RequestParam String reason,
+                                           RedirectAttributes redirectAttributes) {
+        return executeTo(redirectAttributes, "제출 지연 패널티를 다시 적용했습니다.",
+                "/admin/tasks/" + taskId + "/progress",
+                () -> monitoringService.restoreSubmissionDelayPenalty(principal.memberId(), taskId, reason));
+    }
+
     @GetMapping("/admin")
     public String dashboard(@RequestParam(defaultValue = "0") int memberPage,
                             @RequestParam(defaultValue = "0") int taskPage,
@@ -193,4 +213,3 @@ public class AdminController {
         return "redirect:" + redirectPath;
     }
 }
-

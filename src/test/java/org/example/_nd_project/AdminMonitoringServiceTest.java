@@ -11,9 +11,12 @@ import org.example._nd_project.chat.ChatRoomRepository;
 import org.example._nd_project.member.Member;
 import org.example._nd_project.member.MemberRepository;
 import org.example._nd_project.member.MemberRole;
+import org.example._nd_project.notification.DelayPenaltyNotificationService;
 import org.example._nd_project.submission.DisputeRepository;
 import org.example._nd_project.submission.ReviewRepository;
 import org.example._nd_project.submission.SubmissionRepository;
+import org.example._nd_project.submission.Submission;
+import org.example._nd_project.submission.SubmissionDeadlineAssessment;
 import org.example._nd_project.task.Task;
 import org.example._nd_project.task.TaskCategory;
 import org.example._nd_project.task.TaskRepository;
@@ -30,9 +33,12 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -46,6 +52,7 @@ class AdminMonitoringServiceTest {
     @Mock DisputeRepository disputeRepository;
     @Mock AdminAuditLogRepository auditLogRepository;
     @Mock TaskStorageService taskStorageService;
+    @Mock DelayPenaltyNotificationService delayPenaltyNotificationService;
 
     private AdminMonitoringService service;
 
@@ -53,7 +60,7 @@ class AdminMonitoringServiceTest {
     void setUp() {
         service = new AdminMonitoringService(memberRepository, taskRepository, chatRoomRepository,
                 chatMessageRepository, submissionRepository, reviewRepository, disputeRepository,
-                auditLogRepository, taskStorageService);
+                auditLogRepository, taskStorageService, delayPenaltyNotificationService);
     }
 
     @Test
@@ -100,6 +107,92 @@ class AdminMonitoringServiceTest {
     }
 
     @Test
+    void adminCanInspectPersistedLateSubmissionAssessment() {
+        Instant submittedAt = Instant.now();
+        Task task = Task.create(2L, "지연 제출 확인", "설명", TaskCategory.DEVELOPMENT, new String[0],
+                120, submittedAt.minusSeconds(20 * 60), "완료 기준", null);
+        ReflectionTestUtils.setField(task, "id", 10L);
+        ReflectionTestUtils.setField(task, "workerId", 3L);
+        ReflectionTestUtils.setField(task, "status", org.example._nd_project.task.TaskStatus.SUBMITTED);
+        ReflectionTestUtils.setField(task, "submittedAt", submittedAt);
+        ReflectionTestUtils.setField(task, "createdAt", submittedAt.minusSeconds(3_600));
+        Submission submission = Submission.create(
+                10L,
+                3L,
+                "지연 제출 결과",
+                null,
+                120,
+                new SubmissionDeadlineAssessment(
+                        SubmissionDeadlineAssessment.Status.LATE,
+                        true,
+                        20,
+                        60
+                ),
+                submittedAt
+        );
+        ReflectionTestUtils.setField(submission, "createdAt", submittedAt);
+        ReflectionTestUtils.setField(submission, "updatedAt", submittedAt);
+        Member requester = member(2L, MemberRole.USER);
+        Member worker = member(3L, MemberRole.USER);
+        when(taskRepository.findById(10L)).thenReturn(Optional.of(task));
+        when(memberRepository.findAllById(List.of(2L, 3L))).thenReturn(List.of(requester, worker));
+        when(submissionRepository.findByTaskId(10L)).thenReturn(Optional.of(submission));
+        when(reviewRepository.findByTaskId(10L)).thenReturn(Optional.empty());
+        when(disputeRepository.findByTaskId(10L)).thenReturn(Optional.empty());
+        when(chatRoomRepository.findByTaskId(10L)).thenReturn(Optional.empty());
+
+        AdminTaskProgressView result = service.getTaskProgress(10L);
+
+        assertEquals(20, result.submission().lateMinutes());
+        assertEquals("결과 제출이 20분 지연되고 있습니다.", result.submission().deadlineLabel());
+        assertEquals(false, result.submission().deadlineMet());
+        assertTrue(result.submission().penaltyEligible());
+        assertFalse(result.submission().penaltyExempted());
+    }
+
+    @Test
+    void adminCanExemptAndRestoreLateSubmissionPenaltyWithAuditTrail() {
+        Instant submittedAt = Instant.now();
+        Member admin = member(1L, MemberRole.ADMIN);
+        Submission submission = Submission.create(
+                10L,
+                3L,
+                "지연 제출 결과",
+                null,
+                120,
+                new SubmissionDeadlineAssessment(
+                        SubmissionDeadlineAssessment.Status.SEVERE,
+                        true,
+                        70,
+                        60
+                ),
+                submittedAt
+        );
+        ReflectionTestUtils.setField(submission, "id", 40L);
+        when(memberRepository.findById(1L)).thenReturn(Optional.of(admin));
+        when(submissionRepository.findByTaskIdForUpdate(10L)).thenReturn(Optional.of(submission));
+
+        service.exemptSubmissionDelayPenalty(1L, 10L, "플랫폼 장애 확인");
+
+        assertTrue(submission.isPenaltyExempted());
+        assertEquals("플랫폼 장애 확인", submission.getPenaltyExemptionReason());
+        assertEquals(1L, submission.getPenaltyExemptedBy());
+        verify(delayPenaltyNotificationService).notifyPenaltyExempted(submission, "플랫폼 장애 확인");
+
+        service.restoreSubmissionDelayPenalty(1L, 10L, "장애 시간과 제출 지연 시간이 다름");
+
+        assertFalse(submission.isPenaltyExempted());
+        assertNull(submission.getPenaltyExemptionReason());
+        assertNull(submission.getPenaltyExemptedBy());
+        assertNull(submission.getPenaltyExemptedAt());
+        verify(delayPenaltyNotificationService).notifyPenaltyRestored(
+                org.mockito.ArgumentMatchers.eq(submission),
+                org.mockito.ArgumentMatchers.eq("장애 시간과 제출 지연 시간이 다름"),
+                any(Instant.class));
+        verify(auditLogRepository, times(2)).save(any(AdminAuditLog.class));
+    }
+
+    @Test
     void chatSearchReturnsOnlyRoomsForMatchedMemberIds() {
         when(memberRepository.findIdsByNicknameOrEmail("target@example.com")).thenReturn(List.of(2L));
         when(chatRoomRepository.findByParticipantIds(
@@ -122,4 +215,3 @@ class AdminMonitoringServiceTest {
         return member;
     }
 }
-

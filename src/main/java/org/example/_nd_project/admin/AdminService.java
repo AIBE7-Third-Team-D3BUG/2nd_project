@@ -11,6 +11,8 @@ import org.example._nd_project.member.TimeTransaction;
 import org.example._nd_project.member.TimeTransactionRepository;
 import org.example._nd_project.submission.Dispute;
 import org.example._nd_project.submission.DisputeRepository;
+import org.example._nd_project.submission.WorkerDelayMetrics;
+import org.example._nd_project.submission.WorkerDelayMetricsService;
 import org.example._nd_project.task.Task;
 import org.example._nd_project.task.TaskRepository;
 import org.example._nd_project.task.TaskStatus;
@@ -52,6 +54,7 @@ public class AdminService {
     private final AdminAuditLogRepository auditLogRepository;
     private final TimeLedgerService timeLedgerService;
     private final SessionRegistry sessionRegistry;
+    private final WorkerDelayMetricsService workerDelayMetricsService;
 
     public AdminService(MemberRepository memberRepository,
                         TimeAccountRepository timeAccountRepository,
@@ -60,7 +63,8 @@ public class AdminService {
                         DisputeRepository disputeRepository,
                         AdminAuditLogRepository auditLogRepository,
                         TimeLedgerService timeLedgerService,
-                        SessionRegistry sessionRegistry) {
+                        SessionRegistry sessionRegistry,
+                        WorkerDelayMetricsService workerDelayMetricsService) {
         this.memberRepository = memberRepository;
         this.timeAccountRepository = timeAccountRepository;
         this.timeTransactionRepository = timeTransactionRepository;
@@ -69,6 +73,7 @@ public class AdminService {
         this.auditLogRepository = auditLogRepository;
         this.timeLedgerService = timeLedgerService;
         this.sessionRegistry = sessionRegistry;
+        this.workerDelayMetricsService = workerDelayMetricsService;
     }
 
     @Transactional(readOnly = true)
@@ -150,6 +155,8 @@ public class AdminService {
         Map<Long, TimeAccount> accountMap = new HashMap<>();
         timeAccountRepository.findAllById(members.stream().map(Member::getId).toList())
                 .forEach(account -> accountMap.put(account.getMemberId(), account));
+        Map<Long, WorkerDelayMetrics> delayMetricMap = workerDelayMetricsService.getForMembers(
+                members.stream().map(Member::getId).toList());
         Map<Long, Task> taskMap = new HashMap<>();
         tasks.forEach(task -> taskMap.put(task.getId(), task));
         taskRepository.findAllById(disputes.stream().map(Dispute::getTaskId).distinct().toList())
@@ -164,7 +171,14 @@ public class AdminService {
                 taskResult.getNumber(), taskResult.getTotalPages(),
                 transactionResult.getNumber(), transactionResult.getTotalPages(),
                 auditResult.getNumber(), auditResult.getTotalPages(),
-                members.stream().map(member -> memberRow(member, accountMap.get(member.getId()))).toList(),
+                members.stream().map(member -> memberRow(
+                        member,
+                        accountMap.get(member.getId()),
+                        delayMetricMap.getOrDefault(
+                                member.getId(),
+                                WorkerDelayMetrics.empty(WorkerDelayMetricsService.WINDOW_DAYS)
+                        )
+                )).toList(),
                 tasks.stream().map(task -> taskRow(task, memberMap)).toList(),
                 disputes.stream().map(dispute -> disputeRow(dispute, taskMap, memberMap)).toList(),
                 transactions.stream().map(transaction -> transactionRow(transaction, memberMap)).toList(),
@@ -392,7 +406,10 @@ public class AdminService {
                 member.getId(), member.getEmail(), member.getNickname(), member.getRole().name(), member.getStatus().name(),
                 account == null ? 0 : account.getAvailableMinutes() / 30,
                 account == null ? 0 : account.getReservedMinutes() / 30,
-                format(member.getCreatedAt()));
+                format(member.getCreatedAt()),
+                delayMetrics.delayPoints(), delayMetrics.lateCount(), delayMetrics.severeCount(),
+                delayMetrics.deadlineMetPercent(), delayMetrics.submissionCount(),
+                delayMetrics.statusLabel(), delayMetrics.statusTone());
     }
 
     private AdminDashboardView.TaskRow taskRow(Task task, Map<Long, Member> members) {

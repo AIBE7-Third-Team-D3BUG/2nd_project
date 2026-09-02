@@ -77,6 +77,7 @@
                     </div>
 
                     <div class="message-row" th:each="message : ${selectedRoom.messages()}"
+                         th:attr="data-message-id=${message.id()}"
                          th:classappend="${message.mine() ? 'mine' : 'other'}">
                         <span class="message-avatar" th:unless="${message.mine()}"
                               th:text="${#strings.substring(message.senderNickname(), 0, 1)}">상</span>
@@ -193,17 +194,37 @@
     // Text messages use the live channel; attachments continue through multipart HTTP.
     const composer = document.getElementById("composer");
     if (composer && roomId && window.StompJs) {
+        const appendLiveMessage = (message) => {
+            if (!messages || document.querySelector(`[data-message-id="${message.id}"]`)) return;
+            const row = document.createElement("div");
+            row.className = `message-row ${message.senderId === currentMemberId ? "mine" : "other"}`;
+            row.dataset.messageId = message.id;
+            const avatar = message.senderId === currentMemberId ? "" : `<span class="message-avatar">${message.senderNickname?.charAt(0) || "상"}</span>`;
+            const sender = message.senderId === currentMemberId ? "" : `<strong class="sender"></strong>`;
+            const paragraph = message.content ? `<p></p>` : "";
+            row.innerHTML = `${avatar}<div class="message-block">${sender}<div class="bubble">${paragraph}</div><div class="message-meta"><span>${message.senderId === currentMemberId ? "전송됨" : ""}</span><time></time></div></div>`;
+            const senderElement = row.querySelector(".sender");
+            const contentElement = row.querySelector(".bubble p");
+            if (senderElement) senderElement.textContent = message.senderNickname || "상대방";
+            if (contentElement) contentElement.textContent = message.content;
+            row.querySelector("time").textContent = message.sentAtLabel || "방금";
+            messages.querySelector(".empty-messages")?.remove();
+            messages.appendChild(row);
+            scrollMessagesToBottom();
+        };
         const client = new StompJs.Client({
             brokerURL: `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws`,
             reconnectDelay: 3000,
             connectHeaders: csrfToken ? { "X-CSRF-TOKEN": csrfToken } : {},
             onConnect: () => {
+                composer.classList.remove("offline");
                 client.subscribe(`/topic/chat.${roomId}`, (frame) => {
-                    const message = JSON.parse(frame.body);
-                    window.location.reload();
+                    appendLiveMessage(JSON.parse(frame.body));
                 });
             },
-            onStompError: () => composer.classList.add("offline")
+            onStompError: () => composer.classList.add("offline"),
+            onWebSocketError: () => composer.classList.add("offline"),
+            onDisconnect: () => composer.classList.add("offline")
         });
         client.activate();
         composer.addEventListener("submit", (event) => {

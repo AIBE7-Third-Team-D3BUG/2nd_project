@@ -43,12 +43,15 @@ public class TaskCompletionService {
         if (task.getWorkerId() == null) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "매칭된 작업자를 찾을 수 없습니다.");
         }
-        if (submissionRepository.findByTaskId(taskId).isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "제출된 결과를 찾을 수 없습니다.");
-        }
+        Submission submission = submissionRepository.findByTaskId(taskId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.CONFLICT,
+                        "제출된 결과를 찾을 수 없습니다."
+                ));
         if (reviewRepository.existsByTaskId(taskId)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 후기가 작성된 업무입니다.");
         }
+        boolean deadlineMet = submission.getDeadlineAssessment().deadlineMet();
         try {
             timeLedgerService.settleTask(
                     task.getRequesterId(),
@@ -65,7 +68,7 @@ public class TaskCompletionService {
                 task.getWorkerId(),
                 form.getRating(),
                 form.getContent(),
-                form.isDeadlineMet()
+                deadlineMet
         ));
         task.complete(requesterId, Instant.now());
         memberRepository.recordCompletedTaskReview(task.getWorkerId(), form.getRating());

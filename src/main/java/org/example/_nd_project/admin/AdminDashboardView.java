@@ -12,7 +12,10 @@ public record AdminDashboardView(
         List<TransactionRow> transactions, List<AuditRow> auditLogs
 ) {
     public record MemberRow(Long id, String email, String nickname, String role, String status,
-                            int availablePum, int reservedPum, String createdAtLabel) {}
+                            int availablePum, int reservedPum, String createdAtLabel,
+                            int delayPoints, long lateCount, long severeCount,
+                            int deadlineMetPercent, long deadlineSampleCount,
+                            String delayStatusLabel, String delayStatusTone) {}
     public record TaskRow(Long id, String title, String requesterName, String workerName,
                           String status, int requestedPum, String deadlineLabel, boolean cancellable) {}
     public record DisputeRow(Long id, Long taskId, String taskTitle, String openedBy, String openedByRole,
@@ -22,4 +25,3 @@ public record AdminDashboardView(
     public record AuditRow(Long id, String adminName, String action, String target,
                            String details, String createdAtLabel) {}
 }
-

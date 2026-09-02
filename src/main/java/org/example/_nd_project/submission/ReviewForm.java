@@ -15,12 +15,8 @@ public class ReviewForm {
     @Size(max = 1000, message = "후기는 1,000자 이내로 입력해주세요.")
     private String content;
 
-    private boolean deadlineMet;
-
     public Integer getRating() { return rating; }
     public void setRating(Integer rating) { this.rating = rating; }
     public String getContent() { return content; }
     public void setContent(String content) { this.content = content; }
-    public boolean isDeadlineMet() { return deadlineMet; }
-    public void setDeadlineMet(boolean deadlineMet) { this.deadlineMet = deadlineMet; }
 }

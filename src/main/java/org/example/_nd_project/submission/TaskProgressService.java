@@ -27,15 +27,18 @@ public class TaskProgressService {
     private final SubmissionRepository submissionRepository;
     private final ReviewRepository reviewRepository;
     private final MemberRepository memberRepository;
+    private final SubmissionDeadlinePolicy submissionDeadlinePolicy;
 
     public TaskProgressService(TaskRepository taskRepository,
                                SubmissionRepository submissionRepository,
                                ReviewRepository reviewRepository,
-                               MemberRepository memberRepository) {
+                               MemberRepository memberRepository,
+                               SubmissionDeadlinePolicy submissionDeadlinePolicy) {
         this.taskRepository = taskRepository;
         this.submissionRepository = submissionRepository;
         this.reviewRepository = reviewRepository;
         this.memberRepository = memberRepository;
+        this.submissionDeadlinePolicy = submissionDeadlinePolicy;
     }
 
     @Transactional(readOnly = true)
@@ -79,7 +82,36 @@ public class TaskProgressService {
                 toSubmissionView(submission, task),
                 reviewRepository.findByTaskId(taskId).map(this::toReviewView).orElse(null),
                 hasReferenceLink(task),
-                hasReferenceAttachment(task)
+                hasReferenceAttachment(task),
+                toDeadlineView(task, submission)
+        );
+    }
+
+    private TaskProgressView.DeadlineView toDeadlineView(Task task, Submission submission) {
+        if (submission != null) {
+            return toDeadlineView(submission.getDeadlineAssessment());
+        }
+        if (task.getStatus() == TaskStatus.COMPLETED
+                || task.getStatus() == TaskStatus.CANCELLED
+                || task.getStatus() == TaskStatus.DISPUTED) {
+            return TaskProgressView.DeadlineView.hidden();
+        }
+        SubmissionDeadlineAssessment assessment = submissionDeadlinePolicy.assess(
+                task,
+                submission,
+                Instant.now()
+        );
+        return toDeadlineView(assessment);
+    }
+
+    private TaskProgressView.DeadlineView toDeadlineView(SubmissionDeadlineAssessment assessment) {
+        return new TaskProgressView.DeadlineView(
+                assessment.label(),
+                assessment.visible(),
+                assessment.deadlineMet(),
+                assessment.overdue(),
+                assessment.severe(),
+                assessment.tone()
         );
     }
 

@@ -9,6 +9,7 @@ import org.example._nd_project.submission.Review;
 import org.example._nd_project.submission.ReviewForm;
 import org.example._nd_project.submission.ReviewRepository;
 import org.example._nd_project.submission.Submission;
+import org.example._nd_project.submission.SubmissionDeadlineAssessment;
 import org.example._nd_project.submission.SubmissionRepository;
 import org.example._nd_project.submission.TaskCompletionService;
 import org.example._nd_project.task.Task;
@@ -69,12 +70,14 @@ class TaskCompletionServiceTest {
         when(task.getId()).thenReturn(10L);
         when(task.getRequestedMinutes()).thenReturn(120);
         when(taskRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(task));
-        when(submissionRepository.findByTaskId(10L)).thenReturn(Optional.of(mock(Submission.class)));
+        Submission submission = mock(Submission.class);
+        when(submission.getDeadlineAssessment()).thenReturn(new SubmissionDeadlineAssessment(
+                SubmissionDeadlineAssessment.Status.ON_TIME, true, 0, 60));
+        when(submissionRepository.findByTaskId(10L)).thenReturn(Optional.of(submission));
 
         ReviewForm form = new ReviewForm();
         form.setRating(5);
         form.setContent("빠르게 해결해주셨어요.");
-        form.setDeadlineMet(true);
 
         completionService.approve(10L, 3L, form);
 
@@ -89,6 +92,31 @@ class TaskCompletionServiceTest {
         assertEquals(true, reviewCaptor.getValue().getDeadlineMet());
         verify(task).complete(org.mockito.ArgumentMatchers.eq(3L), any(Instant.class));
         verify(memberRepository).recordCompletedTaskReview(8L, 5);
+    }
+
+    @Test
+    void requesterCannotOverrideLateSubmissionAssessment() {
+        Task task = mock(Task.class);
+        when(task.isRequester(3L)).thenReturn(true);
+        when(task.getStatus()).thenReturn(TaskStatus.SUBMITTED);
+        when(task.getRequesterId()).thenReturn(3L);
+        when(task.getWorkerId()).thenReturn(8L);
+        when(task.getId()).thenReturn(10L);
+        when(task.getRequestedMinutes()).thenReturn(120);
+        when(taskRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(task));
+        Submission submission = mock(Submission.class);
+        when(submission.getDeadlineAssessment()).thenReturn(new SubmissionDeadlineAssessment(
+                SubmissionDeadlineAssessment.Status.LATE, true, 11, 60));
+        when(submissionRepository.findByTaskId(10L)).thenReturn(Optional.of(submission));
+
+        ReviewForm form = new ReviewForm();
+        form.setRating(4);
+
+        completionService.approve(10L, 3L, form);
+
+        ArgumentCaptor<Review> reviewCaptor = ArgumentCaptor.forClass(Review.class);
+        verify(reviewRepository).save(reviewCaptor.capture());
+        assertEquals(false, reviewCaptor.getValue().getDeadlineMet());
     }
 
     @Test
