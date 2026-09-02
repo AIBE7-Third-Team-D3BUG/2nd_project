@@ -1,5 +1,6 @@
 package org.example._nd_project;
 
+import org.example._nd_project.notification.DelayPenaltyNotificationService;
 import org.example._nd_project.submission.Submission;
 import org.example._nd_project.submission.SubmissionDeadlineAssessment;
 import org.example._nd_project.submission.SubmissionDeadlinePolicy;
@@ -35,6 +36,7 @@ class SubmissionServiceTest {
     @Mock TaskRepository taskRepository;
     @Mock SubmissionRepository submissionRepository;
     @Mock TaskStorageService taskStorageService;
+    @Mock DelayPenaltyNotificationService delayPenaltyNotificationService;
 
     private SubmissionService submissionService;
 
@@ -44,7 +46,8 @@ class SubmissionServiceTest {
                 taskRepository,
                 submissionRepository,
                 taskStorageService,
-                new SubmissionDeadlinePolicy()
+                new SubmissionDeadlinePolicy(),
+                delayPenaltyNotificationService
         );
     }
 
@@ -95,6 +98,7 @@ class SubmissionServiceTest {
         assertEquals(SubmissionDeadlineAssessment.Status.LATE, assessment.status());
         assertTrue(assessment.lateMinutes() >= 20 && assessment.lateMinutes() <= 21);
         assertEquals(60, assessment.severeThresholdMinutes());
+        verify(delayPenaltyNotificationService).notifyFirstDelay(captor.getValue());
     }
 
     @Test
@@ -122,6 +126,7 @@ class SubmissionServiceTest {
         assertEquals("수정 결과", existing.getResultDescription());
         assertEquals(SubmissionDeadlineAssessment.Status.LATE, existing.getDeadlineAssessment().status());
         assertEquals(25, existing.getDeadlineAssessment().lateMinutes());
+        verify(delayPenaltyNotificationService, never()).notifyFirstDelay(any());
     }
 
     @Test

@@ -6,6 +6,8 @@ import org.example._nd_project.member.MemberProfileView;
 import org.example._nd_project.member.MemberService;
 import org.example._nd_project.member.MemberWithdrawalService;
 import org.example._nd_project.member.ProfileUpdateForm;
+import org.example._nd_project.notification.MemberNotificationCenter;
+import org.example._nd_project.notification.MemberNotificationService;
 import org.example._nd_project.security.MemberPrincipal;
 import org.example._nd_project.submission.ReviewRepository;
 import org.example._nd_project.task.TaskService;
@@ -37,17 +39,20 @@ public class ProfileController {
     private final TaskService taskService;
     private final VolunteerService volunteerService;
     private final ReviewRepository reviewRepository;
+    private final MemberNotificationService notificationService;
 
     public ProfileController(MemberService memberService,
                              ObjectProvider<MemberWithdrawalService> memberWithdrawalService,
                              TaskService taskService,
                              VolunteerService volunteerService,
-                             ReviewRepository reviewRepository) {
+                             ReviewRepository reviewRepository,
+                             MemberNotificationService notificationService) {
         this.memberService = memberService;
         this.memberWithdrawalService = memberWithdrawalService;
         this.taskService = taskService;
         this.volunteerService = volunteerService;
         this.reviewRepository = reviewRepository;
+        this.notificationService = notificationService;
     }
 
     @GetMapping("/profile")
@@ -128,6 +133,19 @@ public class ProfileController {
         return "redirect:/login?withdrawn";
     }
 
+    @PostMapping("/notifications/{notificationId}/open")
+    public String openNotification(@AuthenticationPrincipal MemberPrincipal principal,
+                                   @PathVariable Long notificationId) {
+        return "redirect:" + notificationService.markReadAndGetTarget(
+                principal.memberId(), notificationId);
+    }
+
+    @PostMapping("/notifications/read-all")
+    public String readAllNotifications(@AuthenticationPrincipal MemberPrincipal principal) {
+        notificationService.markAllRead(principal.memberId());
+        return "redirect:/profile#notifications";
+    }
+
     @GetMapping("/members/{memberId}/image")
     public RedirectView profileImage(@PathVariable Long memberId) {
         return new RedirectView(memberService.createProfileImageUrl(memberId).toString());
@@ -139,6 +157,7 @@ public class ProfileController {
         model.addAttribute("isOwner", isOwner);
         model.addAttribute("receivedReviews", reviewRepository.findReceivedReviewsByRevieweeId(memberId));
         if (isOwner) {
+            model.addAttribute("notificationCenter", notificationService.getCenter(memberId));
             model.addAttribute("writtenReviews", reviewRepository.findWrittenReviewsByReviewerId(memberId));
             var timeTransactionHistory = memberService.getTimeTransactionHistory(memberId, historySize);
             long timeTransactionHistoryCount = memberService.getTimeTransactionHistoryCount(memberId);
@@ -148,6 +167,7 @@ public class ProfileController {
             model.addAttribute("nextHistorySize", historySize + HISTORY_PAGE_SIZE);
             model.addAttribute("isTimeTransactionHistoryExpanded", historySize > HISTORY_PAGE_SIZE);
         } else {
+            model.addAttribute("notificationCenter", MemberNotificationCenter.empty());
             model.addAttribute("writtenReviews", java.util.List.of());
             model.addAttribute("timeTransactionHistory", java.util.List.of());
             model.addAttribute("hasMoreTimeTransactionHistory", false);

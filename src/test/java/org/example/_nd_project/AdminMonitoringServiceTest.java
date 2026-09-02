@@ -11,6 +11,7 @@ import org.example._nd_project.chat.ChatRoomRepository;
 import org.example._nd_project.member.Member;
 import org.example._nd_project.member.MemberRepository;
 import org.example._nd_project.member.MemberRole;
+import org.example._nd_project.notification.DelayPenaltyNotificationService;
 import org.example._nd_project.submission.DisputeRepository;
 import org.example._nd_project.submission.ReviewRepository;
 import org.example._nd_project.submission.SubmissionRepository;
@@ -51,6 +52,7 @@ class AdminMonitoringServiceTest {
     @Mock DisputeRepository disputeRepository;
     @Mock AdminAuditLogRepository auditLogRepository;
     @Mock TaskStorageService taskStorageService;
+    @Mock DelayPenaltyNotificationService delayPenaltyNotificationService;
 
     private AdminMonitoringService service;
 
@@ -58,7 +60,7 @@ class AdminMonitoringServiceTest {
     void setUp() {
         service = new AdminMonitoringService(memberRepository, taskRepository, chatRoomRepository,
                 chatMessageRepository, submissionRepository, reviewRepository, disputeRepository,
-                auditLogRepository, taskStorageService);
+                auditLogRepository, taskStorageService, delayPenaltyNotificationService);
     }
 
     @Test
@@ -175,6 +177,7 @@ class AdminMonitoringServiceTest {
         assertTrue(submission.isPenaltyExempted());
         assertEquals("플랫폼 장애 확인", submission.getPenaltyExemptionReason());
         assertEquals(1L, submission.getPenaltyExemptedBy());
+        verify(delayPenaltyNotificationService).notifyPenaltyExempted(submission, "플랫폼 장애 확인");
 
         service.restoreSubmissionDelayPenalty(1L, 10L, "장애 시간과 제출 지연 시간이 다름");
 
@@ -182,6 +185,10 @@ class AdminMonitoringServiceTest {
         assertNull(submission.getPenaltyExemptionReason());
         assertNull(submission.getPenaltyExemptedBy());
         assertNull(submission.getPenaltyExemptedAt());
+        verify(delayPenaltyNotificationService).notifyPenaltyRestored(
+                org.mockito.ArgumentMatchers.eq(submission),
+                org.mockito.ArgumentMatchers.eq("장애 시간과 제출 지연 시간이 다름"),
+                any(Instant.class));
         verify(auditLogRepository, times(2)).save(any(AdminAuditLog.class));
     }
 

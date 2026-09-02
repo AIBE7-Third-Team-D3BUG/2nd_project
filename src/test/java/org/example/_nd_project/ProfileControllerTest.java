@@ -5,6 +5,9 @@ import org.example._nd_project.member.MemberProfileView;
 import org.example._nd_project.member.MemberService;
 import org.example._nd_project.member.MemberWithdrawalService;
 import org.example._nd_project.member.TimeTransactionHistoryView;
+import org.example._nd_project.notification.MemberNotificationCenter;
+import org.example._nd_project.notification.MemberNotificationService;
+import org.example._nd_project.notification.MemberNotificationView;
 import org.example._nd_project.security.MemberPrincipal;
 import org.example._nd_project.task.TaskService;
 import org.example._nd_project.submission.ReviewRepository;
@@ -25,7 +28,9 @@ import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
@@ -39,6 +44,7 @@ class ProfileControllerTest {
     @MockitoBean TaskService taskService;
     @MockitoBean VolunteerService volunteerService;
     @MockitoBean ReviewRepository reviewRepository;
+    @MockitoBean MemberNotificationService notificationService;
 
     @Test
     void myProfileTemplateRenders() throws Exception {
@@ -61,6 +67,13 @@ class ProfileControllerTest {
         when(taskService.findRegisteredTasks(3L)).thenReturn(List.of());
         when(taskService.findWorkingTasks(3L)).thenReturn(List.of());
         when(volunteerService.findAppliedTasks(3L)).thenReturn(List.of());
+        when(notificationService.getCenter(3L)).thenReturn(new MemberNotificationCenter(1, List.of(
+                new MemberNotificationView(
+                        7L, "APPLICATION_RESTRICTED", "danger",
+                        "신규 업무 지원이 제한되었습니다",
+                        "현재 최근 90일 지연 점수는 5점입니다.",
+                        "/tasks/10/progress", false, "2026.09.02 12:00")
+        )));
 
         mockMvc.perform(get("/profile").with(user(principal)))
                 .andExpect(status().isOk())
@@ -72,6 +85,9 @@ class ProfileControllerTest {
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("결과 제출 신뢰도")))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("5점")))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("신규 업무 지원 제한 중")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("POLICY NOTICE")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("읽지 않음 1건")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("신규 업무 지원이 제한되었습니다")))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("2026.10.01 10:00")))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("회원 프로필 | D3BUG")));
 
@@ -83,6 +99,25 @@ class ProfileControllerTest {
         mockMvc.perform(get("/profile").param("historySize", "20").with(user(principal)))
                 .andExpect(status().isOk())
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("이용 내역 접기")));
+    }
+
+    @Test
+    void authenticatedMemberCanOpenAndReadAllNotifications() throws Exception {
+        MemberPrincipal principal = new MemberPrincipal(
+                3L, "member@example.com", "password", "회원", "USER", true
+        );
+        when(notificationService.markReadAndGetTarget(3L, 7L)).thenReturn("/tasks/10/progress");
+
+        mockMvc.perform(post("/notifications/7/open").with(csrf()).with(user(principal)))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/tasks/10/progress"));
+
+        mockMvc.perform(post("/notifications/read-all").with(csrf()).with(user(principal)))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/profile#notifications"));
+
+        verify(notificationService).markReadAndGetTarget(3L, 7L);
+        verify(notificationService).markAllRead(3L);
     }
 
     @Test

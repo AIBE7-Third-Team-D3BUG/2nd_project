@@ -1,5 +1,6 @@
 package org.example._nd_project.submission;
 
+import org.example._nd_project.notification.DelayPenaltyNotificationService;
 import org.example._nd_project.task.Task;
 import org.example._nd_project.task.TaskRepository;
 import org.example._nd_project.task.TaskStatus;
@@ -20,15 +21,18 @@ public class SubmissionService {
     private final SubmissionRepository submissionRepository;
     private final TaskStorageService taskStorageService;
     private final SubmissionDeadlinePolicy submissionDeadlinePolicy;
+    private final DelayPenaltyNotificationService delayPenaltyNotificationService;
 
     public SubmissionService(TaskRepository taskRepository,
                              SubmissionRepository submissionRepository,
                              TaskStorageService taskStorageService,
-                             SubmissionDeadlinePolicy submissionDeadlinePolicy) {
+                             SubmissionDeadlinePolicy submissionDeadlinePolicy,
+                             DelayPenaltyNotificationService delayPenaltyNotificationService) {
         this.taskRepository = taskRepository;
         this.submissionRepository = submissionRepository;
         this.taskStorageService = taskStorageService;
         this.submissionDeadlinePolicy = submissionDeadlinePolicy;
+        this.delayPenaltyNotificationService = delayPenaltyNotificationService;
     }
 
     @Transactional
@@ -56,7 +60,8 @@ public class SubmissionService {
             String description = form.getResultDescription().trim();
             Instant submittedAt = Instant.now();
 
-            if (submission == null) {
+            boolean firstSubmission = submission == null;
+            if (firstSubmission) {
                 SubmissionDeadlineAssessment deadlineAssessment = submissionDeadlinePolicy
                         .assessAtSubmission(task, submittedAt);
                 submission = Submission.create(
@@ -74,6 +79,9 @@ public class SubmissionService {
             submissionRepository.saveAndFlush(submission);
             task.submitResult(workerId, submittedAt);
             taskRepository.flush();
+            if (firstSubmission && submission.getDeadlineAssessment().overdue()) {
+                delayPenaltyNotificationService.notifyFirstDelay(submission);
+            }
 
             if (isStoredObject(previousAsset) && !previousAsset.equals(nextAsset)) {
                 taskStorageService.deleteQuietly(previousAsset);
