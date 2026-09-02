@@ -19,13 +19,16 @@ public class SubmissionService {
     private final TaskRepository taskRepository;
     private final SubmissionRepository submissionRepository;
     private final TaskStorageService taskStorageService;
+    private final SubmissionDeadlinePolicy submissionDeadlinePolicy;
 
     public SubmissionService(TaskRepository taskRepository,
                              SubmissionRepository submissionRepository,
-                             TaskStorageService taskStorageService) {
+                             TaskStorageService taskStorageService,
+                             SubmissionDeadlinePolicy submissionDeadlinePolicy) {
         this.taskRepository = taskRepository;
         this.submissionRepository = submissionRepository;
         this.taskStorageService = taskStorageService;
+        this.submissionDeadlinePolicy = submissionDeadlinePolicy;
     }
 
     @Transactional
@@ -51,20 +54,25 @@ public class SubmissionService {
                     ? uploadedPath
                     : resultLink != null ? resultLink : previousAsset;
             String description = form.getResultDescription().trim();
+            Instant submittedAt = Instant.now();
 
             if (submission == null) {
+                SubmissionDeadlineAssessment deadlineAssessment = submissionDeadlinePolicy
+                        .assessAtSubmission(task, submittedAt);
                 submission = Submission.create(
                         taskId,
                         workerId,
                         description,
                         nextAsset,
-                        task.getRequestedMinutes()
+                        task.getRequestedMinutes(),
+                        deadlineAssessment,
+                        submittedAt
                 );
             } else {
                 submission.resubmit(description, nextAsset, task.getRequestedMinutes());
             }
             submissionRepository.saveAndFlush(submission);
-            task.submitResult(workerId, Instant.now());
+            task.submitResult(workerId, submittedAt);
             taskRepository.flush();
 
             if (isStoredObject(previousAsset) && !previousAsset.equals(nextAsset)) {

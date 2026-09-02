@@ -84,7 +84,13 @@ class AdminControllerTest {
                 10L, "업무", "IN_PROGRESS", "진행 중", "개발", "의뢰인", "작업자", 4,
                 "2026.08.27 18:00", false,
                 List.of(new AdminTaskProgressView.TimelineRow("작업 시작", "2026.08.26 10:00", true, true)),
-                null, null, null, 20L, 0);
+                new AdminTaskProgressView.SubmissionRow(
+                        "결과 제출", 4, null, false,
+                        "2026.08.27 18:15", "2026.08.27 18:15",
+                        "결과 제출이 15분 지연되고 있습니다.", 15, false, false,
+                        "2026.08.27 18:15"
+                ),
+                null, null, 20L, 0);
         when(adminMonitoringService.getChatRoom(20L)).thenReturn(chat);
         when(adminMonitoringService.getTaskProgress(10L)).thenReturn(progress);
 
@@ -95,7 +101,11 @@ class AdminControllerTest {
         mockMvc.perform(get("/admin/tasks/10/progress").with(user(admin)))
                 .andExpect(status().isOk())
                 .andExpect(view().name("admin/task-progress"))
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("진행 타임라인")));
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("진행 타임라인")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("최초 제출 판정")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("지연 15분")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString(
+                        "수정 제출 시에도 변경되지 않음")));
     }
 
     private AdminDashboardView emptyDashboard() {

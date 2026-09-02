@@ -88,6 +88,9 @@ public class TaskProgressService {
     }
 
     private TaskProgressView.DeadlineView toDeadlineView(Task task, Submission submission) {
+        if (submission != null) {
+            return toDeadlineView(submission.getDeadlineAssessment());
+        }
         if (task.getStatus() == TaskStatus.COMPLETED
                 || task.getStatus() == TaskStatus.CANCELLED
                 || task.getStatus() == TaskStatus.DISPUTED) {
@@ -98,6 +101,10 @@ public class TaskProgressService {
                 submission,
                 Instant.now()
         );
+        return toDeadlineView(assessment);
+    }
+
+    private TaskProgressView.DeadlineView toDeadlineView(SubmissionDeadlineAssessment assessment) {
         return new TaskProgressView.DeadlineView(
                 assessment.label(),
                 assessment.visible(),
