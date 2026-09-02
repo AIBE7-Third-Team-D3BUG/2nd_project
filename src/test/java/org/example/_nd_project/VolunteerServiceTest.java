@@ -3,6 +3,7 @@ package org.example._nd_project;
 import org.example._nd_project.chat.ChatService;
 import org.example._nd_project.member.Member;
 import org.example._nd_project.member.MemberRepository;
+import org.example._nd_project.notification.VolunteerSelectionNotificationService;
 import org.example._nd_project.task.Task;
 import org.example._nd_project.task.TaskCategory;
 import org.example._nd_project.task.TaskRepository;
@@ -38,13 +39,15 @@ class VolunteerServiceTest {
     @Mock MemberRepository memberRepository;
     @Mock ChatService chatService;
     @Mock WorkerApplicationPolicyService applicationPolicyService;
+    @Mock VolunteerSelectionNotificationService selectionNotificationService;
 
     private VolunteerService volunteerService;
 
     @BeforeEach
     void setUp() {
         volunteerService = new VolunteerService(
-                volunteerRepository, taskRepository, memberRepository, chatService, applicationPolicyService);
+                volunteerRepository, taskRepository, memberRepository, chatService,
+                applicationPolicyService, selectionNotificationService);
     }
 
     @Test
@@ -132,6 +135,33 @@ class VolunteerServiceTest {
     }
 
     @Test
+    void selectingOneApplicantNotifiesEveryOtherApplicant() {
+        Task task = Task.create(1L, "번역 업무", "desc", TaskCategory.TRANSLATION, new String[0], 60,
+                Instant.now().plusSeconds(3600), "deliverable", null);
+        org.springframework.test.util.ReflectionTestUtils.setField(task, "id", 10L);
+        Volunteer selected = Volunteer.create(10L, 2L, "선택 대상");
+        Volunteer firstRejected = Volunteer.create(10L, 3L, "지원자 1");
+        Volunteer secondRejected = Volunteer.create(10L, 4L, "지원자 2");
+        org.springframework.test.util.ReflectionTestUtils.setField(selected, "id", 50L);
+        org.springframework.test.util.ReflectionTestUtils.setField(firstRejected, "id", 51L);
+        org.springframework.test.util.ReflectionTestUtils.setField(secondRejected, "id", 52L);
+        when(taskRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(task));
+        when(volunteerRepository.findByIdAndTaskId(50L, 10L)).thenReturn(Optional.of(selected));
+        when(volunteerRepository.findByTaskIdAndStatusNotOrderByCreatedAtAsc(10L, VolunteerStatus.CANCELLED))
+                .thenReturn(java.util.List.of(selected, firstRejected, secondRejected));
+
+        volunteerService.selectVolunteer(10L, 1L, 50L);
+
+        assertEquals(VolunteerStatus.ACCEPTED, selected.getStatus());
+        assertEquals(VolunteerStatus.REJECTED, firstRejected.getStatus());
+        assertEquals(VolunteerStatus.REJECTED, secondRejected.getStatus());
+        verify(selectionNotificationService).notifyNotSelected(
+                org.mockito.ArgumentMatchers.eq(task),
+                org.mockito.ArgumentMatchers.eq(java.util.List.of(firstRejected, secondRejected)),
+                any(Instant.class));
+    }
+
+    @Test
     void cancelApplicationSucceeds() {
         Task task = Task.create(1L, "title", "desc", TaskCategory.DEVELOPMENT, new String[0], 60,
                 Instant.now().plusSeconds(3600), "deliverable", null);
@@ -148,20 +178,30 @@ class VolunteerServiceTest {
     void cancelAcceptedApplicationReopensTask() {
         Task task = Task.create(1L, "title", "desc", TaskCategory.DEVELOPMENT, new String[0], 60,
                 Instant.now().plusSeconds(3600), "deliverable", null);
+        org.springframework.test.util.ReflectionTestUtils.setField(task, "id", 10L);
         task.assignWorker(2L, Instant.now());
 
         Volunteer volunteer = Volunteer.create(10L, 2L, "msg");
+        Volunteer rejected = Volunteer.create(10L, 3L, "other");
+        org.springframework.test.util.ReflectionTestUtils.setField(volunteer, "id", 50L);
+        org.springframework.test.util.ReflectionTestUtils.setField(rejected, "id", 51L);
         volunteer.accept();
+        rejected.reject();
 
         when(volunteerRepository.findByTaskIdAndMemberId(10L, 2L)).thenReturn(Optional.of(volunteer));
         when(taskRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(task));
         when(volunteerRepository.findByTaskIdAndStatusNotOrderByCreatedAtAsc(10L, VolunteerStatus.CANCELLED))
-                .thenReturn(java.util.List.of(volunteer));
+                .thenReturn(java.util.List.of(volunteer, rejected));
 
         volunteerService.cancelApplication(10L, 2L);
 
         org.mockito.Mockito.verify(volunteerRepository).delete(volunteer);
         assertEquals(org.example._nd_project.task.TaskStatus.OPEN, task.getStatus());
+        assertEquals(VolunteerStatus.APPLIED, rejected.getStatus());
+        verify(selectionNotificationService).notifyReopened(
+                org.mockito.ArgumentMatchers.eq(task),
+                org.mockito.ArgumentMatchers.eq(java.util.List.of(rejected)),
+                any(Instant.class));
     }
 
     @Test
@@ -182,6 +222,33 @@ class VolunteerServiceTest {
 
         assertEquals(VolunteerStatus.APPLIED, volunteer.getStatus());
         assertEquals(org.example._nd_project.task.TaskStatus.OPEN, task.getStatus());
+    }
+
+    @Test
+    void unselectingWorkerNotifiesRejectedApplicantsThatTheyAreCandidatesAgain() {
+        Task task = Task.create(1L, "개발 업무", "desc", TaskCategory.DEVELOPMENT, new String[0], 60,
+                Instant.now().plusSeconds(3600), "deliverable", null);
+        org.springframework.test.util.ReflectionTestUtils.setField(task, "id", 10L);
+        task.assignWorker(2L, Instant.now());
+        Volunteer selected = Volunteer.create(10L, 2L, "선택 대상");
+        Volunteer rejected = Volunteer.create(10L, 3L, "다른 지원자");
+        org.springframework.test.util.ReflectionTestUtils.setField(selected, "id", 50L);
+        org.springframework.test.util.ReflectionTestUtils.setField(rejected, "id", 51L);
+        selected.accept();
+        rejected.reject();
+        when(taskRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(task));
+        when(volunteerRepository.findByIdAndTaskId(50L, 10L)).thenReturn(Optional.of(selected));
+        when(volunteerRepository.findByTaskIdAndStatusNotOrderByCreatedAtAsc(10L, VolunteerStatus.CANCELLED))
+                .thenReturn(java.util.List.of(selected, rejected));
+
+        volunteerService.unselectVolunteer(10L, 1L, 50L);
+
+        assertEquals(VolunteerStatus.APPLIED, selected.getStatus());
+        assertEquals(VolunteerStatus.APPLIED, rejected.getStatus());
+        verify(selectionNotificationService).notifyReopened(
+                org.mockito.ArgumentMatchers.eq(task),
+                org.mockito.ArgumentMatchers.eq(java.util.List.of(rejected)),
+                any(Instant.class));
     }
 
     @Test

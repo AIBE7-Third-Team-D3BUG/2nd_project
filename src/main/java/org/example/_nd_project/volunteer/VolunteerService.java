@@ -3,6 +3,7 @@ package org.example._nd_project.volunteer;
 import org.example._nd_project.chat.ChatService;
 import org.example._nd_project.member.Member;
 import org.example._nd_project.member.MemberRepository;
+import org.example._nd_project.notification.VolunteerSelectionNotificationService;
 import org.example._nd_project.task.Task;
 import org.example._nd_project.task.TaskRepository;
 import org.example._nd_project.task.TaskStatus;
@@ -32,17 +33,20 @@ public class VolunteerService {
     private final MemberRepository memberRepository;
     private final ChatService chatService;
     private final WorkerApplicationPolicyService applicationPolicyService;
+    private final VolunteerSelectionNotificationService selectionNotificationService;
 
     public VolunteerService(VolunteerRepository volunteerRepository,
                             TaskRepository taskRepository,
                             MemberRepository memberRepository,
                             ChatService chatService,
-                            WorkerApplicationPolicyService applicationPolicyService) {
+                            WorkerApplicationPolicyService applicationPolicyService,
+                            VolunteerSelectionNotificationService selectionNotificationService) {
         this.volunteerRepository = volunteerRepository;
         this.taskRepository = taskRepository;
         this.memberRepository = memberRepository;
         this.chatService = chatService;
         this.applicationPolicyService = applicationPolicyService;
+        this.selectionNotificationService = selectionNotificationService;
     }
 
     @Transactional
@@ -78,12 +82,20 @@ public class VolunteerService {
         Volunteer volunteer = volunteerRepository.findByTaskIdAndMemberId(taskId, memberId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "지원 정보를 찾을 수 없습니다."));
 
+        List<Volunteer> reopenedCandidates = List.of();
+        Instant reopenedAt = null;
         if (volunteer.getStatus() == VolunteerStatus.ACCEPTED) {
             if (task.getWorkerId() != null && task.getWorkerId().equals(memberId)) {
                 task.unassignWorker();
                 chatService.deleteRoomForTask(taskId);
             }
             List<Volunteer> remaining = volunteerRepository.findByTaskIdAndStatusNotOrderByCreatedAtAsc(taskId, VolunteerStatus.CANCELLED);
+            reopenedAt = Instant.now();
+            reopenedCandidates = remaining.stream()
+                    .filter(candidate -> candidate != volunteer)
+                    .filter(candidate -> volunteer.getId() == null || !volunteer.getId().equals(candidate.getId()))
+                    .filter(candidate -> candidate.getStatus() == VolunteerStatus.REJECTED)
+                    .toList();
             for (Volunteer v : remaining) {
                 if (v != volunteer && (volunteer.getId() == null || !volunteer.getId().equals(v.getId()))) {
                     v.resetToApplied();
@@ -92,6 +104,9 @@ public class VolunteerService {
         }
 
         volunteerRepository.delete(volunteer);
+        if (reopenedAt != null && !reopenedCandidates.isEmpty()) {
+            selectionNotificationService.notifyReopened(task, reopenedCandidates, reopenedAt);
+        }
     }
 
     @Transactional(readOnly = true)
@@ -134,16 +149,22 @@ public class VolunteerService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "지원자를 찾을 수 없습니다."));
 
         List<Volunteer> allVolunteers = volunteerRepository.findByTaskIdAndStatusNotOrderByCreatedAtAsc(taskId, VolunteerStatus.CANCELLED);
+        List<Volunteer> rejectedVolunteers = new java.util.ArrayList<>();
         for (Volunteer v : allVolunteers) {
             if (v.getId().equals(selected.getId())) {
                 v.accept();
             } else {
                 v.reject();
+                rejectedVolunteers.add(v);
             }
         }
 
-        task.assignWorker(selected.getMemberId(), Instant.now());
+        Instant selectedAt = Instant.now();
+        task.assignWorker(selected.getMemberId(), selectedAt);
         chatService.ensureRoomForTask(task);
+        if (!rejectedVolunteers.isEmpty()) {
+            selectionNotificationService.notifyNotSelected(task, rejectedVolunteers, selectedAt);
+        }
     }
 
     @Transactional
@@ -165,8 +186,14 @@ public class VolunteerService {
         chatService.deleteRoomForTask(taskId);
 
         List<Volunteer> allVolunteers = volunteerRepository.findByTaskIdAndStatusNotOrderByCreatedAtAsc(taskId, VolunteerStatus.CANCELLED);
+        List<Volunteer> reopenedCandidates = allVolunteers.stream()
+                .filter(candidate -> candidate.getStatus() == VolunteerStatus.REJECTED)
+                .toList();
         for (Volunteer v : allVolunteers) {
             v.resetToApplied();
+        }
+        if (!reopenedCandidates.isEmpty()) {
+            selectionNotificationService.notifyReopened(task, reopenedCandidates, Instant.now());
         }
     }
 

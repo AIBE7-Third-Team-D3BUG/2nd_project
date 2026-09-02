@@ -76,6 +76,8 @@ public class MemberNotificationService {
             case PENALTY_EXEMPTED -> "success";
             case APPLICATION_RESTRICTED, PENALTY_RESTORED -> "danger";
             case DELAY_RECORDED, DELAY_WARNING -> "warning";
+            case VOLUNTEER_NOT_SELECTED -> "neutral";
+            case VOLUNTEER_REOPENED -> "success";
         };
     }
 }
