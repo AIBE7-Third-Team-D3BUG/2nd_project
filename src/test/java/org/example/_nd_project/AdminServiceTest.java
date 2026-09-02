@@ -14,6 +14,8 @@ import org.example._nd_project.member.TimeTransaction;
 import org.example._nd_project.member.TimeTransactionRepository;
 import org.example._nd_project.submission.DisputeRepository;
 import org.example._nd_project.submission.Dispute;
+import org.example._nd_project.submission.WorkerDelayMetrics;
+import org.example._nd_project.submission.WorkerDelayMetricsService;
 import org.example._nd_project.task.Task;
 import org.example._nd_project.task.TaskCategory;
 import org.example._nd_project.task.TaskRepository;
@@ -36,6 +38,7 @@ import java.time.LocalDate;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -53,13 +56,15 @@ class AdminServiceTest {
     @Mock AdminAuditLogRepository auditLogRepository;
     @Mock TimeLedgerService timeLedgerService;
     @Mock SessionRegistry sessionRegistry;
+    @Mock WorkerDelayMetricsService workerDelayMetricsService;
 
     private AdminService adminService;
 
     @BeforeEach
     void setUp() {
         adminService = new AdminService(memberRepository, timeAccountRepository, timeTransactionRepository,
-                taskRepository, disputeRepository, auditLogRepository, timeLedgerService, sessionRegistry);
+                taskRepository, disputeRepository, auditLogRepository, timeLedgerService, sessionRegistry,
+                workerDelayMetricsService);
     }
 
     @Test
@@ -91,6 +96,9 @@ class AdminServiceTest {
                 .thenAnswer(invocation -> new PageImpl<>(List.of(), invocation.getArgument(0), 0));
         when(auditLogRepository.findAll(org.mockito.ArgumentMatchers.any(Pageable.class)))
                 .thenAnswer(invocation -> new PageImpl<>(List.of(), invocation.getArgument(0), 0));
+        when(workerDelayMetricsService.getForMembers(List.of(2L))).thenReturn(Map.of(
+                2L, new WorkerDelayMetrics(90, 4, 2, 1, 1, 3)
+        ));
 
         var dashboard = adminService.getDashboard(0);
 
@@ -99,6 +107,8 @@ class AdminServiceTest {
         assertEquals(20, pageable.getValue().getPageSize());
         assertEquals(1, dashboard.members().size());
         assertEquals(2, dashboard.memberTotalPages());
+        assertEquals(3, dashboard.members().get(0).delayPoints());
+        assertEquals("주의", dashboard.members().get(0).delayStatusLabel());
         verify(disputeRepository).findTop100ByStatusInOrderByCreatedAtDescIdDesc(
                 List.of("OPEN", "UNDER_REVIEW"));
     }

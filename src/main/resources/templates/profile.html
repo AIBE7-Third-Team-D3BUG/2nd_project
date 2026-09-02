@@ -72,6 +72,26 @@
             <div class="metric-card" th:if="${isOwner}"><span>업무 예약 중</span><strong><span th:text="${profile.reservedPum()}">0</span>품</strong></div>
         </section>
 
+        <section class="card delay-metrics-card" aria-labelledby="delay-metrics-title">
+            <div class="delay-metrics-heading">
+                <div>
+                    <p class="eyebrow">WORK RELIABILITY · 최근 90일</p>
+                    <h2 id="delay-metrics-title">결과 제출 신뢰도</h2>
+                    <p class="subtitle">최초 결과 제출 시각을 기준으로 집계한 기록입니다.</p>
+                </div>
+                <span class="delay-status"
+                      th:classappend="| ${profile.delayMetrics().statusTone()}|"
+                      th:text="${profile.delayMetrics().statusLabel()}">양호</span>
+            </div>
+            <div class="delay-metrics-grid">
+                <div><span>지연 점수</span><strong th:text="|${profile.delayMetrics().delayPoints()}점|">0점</strong></div>
+                <div><span>마감 준수율</span><strong th:text="${profile.delayMetrics().hasSamples() ? profile.delayMetrics().deadlineMetPercent() + '%' : '표본 없음'}">100%</strong></div>
+                <div><span>일반 지연</span><strong th:text="|${profile.delayMetrics().lateCount()}건|">0건</strong></div>
+                <div><span>심각 지연</span><strong th:text="|${profile.delayMetrics().severeCount()}건|">0건</strong></div>
+            </div>
+            <p class="delay-metrics-guide">유예 시간 내 제출은 0점, 일반 지연은 1점, 심각 지연은 2점으로 계산합니다. 현재는 정보 제공용이며 자동 제재에는 사용하지 않습니다.</p>
+        </section>
+
         <section class="card written-reviews-card" th:if="${isOwner}" aria-labelledby="written-reviews-title">
             <div class="written-reviews-heading">
                 <div>

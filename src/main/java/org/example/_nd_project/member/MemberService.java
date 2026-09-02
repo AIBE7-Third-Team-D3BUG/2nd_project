@@ -1,5 +1,6 @@
 package org.example._nd_project.member;
 
+import org.example._nd_project.submission.WorkerDelayMetricsService;
 import org.example._nd_project.task.TaskStorageService;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
@@ -24,17 +25,20 @@ public class MemberService {
     private final TimeTransactionRepository timeTransactionRepository;
     private final PasswordEncoder passwordEncoder;
     private final TaskStorageService taskStorageService;
+    private final WorkerDelayMetricsService workerDelayMetricsService;
 
     public MemberService(MemberRepository memberRepository,
                          TimeAccountRepository timeAccountRepository,
                          TimeTransactionRepository timeTransactionRepository,
                          PasswordEncoder passwordEncoder,
-                         TaskStorageService taskStorageService) {
+                         TaskStorageService taskStorageService,
+                         WorkerDelayMetricsService workerDelayMetricsService) {
         this.memberRepository = memberRepository;
         this.timeAccountRepository = timeAccountRepository;
         this.timeTransactionRepository = timeTransactionRepository;
         this.passwordEncoder = passwordEncoder;
         this.taskStorageService = taskStorageService;
+        this.workerDelayMetricsService = workerDelayMetricsService;
     }
 
     @Transactional
@@ -108,7 +112,8 @@ public class MemberService {
                 member.getProfileImageUrl() != null && !member.getProfileImageUrl().isBlank(),
                 member.getPortfolioUrl(), Arrays.asList(member.getSkillTags()), member.isNotificationEnabled(),
                 member.getCompletedTaskCount(), member.getReviewCount(), rating,
-                account.getAvailableMinutes(), account.getReservedMinutes(), member.getCreatedAt()
+                account.getAvailableMinutes(), account.getReservedMinutes(), member.getCreatedAt(),
+                workerDelayMetricsService.getForMember(memberId)
         );
     }
 

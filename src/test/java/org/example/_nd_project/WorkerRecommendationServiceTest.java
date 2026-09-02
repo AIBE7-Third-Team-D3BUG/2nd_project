@@ -4,6 +4,8 @@ import org.example._nd_project.chat.ChatMessageRepository;
 import org.example._nd_project.member.Member;
 import org.example._nd_project.member.MemberRepository;
 import org.example._nd_project.submission.ReviewRepository;
+import org.example._nd_project.submission.WorkerDelayMetrics;
+import org.example._nd_project.submission.WorkerDelayMetricsService;
 import org.example._nd_project.task.Task;
 import org.example._nd_project.task.TaskCategory;
 import org.example._nd_project.task.TaskRepository;
@@ -24,6 +26,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -42,6 +45,7 @@ class WorkerRecommendationServiceTest {
     @Mock ReviewRepository reviewRepository;
     @Mock ChatMessageRepository chatMessageRepository;
     @Mock WorkerRecommendationAiClient aiClient;
+    @Mock WorkerDelayMetricsService workerDelayMetricsService;
 
     private WorkerRecommendationService service;
 
@@ -49,7 +53,7 @@ class WorkerRecommendationServiceTest {
     void setUp() {
         service = new WorkerRecommendationService(
                 volunteerRepository, taskRepository, memberRepository,
-                reviewRepository, chatMessageRepository, aiClient
+                reviewRepository, chatMessageRepository, aiClient, workerDelayMetricsService
         );
     }
 
@@ -75,6 +79,10 @@ class WorkerRecommendationServiceTest {
         when(reviewRepository.findDeadlineMetrics(List.of(2L, 3L))).thenReturn(List.of(deadlineMetric));
         when(chatMessageRepository.findWorkerResponseMetrics(List.of(2L, 3L)))
                 .thenReturn(List.of(responseMetric));
+        when(workerDelayMetricsService.getForMembers(List.of(2L, 3L))).thenReturn(Map.of(
+                2L, new WorkerDelayMetrics(90, 8, 7, 1, 0, 1),
+                3L, WorkerDelayMetrics.empty(90)
+        ));
         when(aiClient.analyze(anyString())).thenReturn(new AiWorkerRecommendationReport(List.of(
                 new AiWorkerRecommendationItem("C11", "관련 경험과 기술 일치도가 높습니다.",
                         List.of("AWS·Spring·Nginx 기술 일치"), List.of("최종 일정 확인 필요"))
@@ -88,6 +96,9 @@ class WorkerRecommendationServiceTest {
         assertEquals(100, result.get(0).skillMatchPercent());
         assertEquals(4, result.get(0).categoryCompletedCount());
         assertEquals("5분", result.get(0).averageResponseLabel());
+        assertEquals(1, result.get(0).recentDelayPoints());
+        assertEquals(88, result.get(0).recentDeadlineMetPercent());
+        assertEquals("관찰", result.get(0).recentDelayStatus());
         assertTrue(result.get(0).aiEnhanced());
         assertTrue(result.get(0).suitabilityScore() > result.get(1).suitabilityScore());
     }
