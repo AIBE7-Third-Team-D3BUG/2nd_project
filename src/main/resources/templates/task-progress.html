@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title th:text="${progress.title()} + ' | D3BUG'">업무 진행 | D3BUG</title>
+    <title th:text="${progress.title()} + ' | BAROHAE'">업무 진행 | BAROHAE</title>
     <link rel="stylesheet" href="../static/css/task-progress.css" th:href="@{/css/task-progress.css}">
-</head>
+<link rel="icon" type="image/png" href="/images/barohae-logo-check.png" th:href="@{/images/barohae-logo-check.png}"></head>
 <body>
 <div class="progress-shell">
     <header class="progress-header">
-        <a class="brand" th:href="@{/}">D3BUG</a>
+        <a class="brand" th:href="@{/}"><img src="/images/barohae-logo-check.png" th:src="@{/images/barohae-logo-check.png}" alt="바로해"></a>
         <nav aria-label="주요 메뉴">
             <a th:href="@{/}">업무 찾기</a>
             <a th:href="@{/(view='dashboard')}">내 업무</a>
@@ -21,7 +21,7 @@
 
     <main>
         <p class="breadcrumb" th:text="${progress.phaseLabel()}">
-            COMMON-03 · 업무 진행 / 결과 제출
+            BAROHAE · 업무 진행 / 결과 제출
         </p>
 
         <section class="hero">
@@ -39,14 +39,14 @@
         <section class="task-summary" aria-label="업무 요약">
             <div><span>의뢰인</span><strong th:text="${progress.requesterName()}">의뢰인</strong></div>
             <div><span>작업자</span><strong th:text="${progress.workerName()}">작업자</strong></div>
-            <div><span>정산 예정</span><strong><span th:text="${progress.requestedPum()}">4</span>품</strong></div>
+            <div><span th:text="${progress.completed() ? '정산 완료' : '정산 예정'}">정산 예정</span><strong><span th:text="${progress.requestedPum()}">4</span>품</strong></div>
             <div><span>마감</span><strong th:text="${progress.deadlineLabel()}">2시간 42분 남음</strong></div>
         </section>
 
         <ol class="stepper" aria-label="업무 진행 단계">
             <li th:each="label, step : ${ {'매칭', '진행 중', '결과 제출', '완료 승인', '정산'} }"
-                th:classappend="${step.index + 1 < progress.currentStep() ? 'done' : (step.index + 1 == progress.currentStep() ? 'current' : '')}">
-                <span class="step-dot" th:text="${step.index + 1 < progress.currentStep() ? '✓' : step.index + 1}">1</span>
+                th:classappend="${progress.completed() or step.index + 1 < progress.currentStep() ? 'done' : (step.index + 1 == progress.currentStep() ? 'current' : '')}">
+                <span class="step-dot" th:text="${progress.completed() or step.index + 1 < progress.currentStep() ? '✓' : step.index + 1}">1</span>
                 <strong th:text="${label}">매칭</strong>
             </li>
         </ol>
@@ -91,11 +91,31 @@
                         </li>
                     </ul>
                 </article>
+
+                <article class="panel criteria-panel" th:if="${progress.hasReferenceLink()}">
+                    <p class="panel-kicker">REFERENCE LINK</p>
+                    <h2>참고 링크</h2>
+                    <p class="panel-description">의뢰자가 등록한 외부 참고 자료입니다.</p>
+                    <a class="result-asset" th:href="@{/tasks/{id}/reference-link(id=${progress.taskId()})}"
+                       target="_blank" rel="noopener">
+                        <span>↗</span><strong>참고 링크 열기</strong>
+                    </a>
+                </article>
+
+                <article class="panel criteria-panel" th:if="${progress.hasReferenceAttachment()}">
+                    <p class="panel-kicker">REFERENCE FILE</p>
+                    <h2>업무 첨부파일</h2>
+                    <p class="panel-description">의뢰자가 등록한 작업 참고 자료입니다.</p>
+                    <a class="result-asset" th:href="@{/tasks/{id}/attachment(id=${progress.taskId()})}"
+                       target="_blank" rel="noopener">
+                        <span>↗</span><strong>첨부파일 확인하기</strong>
+                    </a>
+                </article>
             </section>
 
             <aside class="right-column">
                 <article class="panel submit-panel" th:if="${progress.canSubmit()}">
-                    <p class="panel-kicker">COMMON-03</p>
+                    <p class="panel-kicker">BAROHAE</p>
                     <h2 th:text="${progress.submission() == null ? '결과 제출' : '수정 결과 제출'}">결과 제출</h2>
                     <p class="panel-description">해결한 내용과 의뢰인이 확인할 방법을 남겨주세요.</p>
 
@@ -211,8 +231,17 @@
                         </form>
                     </details>
 
+                </article>
+
+                <article class="panel approval-panel" th:if="${progress.canOpenDispute()}">
+                    <p class="panel-kicker" th:text="${progress.worker() ? 'WORKER ACTION' : 'REQUESTER ACTION'}">WORKER ACTION</p>
+                    <h2>문제가 있나요?</h2>
+                    <p class="panel-description"
+                       th:text="${progress.worker() ? '결과를 제출했지만 의뢰인과 연락이 닿지 않거나 정산에 문제가 있다면 신고할 수 있습니다.' : '제출된 결과에 문제가 있다면 신고할 수 있습니다.'}">
+                        결과 제출 또는 정산 과정에서 문제가 있다면 신고할 수 있습니다.
+                    </p>
                     <details class="action-details danger-details" th:open="${openAction == 'dispute'}">
-                        <summary>문제가 있나요? 문제 신고</summary>
+                        <summary>문제 신고 접수</summary>
                         <form th:action="@{/tasks/{id}/disputes(id=${progress.taskId()})}"
                               th:object="${disputeForm}" method="post">
                             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">

@@ -77,8 +77,20 @@ public class TaskProgressService {
                 completionCriteria(task),
                 activities(task, requesterName, workerName),
                 toSubmissionView(submission, task),
-                reviewRepository.findByTaskId(taskId).map(this::toReviewView).orElse(null)
+                reviewRepository.findByTaskId(taskId).map(this::toReviewView).orElse(null),
+                hasReferenceLink(task),
+                hasReferenceAttachment(task)
         );
+    }
+
+    private boolean hasReferenceLink(Task task) {
+        String referenceLink = task.getReferenceLinkUrl();
+        return referenceLink != null && !referenceLink.isBlank();
+    }
+
+    private boolean hasReferenceAttachment(Task task) {
+        String attachmentPath = task.getAttachmentObjectPath();
+        return attachmentPath != null && !attachmentPath.isBlank();
     }
 
     private List<String> completionCriteria(Task task) {

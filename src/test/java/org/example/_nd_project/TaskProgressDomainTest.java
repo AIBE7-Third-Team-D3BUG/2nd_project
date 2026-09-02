@@ -75,6 +75,28 @@ class TaskProgressDomainTest {
         assertEquals(8L, task.getWorkerId());
     }
 
+    @Test
+    void acceptedDisputeCancelsTask() {
+        Task task = inProgressTask();
+        ReflectionTestUtils.setField(task, "status", TaskStatus.DISPUTED);
+        Instant resolvedAt = Instant.parse("2026-08-27T01:00:00Z");
+
+        task.resolveDispute(true, resolvedAt);
+
+        assertEquals(TaskStatus.CANCELLED, task.getStatus());
+        assertEquals(resolvedAt, task.getCancelledAt());
+    }
+
+    @Test
+    void rejectedDisputeReturnsTaskToSubmitted() {
+        Task task = inProgressTask();
+        ReflectionTestUtils.setField(task, "status", TaskStatus.DISPUTED);
+
+        task.resolveDispute(false, Instant.now());
+
+        assertEquals(TaskStatus.SUBMITTED, task.getStatus());
+    }
+
     private Task inProgressTask() {
         Task task = matchedTask();
         ReflectionTestUtils.setField(task, "status", TaskStatus.IN_PROGRESS);

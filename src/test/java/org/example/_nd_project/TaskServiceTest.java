@@ -9,17 +9,20 @@ import org.example._nd_project.task.TaskStatus;
 import org.example._nd_project.task.TaskStorageService;
 import org.example._nd_project.task.TaskSort;
 import org.example._nd_project.member.TimeLedgerService;
+import org.example._nd_project.member.MemberRepository;
 import org.example._nd_project.submission.SubmissionRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Optional;
 import java.util.List;
 import java.time.Instant;
+import java.net.URI;
 
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -45,13 +48,14 @@ class TaskServiceTest {
     @Mock TimeLedgerService timeLedgerService;
     @Mock SubmissionRepository submissionRepository;
     @Mock ChatService chatService;
+    @Mock MemberRepository memberRepository;
 
     private TaskService taskService;
 
     @BeforeEach
     void setUp() {
         taskService = new TaskService(
-                taskRepository, taskStorageService, timeLedgerService, submissionRepository, chatService
+                taskRepository, taskStorageService, timeLedgerService, submissionRepository, chatService, memberRepository
         );
     }
 
@@ -189,11 +193,56 @@ class TaskServiceTest {
     }
 
     @Test
+    void matchedWorkerCanOpenRequesterAttachment() {
+        Task task = Task.create(3L, "업무", "설명", TaskCategory.DEVELOPMENT, new String[0], 60,
+                Instant.now().plusSeconds(3600), "완료 기준", "tasks/10/reference.pdf");
+        ReflectionTestUtils.setField(task, "id", 10L);
+        task.assignWorker(8L, Instant.now());
+        URI downloadUrl = URI.create("https://storage.example.test/reference.pdf");
+        when(taskRepository.findById(10L)).thenReturn(Optional.of(task));
+        when(taskStorageService.createSignedDownloadUrl("tasks/10/reference.pdf")).thenReturn(downloadUrl);
+
+        URI result = taskService.createAttachmentDownloadUrl(10L, 8L);
+
+        assertEquals(downloadUrl, result);
+    }
+
+    @Test
+    void matchedWorkerCanOpenRequesterReferenceLinkAlongsideAttachment() {
+        Task task = Task.create(3L, "업무", "설명", TaskCategory.DEVELOPMENT, new String[0], 60,
+                Instant.now().plusSeconds(3600), "완료 기준",
+                "https://docs.example.test/guide", "tasks/10/reference.pdf");
+        ReflectionTestUtils.setField(task, "id", 10L);
+        task.assignWorker(8L, Instant.now());
+        when(taskRepository.findById(10L)).thenReturn(Optional.of(task));
+
+        URI result = taskService.createReferenceLinkUrl(10L, 8L);
+
+        assertEquals(URI.create("https://docs.example.test/guide"), result);
+        verify(taskStorageService, never()).createSignedDownloadUrl(any());
+    }
+
+    @Test
+    void nonParticipantCannotOpenRequesterAttachment() {
+        Task task = Task.create(3L, "업무", "설명", TaskCategory.DEVELOPMENT, new String[0], 60,
+                Instant.now().plusSeconds(3600), "완료 기준", "tasks/10/reference.pdf");
+        ReflectionTestUtils.setField(task, "id", 10L);
+        task.assignWorker(8L, Instant.now());
+        when(taskRepository.findById(10L)).thenReturn(Optional.of(task));
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> taskService.createAttachmentDownloadUrl(10L, 99L));
+
+        assertEquals(404, exception.getStatusCode().value());
+        verify(taskStorageService, never()).createSignedDownloadUrl(any());
+    }
+
+    @Test
     void expireOverdueOpenTasksCancelsTasksAndRefundsReservations() {
         Task task = mock(Task.class);
         when(task.getId()).thenReturn(101L);
         when(task.getRequesterId()).thenReturn(5L);
-        when(task.getReferenceFileUrl()).thenReturn(null);
+        when(task.getAttachmentObjectPath()).thenReturn(null);
 
         when(taskRepository.findByStatusAndDeadlineAtBefore(eq(TaskStatus.OPEN), any(Instant.class)))
                 .thenReturn(List.of(task));

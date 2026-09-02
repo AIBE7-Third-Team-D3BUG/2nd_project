@@ -9,6 +9,7 @@ import org.example._nd_project.admin.AdminService;
 import org.example._nd_project.admin.AdminMonitoringService;
 import org.example._nd_project.member.MemberService;
 import org.example._nd_project.security.LoginAttemptService;
+import org.example._nd_project.security.LoginFailureHandler;
 import org.example._nd_project.security.MemberPrincipal;
 import org.example._nd_project.security.MemberUserDetailsService;
 import org.example._nd_project.security.SecurityConfig;
@@ -26,6 +27,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
@@ -38,6 +40,7 @@ class AdminControllerTest {
     @MockitoBean AdminMonitoringService adminMonitoringService;
     @MockitoBean MemberUserDetailsService memberUserDetailsService;
     @MockitoBean LoginAttemptService loginAttemptService;
+    @MockitoBean LoginFailureHandler loginFailureHandler;
     @MockitoBean MemberService memberService;
 
     @Test
@@ -55,7 +58,8 @@ class AdminControllerTest {
     void normalUserIsForbiddenFromDashboard() throws Exception {
         MemberPrincipal user = new MemberPrincipal(2L, "user@example.com", "hash", "회원", "USER", true);
         mockMvc.perform(get("/admin").with(user(user)))
-                .andExpect(status().isForbidden());
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/?accessDenied"));
     }
 
     @Test
@@ -68,7 +72,8 @@ class AdminControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(view().name("admin/chats"));
         mockMvc.perform(get("/admin/chats").with(user(normal)))
-                .andExpect(status().isForbidden());
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/?accessDenied"));
     }
 
     @Test
@@ -98,4 +103,3 @@ class AdminControllerTest {
                 List.of(), List.of(), List.of(), List.of(), List.of());
     }
 }
-

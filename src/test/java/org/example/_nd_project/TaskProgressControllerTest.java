@@ -88,17 +88,64 @@ class TaskProgressControllerTest {
                         "8월 24일 14:20",
                         null
                 ),
-                null
+                null,
+                true,
+                true
         );
         when(taskProgressService.getProgress(10L, 3L)).thenReturn(progress);
 
         mockMvc.perform(get("/tasks/10/progress").with(user(principal)))
                 .andExpect(status().isOk())
                 .andExpect(view().name("task-progress"))
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("CLIENT-04 · 완료 승인 / 리뷰")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("BAROHAE · 완료 승인 / 리뷰")))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("결과가 도착했어요")))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("작업자 평점")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("참고 링크 열기")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("첨부파일 확인하기")))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("후기 작성 및 완료 승인")));
+    }
+
+    @Test
+    void completedScreenMarksSettlementAsCompleted() throws Exception {
+        MemberPrincipal requester = new MemberPrincipal(
+                3L,
+                "requester@example.com",
+                "password",
+                "의뢰인",
+                "USER",
+                true
+        );
+        TaskProgressView progress = new TaskProgressView(
+                10L,
+                "AWS 배포 후 502 오류 해결",
+                "의뢰인",
+                "작업자",
+                "완료",
+                120,
+                "완료",
+                true,
+                false,
+                false,
+                false,
+                false,
+                false,
+                true,
+                false,
+                false,
+                5,
+                List.of("서비스 정상 응답 확인"),
+                List.of(),
+                null,
+                null
+        );
+        when(taskProgressService.getProgress(10L, 3L)).thenReturn(progress);
+
+        mockMvc.perform(get("/tasks/10/progress").with(user(requester)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString(
+                        "<div><span>정산 완료</span><strong>")))
+                .andExpect(content().string(org.hamcrest.Matchers.matchesPattern(
+                        "(?s).*<li class=\"done\">\\s*<span class=\"step-dot\">✓</span>\\s*<strong>정산</strong>.*")));
     }
 
     @Test
@@ -203,9 +250,33 @@ class TaskProgressControllerTest {
 
         mockMvc.perform(get("/tasks/10/progress").with(user(worker)))
                 .andExpect(status().isOk())
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("COMMON-03 · 업무 시작")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("BAROHAE · 업무 시작")))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("작업자로 선택되었어요")))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("업무 시작하기")));
+    }
+
+    @Test
+    void workerCanSeeDisputeFormAfterSubmittingResult() throws Exception {
+        MemberPrincipal worker = new MemberPrincipal(
+                8L, "worker@example.com", "password", "작업자", "USER", true
+        );
+        TaskProgressView progress = new TaskProgressView(
+                10L, "AWS 배포 후 502 오류 해결", "의뢰인", "작업자", "결과 확인", 120, "결과 확인",
+                false, true, false, false, false, false, false, false, false, 4,
+                List.of("서비스 정상 응답 확인"),
+                List.of(new TaskProgressView.ActivityView("결과가 제출되었습니다.", "작업자", "8월 24일 14:20", true)),
+                new TaskProgressView.SubmissionView("Nginx upstream 설정을 수정했습니다.", false, "제출 파일 열기",
+                        "8월 24일 14:20", null),
+                null
+        );
+        when(taskProgressService.getProgress(10L, 8L)).thenReturn(progress);
+
+        mockMvc.perform(get("/tasks/10/progress").with(user(worker)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("WORKER ACTION")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString(
+                        "결과를 제출했지만 의뢰인과 연락이 닿지 않거나 정산에 문제가 있다면 신고할 수 있습니다.")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("문제 신고 접수")));
     }
 
     @Test

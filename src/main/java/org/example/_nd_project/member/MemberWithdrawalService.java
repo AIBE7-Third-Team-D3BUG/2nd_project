@@ -85,6 +85,7 @@ public class MemberWithdrawalService {
         execute("delete from time_transactions where account_member_id = ?", memberId);
         execute("delete from tasks where requester_id = ? or worker_id = ?", memberId, memberId);
         execute("delete from time_accounts where member_id = ?", memberId);
+        execute("delete from oauth_accounts where member_id = ?", memberId);
         execute("delete from members where id = ?", memberId);
 
         // Reviews written by the withdrawn member can affect another member's aggregate rating.

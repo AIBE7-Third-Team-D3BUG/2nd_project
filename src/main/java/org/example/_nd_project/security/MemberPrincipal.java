@@ -4,9 +4,11 @@ import org.example._nd_project.member.Member;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 public record MemberPrincipal(
         Long memberId,
@@ -15,7 +17,7 @@ public record MemberPrincipal(
         String nickname,
         String role,
         boolean enabled
-) implements UserDetails {
+) implements UserDetails, OAuth2User {
 
     public static MemberPrincipal from(Member member) {
         return new MemberPrincipal(
@@ -42,5 +44,15 @@ public record MemberPrincipal(
     @Override
     public boolean isEnabled() {
         return enabled;
+    }
+
+    @Override
+    public Map<String, Object> getAttributes() {
+        return Map.of();
+    }
+
+    @Override
+    public String getName() {
+        return String.valueOf(memberId);
     }
 }
