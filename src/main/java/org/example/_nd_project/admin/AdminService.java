@@ -401,7 +401,8 @@ public class AdminService {
         return "업무 #" + task.getId() + " 취소 및 예약 재화 반환 · " + note;
     }
 
-    private AdminDashboardView.MemberRow memberRow(Member member, TimeAccount account) {
+    private AdminDashboardView.MemberRow memberRow(Member member, TimeAccount account,
+                                                    WorkerDelayMetrics delayMetrics) {
         return new AdminDashboardView.MemberRow(
                 member.getId(), member.getEmail(), member.getNickname(), member.getRole().name(), member.getStatus().name(),
                 account == null ? 0 : account.getAvailableMinutes() / 30,
