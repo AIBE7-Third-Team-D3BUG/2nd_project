@@ -222,10 +222,11 @@ class VolunteerServiceTest {
         Volunteer applied = Volunteer.create(10L, 2L, "msg");
         Task task = Task.create(1L, "title", "desc", TaskCategory.DEVELOPMENT, new String[0], 60,
                 Instant.now().plusSeconds(3600), "deliverable", null);
+        org.springframework.test.util.ReflectionTestUtils.setField(task, "id", 10L);
 
         when(volunteerRepository.findByMemberIdAndStatusOrderByCreatedAtDesc(2L, VolunteerStatus.APPLIED))
                 .thenReturn(java.util.List.of(applied));
-        when(taskRepository.findById(10L)).thenReturn(Optional.of(task));
+        when(taskRepository.findAllById(java.util.List.of(10L))).thenReturn(java.util.List.of(task));
 
         java.util.List<org.example._nd_project.volunteer.AppliedTaskItem> result = volunteerService.findAppliedTasks(2L);
 

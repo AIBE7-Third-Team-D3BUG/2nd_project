@@ -2,6 +2,7 @@ package org.example._nd_project.task;
 
 import org.example._nd_project.chat.ChatService;
 import org.example._nd_project.member.TimeLedgerService;
+import org.example._nd_project.member.Member;
 import org.example._nd_project.member.MemberRepository;
 import org.example._nd_project.submission.SubmissionRepository;
 import org.springframework.stereotype.Service;
@@ -17,8 +18,11 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 import static org.springframework.http.HttpStatus.CONFLICT;
@@ -226,35 +230,23 @@ public class TaskService {
         List<Task> tasks = category == null
                 ? taskRepository.findByStatusAndDeadlineAtAfter(TaskStatus.OPEN, now, page)
                 : taskRepository.findByStatusAndCategoryAndDeadlineAtAfter(TaskStatus.OPEN, category, now, page);
-        return tasks
-                .stream()
-                .map(this::toListItem)
-                .toList();
+        return toListItems(tasks);
     }
 
     @Transactional
     public List<TaskListItem> findRegisteredTasks(Long requesterId) {
         expireOverdueOpenTasks();
-        return taskRepository.findByRequesterIdAndStatusNotOrderByCreatedAtDesc(requesterId, TaskStatus.CANCELLED)
-                .stream()
-                .map(this::toListItem)
-                .toList();
+        return toListItems(taskRepository.findByRequesterIdAndStatusNotOrderByCreatedAtDesc(requesterId, TaskStatus.CANCELLED));
     }
 
     @Transactional(readOnly = true)
     public List<TaskListItem> findAssignedTasks(Long workerId) {
-        return taskRepository.findByWorkerIdAndStatusNotOrderByUpdatedAtDesc(workerId, TaskStatus.CANCELLED)
-                .stream()
-                .map(this::toListItem)
-                .toList();
+        return toListItems(taskRepository.findByWorkerIdAndStatusNotOrderByUpdatedAtDesc(workerId, TaskStatus.CANCELLED));
     }
 
     @Transactional(readOnly = true)
     public List<TaskListItem> findWorkingTasks(Long workerId) {
-        return taskRepository.findByWorkerIdAndStatusInOrderByUpdatedAtDesc(workerId, ACTIVE_STATUSES)
-                .stream()
-                .map(this::toListItem)
-                .toList();
+        return toListItems(taskRepository.findByWorkerIdAndStatusInOrderByUpdatedAtDesc(workerId, ACTIVE_STATUSES));
     }
 
     private static final List<TaskStatus> ACTIVE_STATUSES = List.of(
@@ -307,6 +299,23 @@ public class TaskService {
 
     private TaskListItem toListItem(Task task) {
         var requester = memberRepository.findById(task.getRequesterId()).orElse(null);
+        return toListItem(task, requester);
+    }
+
+    private List<TaskListItem> toListItems(List<Task> tasks) {
+        if (tasks.isEmpty()) {
+            return List.of();
+        }
+        Map<Long, Member> requesters = memberRepository.findAllById(
+                        tasks.stream().map(Task::getRequesterId).filter(Objects::nonNull).distinct().toList()
+                ).stream()
+                .collect(Collectors.toMap(Member::getId, Function.identity()));
+        return tasks.stream()
+                .map(task -> toListItem(task, requesters.get(task.getRequesterId())))
+                .toList();
+    }
+
+    private TaskListItem toListItem(Task task, Member requester) {
         Duration remaining = Duration.between(Instant.now(), task.getDeadlineAt());
         boolean urgent = !remaining.isNegative() && remaining.compareTo(Duration.ofHours(3)) <= 0;
         return new TaskListItem(

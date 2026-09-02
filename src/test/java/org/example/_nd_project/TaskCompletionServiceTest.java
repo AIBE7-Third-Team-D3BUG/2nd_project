@@ -2,6 +2,8 @@ package org.example._nd_project;
 
 import org.example._nd_project.member.MemberRepository;
 import org.example._nd_project.member.TimeLedgerService;
+import org.example._nd_project.submission.Dispute;
+import org.example._nd_project.submission.DisputeForm;
 import org.example._nd_project.submission.DisputeRepository;
 import org.example._nd_project.submission.Review;
 import org.example._nd_project.submission.ReviewForm;
@@ -138,5 +140,27 @@ class TaskCompletionServiceTest {
         assertEquals(409, exception.getStatusCode().value());
         verify(timeLedgerService, never()).settleTask(anyLong(), anyLong(), anyLong(), anyInt());
         verify(memberRepository, never()).recordCompletedTaskReview(anyLong(), anyInt());
+    }
+
+    @Test
+    void workerCanOpenDisputeAfterSubmittingResult() {
+        Task task = mock(Task.class);
+        when(task.isParticipant(8L)).thenReturn(true);
+        when(task.getStatus()).thenReturn(TaskStatus.SUBMITTED);
+        when(taskRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(task));
+        when(disputeRepository.existsByTaskId(10L)).thenReturn(false);
+
+        DisputeForm form = new DisputeForm();
+        form.setDescription("결과를 제출했지만 의뢰인과 연락이 닿지 않아 정산이 지연되고 있습니다.");
+
+        completionService.openDispute(10L, 8L, form);
+
+        ArgumentCaptor<Dispute> disputeCaptor = ArgumentCaptor.forClass(Dispute.class);
+        verify(disputeRepository).save(disputeCaptor.capture());
+        assertEquals(10L, disputeCaptor.getValue().getTaskId());
+        assertEquals(8L, disputeCaptor.getValue().getOpenedByMemberId());
+        assertEquals("결과를 제출했지만 의뢰인과 연락이 닿지 않아 정산이 지연되고 있습니다.",
+                disputeCaptor.getValue().getDescription());
+        verify(task).openDispute(8L);
     }
 }

@@ -20,6 +20,9 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 public class ChatService {
@@ -75,11 +78,38 @@ public class ChatService {
 
     @Transactional(readOnly = true)
     public List<ChatRoomView> getRooms(Long memberId) {
-        return chatRoomRepository
+        List<ChatRoom> rooms = chatRoomRepository
                 .findByRequesterMemberIdOrWorkerMemberIdOrderByLastMessageAtDescUpdatedAtDesc(memberId, memberId)
                 .stream()
                 .filter(room -> !room.hasLeft(memberId))
-                .map(room -> toRoomView(room, memberId, List.of()))
+                .toList();
+        if (rooms.isEmpty()) {
+            return List.of();
+        }
+
+        Map<Long, Member> members = memberRepository.findAllById(rooms.stream()
+                        .map(room -> room.otherMemberId(memberId))
+                        .distinct()
+                        .toList())
+                .stream()
+                .collect(Collectors.toMap(Member::getId, Function.identity()));
+        Map<Long, Long> unreadCounts = chatMessageRepository.countUnreadByRoomIds(
+                        rooms.stream().map(ChatRoom::getId).toList(), memberId)
+                .stream()
+                .collect(Collectors.toMap(ChatMessageRepository.UnreadCountMetric::getRoomId,
+                        ChatMessageRepository.UnreadCountMetric::getCount));
+        List<Long> taskIds = rooms.stream()
+                        .map(ChatRoom::getTaskId)
+                        .filter(java.util.Objects::nonNull)
+                        .distinct()
+                        .toList();
+        Map<Long, Boolean> completedTasks = taskIds.isEmpty()
+                ? Map.of()
+                : taskRepository.findAllById(taskIds).stream()
+                        .collect(Collectors.toMap(Task::getId,
+                                task -> task.getStatus() == org.example._nd_project.task.TaskStatus.COMPLETED));
+        return rooms.stream()
+                .map(room -> toRoomView(room, memberId, List.of(), members, unreadCounts, completedTasks))
                 .toList();
     }
 
@@ -225,6 +255,21 @@ public class ChatService {
                 room.getId(), room.getTaskId(), room.getTaskTitle(), otherMemberId, otherNickname,
                 StringUtils.hasText(room.getLastMessagePreview()) ? room.getLastMessagePreview() : "대화를 시작해보세요.",
                 formatTime(room.getLastMessageAt()), unreadCount, messages, room.isTaskDeleted(), isTaskCompleted(room)
+        );
+    }
+
+    private ChatRoomView toRoomView(ChatRoom room, Long memberId, List<ChatMessageView> messages,
+                                    Map<Long, Member> members, Map<Long, Long> unreadCounts,
+                                    Map<Long, Boolean> completedTasks) {
+        Long otherMemberId = room.otherMemberId(memberId);
+        Member otherMember = members.get(otherMemberId);
+        String otherNickname = otherMember == null ? "사용자" : otherMember.getNickname();
+        boolean taskCompleted = room.getTaskId() != null && Boolean.TRUE.equals(completedTasks.get(room.getTaskId()));
+        return new ChatRoomView(
+                room.getId(), room.getTaskId(), room.getTaskTitle(), otherMemberId, otherNickname,
+                StringUtils.hasText(room.getLastMessagePreview()) ? room.getLastMessagePreview() : "대화를 시작해보세요.",
+                formatTime(room.getLastMessageAt()), unreadCounts.getOrDefault(room.getId(), 0L), messages,
+                room.isTaskDeleted(), taskCompleted
         );
     }
 

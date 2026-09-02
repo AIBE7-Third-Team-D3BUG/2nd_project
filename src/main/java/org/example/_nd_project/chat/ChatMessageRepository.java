@@ -13,11 +13,26 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
         long getSampleCount();
     }
 
+    interface UnreadCountMetric {
+        Long getRoomId();
+        long getCount();
+    }
+
     List<ChatMessage> findTop100ByRoomIdOrderBySentAtDescIdDesc(Long roomId);
     List<ChatMessage> findByRoomId(Long roomId);
     Optional<ChatMessage> findTopByRoomIdOrderBySentAtDescIdDesc(Long roomId);
     long countByRoomId(Long roomId);
     long countByRoomIdAndSenderIdNotAndReadAtIsNull(Long roomId, Long senderId);
+    @Query("""
+            select message.roomId as roomId, count(message) as count
+            from ChatMessage message
+            where message.roomId in :roomIds
+              and message.senderId <> :memberId
+              and message.readAt is null
+            group by message.roomId
+            """)
+    List<UnreadCountMetric> countUnreadByRoomIds(@Param("roomIds") List<Long> roomIds,
+                                                  @Param("memberId") Long memberId);
     @Modifying
     @Query("update ChatMessage m set m.readAt = :readAt where m.roomId = :roomId and m.senderId <> :memberId and m.readAt is null")
     int markRead(@Param("roomId") Long roomId, @Param("memberId") Long memberId, @Param("readAt") Instant readAt);

@@ -93,8 +93,13 @@ class ChatServiceTest {
         ChatRoom room = roomWithId(1L, 10L, 1L, 2L);
         room.markTaskDeleted();
         ReflectionTestUtils.setField(room, "taskId", null);
+        org.example._nd_project.member.Member otherMember = org.mockito.Mockito.mock(org.example._nd_project.member.Member.class);
+        when(otherMember.getId()).thenReturn(2L);
+        when(otherMember.getNickname()).thenReturn("작업자");
         when(chatRoomRepository.findByRequesterMemberIdOrWorkerMemberIdOrderByLastMessageAtDescUpdatedAtDesc(1L, 1L))
                 .thenReturn(List.of(room));
+        when(memberRepository.findAllById(List.of(2L))).thenReturn(List.of(otherMember));
+        when(chatMessageRepository.countUnreadByRoomIds(List.of(1L), 1L)).thenReturn(List.of());
 
         var rooms = chatService.getRooms(1L);
 

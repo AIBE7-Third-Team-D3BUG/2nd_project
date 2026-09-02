@@ -10,6 +10,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -20,6 +22,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
@@ -56,6 +59,18 @@ class ChatControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(view().name("chat"))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("아직 시작된 대화가 없어요")));
+    }
+
+    @Test
+    void missingChatRoomRedirectsHomeWithFriendlyError() throws Exception {
+        when(chatService.getRooms(1L)).thenReturn(List.of());
+        when(chatService.openRoom(99L, 1L))
+                .thenThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "채팅방을 찾을 수 없습니다."));
+
+        mockMvc.perform(get("/chat").param("room", "99").with(user(principal)))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/"))
+                .andExpect(flash().attribute("globalError", "요청한 페이지 또는 자료를 찾을 수 없습니다."));
     }
 
     @Test

@@ -270,6 +270,30 @@ class TaskProgressControllerTest {
     }
 
     @Test
+    void workerCanSeeDisputeFormAfterSubmittingResult() throws Exception {
+        MemberPrincipal worker = new MemberPrincipal(
+                8L, "worker@example.com", "password", "작업자", "USER", true
+        );
+        TaskProgressView progress = new TaskProgressView(
+                10L, "AWS 배포 후 502 오류 해결", "의뢰인", "작업자", "결과 확인", 120, "결과 확인",
+                false, true, false, false, false, false, false, false, false, 4,
+                List.of("서비스 정상 응답 확인"),
+                List.of(new TaskProgressView.ActivityView("결과가 제출되었습니다.", "작업자", "8월 24일 14:20", true)),
+                new TaskProgressView.SubmissionView("Nginx upstream 설정을 수정했습니다.", false, "제출 파일 열기",
+                        "8월 24일 14:20", null),
+                null
+        );
+        when(taskProgressService.getProgress(10L, 8L)).thenReturn(progress);
+
+        mockMvc.perform(get("/tasks/10/progress").with(user(worker)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("WORKER ACTION")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString(
+                        "결과를 제출했지만 의뢰인과 연락이 닿지 않거나 정산에 문제가 있다면 신고할 수 있습니다.")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("문제 신고 접수")));
+    }
+
+    @Test
     void requesterApprovalSubmitsReview() throws Exception {
         MemberPrincipal requester = new MemberPrincipal(
                 3L,
