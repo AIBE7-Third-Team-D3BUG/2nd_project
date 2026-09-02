@@ -185,9 +185,12 @@
 
     const content = document.getElementById("content");
     if (content) {
+        const draftKey = roomId ? `chat-draft-${roomId}` : null;
+        if (draftKey) content.value = sessionStorage.getItem(draftKey) || "";
         content.addEventListener("input", () => {
             content.style.height = "auto";
             content.style.height = Math.min(content.scrollHeight, 120) + "px";
+            if (draftKey) sessionStorage.setItem(draftKey, content.value);
         });
     }
 
@@ -235,6 +238,7 @@
             client.publish({ destination: `/app/chat/${roomId}/send`, body: JSON.stringify({ content: value }) });
             content.value = "";
             content.style.height = "auto";
+            if (roomId) sessionStorage.removeItem(`chat-draft-${roomId}`);
         });
     }
     const leaveButton = document.getElementById("leaveRoomButton");
