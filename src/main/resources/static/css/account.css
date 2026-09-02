@@ -495,6 +495,11 @@ h1 {
 .delay-metrics-grid span { color: var(--muted); font-size: 12px; }
 .delay-metrics-grid strong { display: block; margin-top: 8px; color: var(--ink); font-size: 20px; }
 .delay-metrics-guide { margin: 17px 0 0; color: #7b8492; font-size: 12px; line-height: 1.6; }
+.delay-policy-notice { display: grid; gap: 5px; margin-top: 15px; padding: 13px 15px; border: 1px solid var(--line); border-radius: 9px; font-size: 13px; line-height: 1.55; }
+.delay-policy-notice strong { font-size: 14px; }
+.delay-policy-notice.warning { color: #8a5a00; border-color: #f0d7a9; background: #fff7e7; }
+.delay-policy-notice.restricted { color: #b42318; border-color: #ffd8d3; background: #fff1f0; }
+.delay-policy-notice small { color: inherit; opacity: .8; }
 .written-reviews-card { padding: 30px 34px; }
 .written-reviews-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; margin-bottom: 22px; }
 .written-reviews-heading .eyebrow { margin-bottom: 9px; }

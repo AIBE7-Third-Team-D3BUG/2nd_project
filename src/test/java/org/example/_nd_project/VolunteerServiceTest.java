@@ -10,6 +10,7 @@ import org.example._nd_project.volunteer.Volunteer;
 import org.example._nd_project.volunteer.VolunteerRepository;
 import org.example._nd_project.volunteer.VolunteerService;
 import org.example._nd_project.volunteer.VolunteerStatus;
+import org.example._nd_project.volunteer.WorkerApplicationPolicyService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -27,6 +28,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.doThrow;
 
 @ExtendWith(MockitoExtension.class)
 class VolunteerServiceTest {
@@ -35,12 +37,14 @@ class VolunteerServiceTest {
     @Mock TaskRepository taskRepository;
     @Mock MemberRepository memberRepository;
     @Mock ChatService chatService;
+    @Mock WorkerApplicationPolicyService applicationPolicyService;
 
     private VolunteerService volunteerService;
 
     @BeforeEach
     void setUp() {
-        volunteerService = new VolunteerService(volunteerRepository, taskRepository, memberRepository, chatService);
+        volunteerService = new VolunteerService(
+                volunteerRepository, taskRepository, memberRepository, chatService, applicationPolicyService);
     }
 
     @Test
@@ -83,6 +87,22 @@ class VolunteerServiceTest {
     }
 
     @Test
+    void restrictedWorkerCannotCreateNewApplication() {
+        Task task = Task.create(1L, "title", "desc", TaskCategory.DEVELOPMENT, new String[0], 60,
+                Instant.now().plusSeconds(3600), "deliverable", null);
+        when(taskRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(task));
+        when(volunteerRepository.findByTaskIdAndMemberId(10L, 2L)).thenReturn(Optional.empty());
+        doThrow(new ResponseStatusException(org.springframework.http.HttpStatus.FORBIDDEN, "신규 업무 지원 제한"))
+                .when(applicationPolicyService).requireCanApply(2L);
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> volunteerService.apply(10L, 2L, "msg"));
+
+        assertEquals(org.springframework.http.HttpStatus.FORBIDDEN, exception.getStatusCode());
+        verify(volunteerRepository, never()).save(any(Volunteer.class));
+    }
+
+    @Test
     void nonOwnerCannotSelectVolunteer() {
         Task task = Task.create(1L, "title", "desc", TaskCategory.DEVELOPMENT, new String[0], 60,
                 Instant.now().plusSeconds(3600), "deliverable", null);
@@ -107,6 +127,7 @@ class VolunteerServiceTest {
         volunteerService.selectVolunteer(10L, 1L, 50L);
 
         verify(chatService).ensureRoomForTask(task);
+        verify(applicationPolicyService, never()).requireCanApply(2L);
         assertEquals(org.example._nd_project.task.TaskStatus.MATCHED, task.getStatus());
     }
 

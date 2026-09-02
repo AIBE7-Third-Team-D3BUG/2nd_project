@@ -46,6 +46,32 @@ public interface SubmissionRepository extends JpaRepository<Submission, Long> {
         );
     }
 
+    @Query("""
+            select submission.deadlineStatus as deadlineStatus,
+                   submission.deadlineAssessedAt as deadlineAssessedAt
+              from Submission submission
+             where submission.workerId = :workerId
+               and submission.deadlineAssessedAt >= :since
+               and submission.deadlineStatus in :penaltyStatuses
+             order by submission.deadlineAssessedAt asc, submission.id asc
+            """)
+    List<WorkerDelayEvent> queryWorkerDelayEvents(
+            @Param("workerId") Long workerId,
+            @Param("since") Instant since,
+            @Param("penaltyStatuses") Collection<SubmissionDeadlineAssessment.Status> penaltyStatuses
+    );
+
+    default List<WorkerDelayEvent> findWorkerDelayEvents(Long workerId, Instant since) {
+        if (workerId == null) {
+            return List.of();
+        }
+        return queryWorkerDelayEvents(
+                workerId,
+                since,
+                List.of(SubmissionDeadlineAssessment.Status.LATE, SubmissionDeadlineAssessment.Status.SEVERE)
+        );
+    }
+
     interface WorkerDelayMetric {
         Long getWorkerId();
         Long getSubmissionCount();
@@ -53,5 +79,10 @@ public interface SubmissionRepository extends JpaRepository<Submission, Long> {
         Long getLateCount();
         Long getSevereCount();
         Long getDelayPoints();
+    }
+
+    interface WorkerDelayEvent {
+        SubmissionDeadlineAssessment.Status getDeadlineStatus();
+        Instant getDeadlineAssessedAt();
     }
 }

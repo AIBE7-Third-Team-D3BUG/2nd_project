@@ -7,6 +7,7 @@ import org.example._nd_project.member.MemberService;
 import org.example._nd_project.security.MemberPrincipal;
 import org.example._nd_project.task.TaskCreateForm;
 import org.example._nd_project.task.TaskService;
+import org.example._nd_project.volunteer.WorkerApplicationEligibility;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -91,6 +92,7 @@ class HomeControllerTest {
     }
 
     private MemberProfileView profile(int availableMinutes, int reservedMinutes) {
+        WorkerDelayMetrics delayMetrics = WorkerDelayMetrics.empty(90);
         return new MemberProfileView(
                 3L,
                 "member@example.com",
@@ -106,7 +108,8 @@ class HomeControllerTest {
                 availableMinutes,
                 reservedMinutes,
                 Instant.now(),
-                WorkerDelayMetrics.empty(90)
+                delayMetrics,
+                new WorkerApplicationEligibility(delayMetrics, false, false, null)
         );
     }
 }

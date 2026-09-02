@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import org.springframework.web.servlet.view.RedirectView;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.format.DateTimeFormatter;
 
@@ -152,7 +153,10 @@ public class TaskController {
             volunteerService.apply(taskId, principal.memberId(), message);
             redirectAttributes.addFlashAttribute("appliedSuccess", true);
         } catch (Exception exception) {
-            redirectAttributes.addFlashAttribute("applyError", exception.getMessage());
+            String errorMessage = exception instanceof ResponseStatusException response && response.getReason() != null
+                    ? response.getReason()
+                    : exception.getMessage();
+            redirectAttributes.addFlashAttribute("applyError", errorMessage);
         }
         return "redirect:/?view=detail&taskId=" + taskId;
     }

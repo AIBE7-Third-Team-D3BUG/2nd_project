@@ -28,15 +28,18 @@ public class VolunteerService {
     private final TaskRepository taskRepository;
     private final MemberRepository memberRepository;
     private final ChatService chatService;
+    private final WorkerApplicationPolicyService applicationPolicyService;
 
     public VolunteerService(VolunteerRepository volunteerRepository,
                             TaskRepository taskRepository,
                             MemberRepository memberRepository,
-                            ChatService chatService) {
+                            ChatService chatService,
+                            WorkerApplicationPolicyService applicationPolicyService) {
         this.volunteerRepository = volunteerRepository;
         this.taskRepository = taskRepository;
         this.memberRepository = memberRepository;
         this.chatService = chatService;
+        this.applicationPolicyService = applicationPolicyService;
     }
 
     @Transactional
@@ -56,10 +59,12 @@ public class VolunteerService {
             if (existing.getStatus() == VolunteerStatus.APPLIED || existing.getStatus() == VolunteerStatus.ACCEPTED) {
                 throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 지원한 업무입니다.");
             }
+            applicationPolicyService.requireCanApply(memberId);
             existing.resetToApplied();
             return volunteerRepository.save(existing);
         }
 
+        applicationPolicyService.requireCanApply(memberId);
         Volunteer volunteer = Volunteer.create(taskId, memberId, message == null ? "" : message.trim());
         return volunteerRepository.save(volunteer);
     }

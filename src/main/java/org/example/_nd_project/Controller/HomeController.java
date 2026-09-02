@@ -121,6 +121,7 @@ public class HomeController {
             ));
         }
         MemberProfileView profile = principal == null ? null : memberService.getProfile(principal.memberId());
+        model.addAttribute("applicationEligibility", profile == null ? null : profile.applicationEligibility());
         int availableMinutes = profile == null ? 0 : profile.availableMinutes();
         int reservedMinutes = profile == null ? 0 : profile.reservedMinutes();
         model.addAttribute("currentAvailablePum", availableMinutes / 30);

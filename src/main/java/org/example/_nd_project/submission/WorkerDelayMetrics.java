@@ -32,7 +32,7 @@ public record WorkerDelayMetrics(
         if (delayPoints == 0) return "양호";
         if (delayPoints < 3) return "관찰";
         if (delayPoints < 5) return "주의";
-        return "경고";
+        return "지원 제한";
     }
 
     public String statusTone() {
