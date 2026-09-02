@@ -1,8 +1,11 @@
 package org.example._nd_project.submission;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+
+import jakarta.persistence.LockModeType;
 
 import java.time.Instant;
 import java.util.Collection;
@@ -11,6 +14,10 @@ import java.util.Optional;
 
 public interface SubmissionRepository extends JpaRepository<Submission, Long> {
     Optional<Submission> findByTaskId(Long taskId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select submission from Submission submission where submission.taskId = :taskId")
+    Optional<Submission> findByTaskIdForUpdate(@Param("taskId") Long taskId);
 
     @Query("""
             select submission.workerId as workerId,
@@ -23,6 +30,7 @@ public interface SubmissionRepository extends JpaRepository<Submission, Long> {
               from Submission submission
              where submission.workerId in :workerIds
                and submission.deadlineAssessedAt >= :since
+               and submission.penaltyExempted = false
              group by submission.workerId
             """)
     List<WorkerDelayMetric> queryWorkerDelayMetrics(
@@ -53,6 +61,7 @@ public interface SubmissionRepository extends JpaRepository<Submission, Long> {
              where submission.workerId = :workerId
                and submission.deadlineAssessedAt >= :since
                and submission.deadlineStatus in :penaltyStatuses
+               and submission.penaltyExempted = false
              order by submission.deadlineAssessedAt asc, submission.id asc
             """)
     List<WorkerDelayEvent> queryWorkerDelayEvents(

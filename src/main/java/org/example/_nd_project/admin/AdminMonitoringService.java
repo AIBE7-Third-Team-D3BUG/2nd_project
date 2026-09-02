@@ -13,6 +13,7 @@ import org.example._nd_project.submission.DisputeRepository;
 import org.example._nd_project.submission.Review;
 import org.example._nd_project.submission.ReviewRepository;
 import org.example._nd_project.submission.Submission;
+import org.example._nd_project.submission.SubmissionDeadlineAssessment;
 import org.example._nd_project.submission.SubmissionRepository;
 import org.example._nd_project.task.Task;
 import org.example._nd_project.task.TaskRepository;
@@ -177,9 +178,14 @@ public class AdminMonitoringService {
     public AdminTaskProgressView getTaskProgress(Long taskId) {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "업무를 찾을 수 없습니다."));
-        Map<Long, Member> members = memberMap(task.getWorkerId() == null
-                ? List.of(task.getRequesterId()) : List.of(task.getRequesterId(), task.getWorkerId()));
         Submission submission = submissionRepository.findByTaskId(taskId).orElse(null);
+        List<Long> memberIds = new ArrayList<>();
+        memberIds.add(task.getRequesterId());
+        if (task.getWorkerId() != null) memberIds.add(task.getWorkerId());
+        if (submission != null && submission.getPenaltyExemptedBy() != null) {
+            memberIds.add(submission.getPenaltyExemptedBy());
+        }
+        Map<Long, Member> members = memberMap(memberIds);
         Review review = reviewRepository.findByTaskId(taskId).orElse(null);
         Dispute dispute = disputeRepository.findByTaskId(taskId).orElse(null);
         ChatRoom room = chatRoomRepository.findByTaskId(taskId).orElse(null);
@@ -189,9 +195,34 @@ public class AdminMonitoringService {
                 task.getWorkerId() == null ? "미정" : memberName(members, task.getWorkerId()),
                 task.getRequestedMinutes() / 30, format(task.getDeadlineAt()),
                 task.getDeadlineAt().isBefore(Instant.now()) && !List.of(TaskStatus.COMPLETED, TaskStatus.CANCELLED).contains(task.getStatus()),
-                timeline(task), submissionRow(submission), reviewRow(review), disputeRow(dispute, members),
+                timeline(task), submissionRow(submission, members), reviewRow(review), disputeRow(dispute, members),
                 room == null ? null : room.getId(), room == null ? 0 : chatMessageRepository.countByRoomId(room.getId())
         );
+    }
+
+    @Transactional
+    public void exemptSubmissionDelayPenalty(Long adminId, Long taskId, String reason) {
+        requireAdmin(adminId);
+        String normalizedReason = requireReason(reason);
+        Submission submission = requireSubmissionForUpdate(taskId);
+        submission.exemptDelayPenalty(adminId, normalizedReason, Instant.now());
+        audit(adminId, "SUBMISSION_DELAY_PENALTY_EXEMPTED", "SUBMISSION", submission.getId(),
+                "업무 #" + taskId + " · 작업자 #" + submission.getWorkerId() + " · " + normalizedReason);
+    }
+
+    @Transactional
+    public void restoreSubmissionDelayPenalty(Long adminId, Long taskId, String reason) {
+        requireAdmin(adminId);
+        String normalizedReason = requireReason(reason);
+        Submission submission = requireSubmissionForUpdate(taskId);
+        String previousReason = submission.getPenaltyExemptionReason();
+        Long previousAdminId = submission.getPenaltyExemptedBy();
+        submission.restoreDelayPenalty();
+        audit(adminId, "SUBMISSION_DELAY_PENALTY_RESTORED", "SUBMISSION", submission.getId(),
+                "업무 #" + taskId + " · 작업자 #" + submission.getWorkerId()
+                        + " · 면제 취소 사유: " + normalizedReason
+                        + " · 기존 면제 관리자 #" + previousAdminId
+                        + " · 기존 면제 사유: " + previousReason);
     }
 
     private List<AdminTaskProgressView.TimelineRow> timeline(Task task) {
@@ -210,16 +241,21 @@ public class AdminMonitoringService {
         return new AdminTaskProgressView.TimelineRow(step, format(time), time != null, current);
     }
 
-    private AdminTaskProgressView.SubmissionRow submissionRow(Submission value) {
+    private AdminTaskProgressView.SubmissionRow submissionRow(Submission value, Map<Long, Member> members) {
         if (value == null) {
             return null;
         }
         var deadlineAssessment = value.getDeadlineAssessment();
+        boolean penaltyEligible = deadlineAssessment.status() == SubmissionDeadlineAssessment.Status.LATE
+                || deadlineAssessment.status() == SubmissionDeadlineAssessment.Status.SEVERE;
         return new AdminTaskProgressView.SubmissionRow(
                 value.getResultDescription(), value.getActualMinutes() / 30, value.getRequesterNote(),
                 StringUtils.hasText(value.getResultFileUrl()), format(value.getCreatedAt()), format(value.getUpdatedAt()),
                 deadlineAssessment.label(), deadlineAssessment.lateMinutes(), deadlineAssessment.deadlineMet(),
-                deadlineAssessment.severe(), format(value.getDeadlineAssessedAt()));
+                deadlineAssessment.severe(), format(value.getDeadlineAssessedAt()),
+                penaltyEligible, value.isPenaltyExempted(), value.getPenaltyExemptionReason(),
+                value.getPenaltyExemptedBy() == null ? null : memberName(members, value.getPenaltyExemptedBy()),
+                format(value.getPenaltyExemptedAt()));
     }
 
     private AdminTaskProgressView.ReviewRow reviewRow(Review value) {
@@ -267,6 +303,11 @@ public class AdminMonitoringService {
     private ChatMessage requireMessage(Long messageId) {
         return chatMessageRepository.findById(messageId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "메시지를 찾을 수 없습니다."));
+    }
+
+    private Submission requireSubmissionForUpdate(Long taskId) {
+        return submissionRepository.findByTaskIdForUpdate(taskId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "제출 결과를 찾을 수 없습니다."));
     }
 
     private String requireReason(String reason) {

@@ -12,7 +12,10 @@ public record AdminTaskProgressView(
     public record SubmissionRow(String resultDescription, int actualPum, String requesterNote,
                                 boolean hasResultFile, String createdAtLabel, String updatedAtLabel,
                                 String deadlineLabel, long lateMinutes, boolean deadlineMet,
-                                boolean severe, String deadlineAssessedAtLabel) {}
+                                boolean severe, String deadlineAssessedAtLabel,
+                                boolean penaltyEligible, boolean penaltyExempted,
+                                String penaltyExemptionReason, String penaltyExemptedByName,
+                                String penaltyExemptedAtLabel) {}
     public record ReviewRow(int rating, String content, Boolean deadlineMet, String createdAtLabel) {}
     public record DisputeRow(String status, String openedBy, String description,
                              String resolutionNote, String createdAtLabel, String resolvedAtLabel) {}

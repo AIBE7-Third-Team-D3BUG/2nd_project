@@ -32,9 +32,12 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -141,6 +144,45 @@ class AdminMonitoringServiceTest {
         assertEquals(20, result.submission().lateMinutes());
         assertEquals("결과 제출이 20분 지연되고 있습니다.", result.submission().deadlineLabel());
         assertEquals(false, result.submission().deadlineMet());
+        assertTrue(result.submission().penaltyEligible());
+        assertFalse(result.submission().penaltyExempted());
+    }
+
+    @Test
+    void adminCanExemptAndRestoreLateSubmissionPenaltyWithAuditTrail() {
+        Instant submittedAt = Instant.now();
+        Member admin = member(1L, MemberRole.ADMIN);
+        Submission submission = Submission.create(
+                10L,
+                3L,
+                "지연 제출 결과",
+                null,
+                120,
+                new SubmissionDeadlineAssessment(
+                        SubmissionDeadlineAssessment.Status.SEVERE,
+                        true,
+                        70,
+                        60
+                ),
+                submittedAt
+        );
+        ReflectionTestUtils.setField(submission, "id", 40L);
+        when(memberRepository.findById(1L)).thenReturn(Optional.of(admin));
+        when(submissionRepository.findByTaskIdForUpdate(10L)).thenReturn(Optional.of(submission));
+
+        service.exemptSubmissionDelayPenalty(1L, 10L, "플랫폼 장애 확인");
+
+        assertTrue(submission.isPenaltyExempted());
+        assertEquals("플랫폼 장애 확인", submission.getPenaltyExemptionReason());
+        assertEquals(1L, submission.getPenaltyExemptedBy());
+
+        service.restoreSubmissionDelayPenalty(1L, 10L, "장애 시간과 제출 지연 시간이 다름");
+
+        assertFalse(submission.isPenaltyExempted());
+        assertNull(submission.getPenaltyExemptionReason());
+        assertNull(submission.getPenaltyExemptedBy());
+        assertNull(submission.getPenaltyExemptedAt());
+        verify(auditLogRepository, times(2)).save(any(AdminAuditLog.class));
     }
 
     @Test

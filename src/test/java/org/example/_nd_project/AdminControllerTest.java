@@ -24,8 +24,11 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.List;
 
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -88,7 +91,7 @@ class AdminControllerTest {
                         "결과 제출", 4, null, false,
                         "2026.08.27 18:15", "2026.08.27 18:15",
                         "결과 제출이 15분 지연되고 있습니다.", 15, false, false,
-                        "2026.08.27 18:15"
+                        "2026.08.27 18:15", true, false, null, null, "-"
                 ),
                 null, null, 20L, 0);
         when(adminMonitoringService.getChatRoom(20L)).thenReturn(chat);
@@ -106,6 +109,28 @@ class AdminControllerTest {
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("지연 15분")))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString(
                         "수정 제출 시에도 변경되지 않음")));
+    }
+
+    @Test
+    void adminCanExemptAndRestoreSubmissionDelayPenalty() throws Exception {
+        MemberPrincipal admin = new MemberPrincipal(1L, "admin@example.com", "hash", "관리자", "ADMIN", true);
+
+        mockMvc.perform(post("/admin/tasks/10/submission-penalty/exempt")
+                        .with(user(admin)).with(csrf())
+                        .param("reason", "서비스 장애로 인한 제출 지연"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/admin/tasks/10/progress"));
+
+        mockMvc.perform(post("/admin/tasks/10/submission-penalty/restore")
+                        .with(user(admin)).with(csrf())
+                        .param("reason", "면제 근거가 확인되지 않음"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/admin/tasks/10/progress"));
+
+        verify(adminMonitoringService).exemptSubmissionDelayPenalty(
+                1L, 10L, "서비스 장애로 인한 제출 지연");
+        verify(adminMonitoringService).restoreSubmissionDelayPenalty(
+                1L, 10L, "면제 근거가 확인되지 않음");
     }
 
     private AdminDashboardView emptyDashboard() {
